@@ -78,6 +78,9 @@ class TvdeActivityController extends Controller
             $table->editColumn('net', function ($row) {
                 return $row->net ? $row->net : '';
             });
+            $table->editColumn('tips', function ($row) {
+                return $row->tips ? $row->tips : '';
+            });
 
             $table->rawColumns(['actions', 'placeholder', 'tvde_week', 'tvde_operator', 'company']);
 

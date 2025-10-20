@@ -67,6 +67,9 @@
                                     {{ trans('cruds.tvdeActivity.fields.net') }}
                                 </th>
                                 <th>
+                                    {{ trans('cruds.tvdeActivity.fields.tips') }}
+                                </th>
+                                <th>
                                     &nbsp;
                                 </th>
                             </tr>
@@ -132,6 +135,7 @@
 { data: 'driver_code', name: 'driver_code' },
 { data: 'gross', name: 'gross' },
 { data: 'net', name: 'net' },
+{ data: 'tips', name: 'tips' },
 { data: 'actions', name: '{{ trans('global.actions') }}' }
     ],
     orderCellsTop: true,

@@ -71,6 +71,14 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.tvdeActivity.fields.net_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('tips') ? 'has-error' : '' }}">
+                            <label for="tips">{{ trans('cruds.tvdeActivity.fields.tips') }}</label>
+                            <input class="form-control" type="number" name="tips" id="tips" value="{{ old('tips', '') }}" step="0.01">
+                            @if($errors->has('tips'))
+                                <span class="help-block" role="alert">{{ $errors->first('tips') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.tvdeActivity.fields.tips_helper') }}</span>
+                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}

@@ -26,6 +26,7 @@ class TvdeActivity extends Model
         'driver_code',
         'gross',
         'net',
+        'tips',
         'created_at',
         'updated_at',
         'deleted_at',
