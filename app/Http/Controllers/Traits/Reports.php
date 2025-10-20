@@ -31,7 +31,6 @@ trait Reports
 {
     public function getWeekReport($company_id, $tvde_week_id)
     {
-
         $tvde_week = TvdeWeek::find($tvde_week_id);
 
         $drivers = Driver::where('company_id', $company_id)
@@ -46,77 +45,89 @@ trait Reports
                 'cards'
             ]);
 
+        // Totais (mantendo compatibilidade com a versão anterior)
         $total_operators = [];
-        $total_earnings_after_discount = [];
+        $total_earnings_after_discount = []; // legado (calculado como antes, a partir de gross_total e VAT)
         $total_fuel_transactions = [];
         $total_adjustments = [];
         $total_fleet_management = [];
         $total_drivers = [];
         $total_company_adjustments = [];
         $total_vat_value = [];
-        $total_earnings_after_vat = [];
+        $total_earnings_after_vat = []; // compat: soma de total_after_vat (alias do after_vat)
         $total_car_track = [];
         $total_car_hire = [];
         $total_net_operators = [];
 
+        // Novos agregados úteis
+        $gross_uber = [];
+        $gross_bolt = [];
+        $net_uber = [];
+        $net_bolt = [];
+
+        // Novos totais de tips e etapas do pipeline
+        $uber_tips_total = [];
+        $bolt_tips_total = [];
+        $tips_total_all = [];
+        $total_base_before_vat = [];
+        $total_after_vat_arr = [];           // novo (after_vat)
+        $total_after_vat_plus_tips = [];     // after_vat + tips
+
         foreach ($drivers as $driver) {
 
+            // ---------- Atividades UBER ----------
             $uber_activities = TvdeActivity::where([
                 'company_id' => $company_id,
                 'tvde_operator_id' => 1,
                 'tvde_week_id' => $tvde_week_id,
                 'driver_code' => $driver->uber_uuid
-            ])
-                ->get();
+            ])->get();
 
-            $uber_gross = $uber_activities->sum('gross');
-            $uber_net = $uber_activities->sum('net');
+            $uber_gross = (float) $uber_activities->sum('gross');
+            $uber_net   = (float) $uber_activities->sum('net');
+            // tips podem vir null em alguns registos -> tratamos como 0
+            $uber_tips  = (float) $uber_activities->sum(function ($a) {
+                return $a->tips ?? 0;
+            });
 
+            // ---------- Atividades BOLT ----------
             $bolt_activities = TvdeActivity::where([
                 'company_id' => $company_id,
                 'tvde_operator_id' => 2,
                 'tvde_week_id' => $tvde_week_id,
                 'driver_code' => $driver->bolt_name
-            ])
-                ->get();
+            ])->get();
 
-            $bolt_gross = $bolt_activities->sum('gross');
-            $bolt_net = $bolt_activities->sum('net');
+            $bolt_gross = (float) $bolt_activities->sum('gross');
+            $bolt_net   = (float) $bolt_activities->sum('net');
+            $bolt_tips  = (float) $bolt_activities->sum(function ($a) {
+                return $a->tips ?? 0;
+            });
 
-            //EARNINGS
-
+            // EARNINGS (por operador)
             $uber = collect([
                 'uber_gross' => $uber_gross,
-                'uber_net' => $uber_net,
+                'uber_net'   => $uber_net,
+                'uber_tips'  => $uber_tips,
             ]);
 
             $bolt = collect([
                 'bolt_gross' => $bolt_gross,
-                'bolt_net' => $bolt_net,
+                'bolt_net'   => $bolt_net,
+                'bolt_tips'  => $bolt_tips,
             ]);
 
             $gross_total = $uber_gross + $bolt_gross;
-            $net_total = $uber_net + $bolt_net;
+            $net_total   = $uber_net   + $bolt_net;
 
-            //CONTRACT VAT
-
-            $vat = $driver->contract_vat->percent;
-            $vat_factor = ($vat / 100) + 1;
-            $earnings_after_discount = ($gross_total / $vat_factor);
-            $vat_value = $gross_total - $earnings_after_discount;
-
-            $total_after_vat = $net_total - $vat_value;
-
-            //FUEL
-
+            // ---------- FUEL (combustão/eléctrico) ----------
             $fuel_transactions = 0;
 
             if ($driver->electric) {
-                $electric_transactions = ElectricTransaction::where([
+                $electric_transactions = (float) ElectricTransaction::where([
                     'tvde_week_id' => $tvde_week_id,
                     'card' => $driver->electric->code
-                ])
-                    ->sum('total');
+                ])->sum('total');
 
                 if ($electric_transactions > 0) {
                     $fuel_transactions = $electric_transactions;
@@ -124,46 +135,39 @@ trait Reports
             }
 
             if ($driver->cards) {
-                $fuel_transactions = [];
+                $fuel_sum_list = [];
                 foreach ($driver->cards as $card) {
-                    $combustion_transactions = CombustionTransaction::where([
+                    $combustion_transactions = (float) CombustionTransaction::where([
                         'tvde_week_id' => $tvde_week_id,
                         'card' => $card->code
-                    ])
-                        ->sum('total');
+                    ])->sum('total');
 
                     if ($combustion_transactions > 0) {
-                        $fuel_transactions[] = $combustion_transactions;
+                        $fuel_sum_list[] = $combustion_transactions;
                     }
                 }
-                $fuel_transactions = array_sum($fuel_transactions);
+                $fuel_transactions = array_sum($fuel_sum_list);
             } elseif ($driver->card) {
-                $combustion_transactions = CombustionTransaction::where([
+                $combustion_transactions = (float) CombustionTransaction::where([
                     'tvde_week_id' => $tvde_week_id,
                     'card' => $driver->card->code
-                ])
-                    ->sum('total');
+                ])->sum('total');
 
                 if ($combustion_transactions > 0) {
                     $fuel_transactions = $combustion_transactions;
                 }
             }
 
-            if($driver->half_tolls && $fuel_transactions > 0) {
+            if ($driver->half_tolls && $fuel_transactions > 0) {
                 $fuel_transactions = $fuel_transactions / 2;
             }
 
-            $driver->fuel = $fuel_transactions;
+            // ---------- TESLA ----------
+            $tesla_total = 0.0;
 
-            //TESLA
-
-            $tesla_total = 0;
-
-            // Buscar todos carregamentos Tesla na semana
             $tesla_chargings = TeslaCharging::whereBetween('datetime', [$tvde_week->start_date, $tvde_week->end_date])->get();
 
             foreach ($tesla_chargings as $charging) {
-                // Procurar VehicleUsage do carro do carregamento na data do charging
                 $usage = VehicleUsage::whereHas('vehicle_item', function ($query) use ($charging) {
                     $query->whereRaw('REPLACE(UPPER(license_plate), "-", "") = ?', [
                         str_replace('-', '', strtoupper($charging->license))
@@ -176,22 +180,17 @@ trait Reports
                     })
                     ->first();
 
-                // Se usage encontrado e pertence a este driver, soma valor
                 if ($usage && $usage->driver_id === $driver->id) {
-                    $tesla_total += $charging->value;
+                    $tesla_total += (float) $charging->value;
                 }
             }
 
-            // Soma TeslaCharging ao total de combustível do driver
-            $driver->fuel += $tesla_total;
-
+            // Garantir número em fuel
+            $driver->fuel = (float) $fuel_transactions + (float) $tesla_total;
             $total_fuel_transactions[] = $driver->fuel;
 
-            //CAR HIRE
-
-            $car_hire = CarHire::where([
-                'driver_id' => $driver->id,
-            ])
+            // ---------- CAR HIRE ----------
+            $car_hire = CarHire::where(['driver_id' => $driver->id])
                 ->where(function ($query) use ($tvde_week) {
                     $query->where('start_date', '<=', $tvde_week->start_date)
                         ->orWhereNull('start_date');
@@ -202,7 +201,9 @@ trait Reports
                 })
                 ->first();
 
-            //ADJUSTMENTS
+            $rent_value = $car_hire ? (float) $car_hire->amount : 0.0;
+
+            // ---------- ADJUSTMENTS ----------
             $adjustments_array = Adjustment::whereHas('drivers', function ($query) use ($driver) {
                 $query->where('id', $driver->id);
             })
@@ -225,22 +226,23 @@ trait Reports
             foreach ($adjustments_array as $adjustment) {
                 if ($adjustment->type == 'deduct') {
                     if ($adjustment->fleet_management) {
-                        $fleet_management[] = $adjustment->amount;
+                        $fleet_management[] = (float) $adjustment->amount;
                     } else {
-                        $deducts[] = $adjustment->amount;
+                        $deducts[] = (float) $adjustment->amount;
                     }
                 } else {
                     if ($adjustment->fleet_management) {
-                        $fleet_management[] = (-$adjustment->amount);
+                        $fleet_management[] = (float) -$adjustment->amount;
                     } else {
-                        $refunds[] = $adjustment->amount;
+                        $refunds[] = (float) $adjustment->amount;
                     }
                 }
+
                 if ($adjustment->company_expense) {
                     if ($adjustment->type == 'deduct') {
-                        $company_expense[] = -$adjustment->amount;
+                        $company_expense[] = (float) -$adjustment->amount;
                     } else {
-                        $company_expense[] = $adjustment->amount;
+                        $company_expense[] = (float) $adjustment->amount;
                     }
                 }
             }
@@ -249,51 +251,91 @@ trait Reports
             $deducts = array_sum($deducts);
             $adjustments = $refunds - $deducts;
 
-            $total_adjustments[] = $adjustments;
-
             $fleet_management = array_sum($fleet_management);
-
+            $total_adjustments[] = $adjustments;
             $total_fleet_management[] = $fleet_management;
-
             $total_company_adjustments[] = array_sum($company_expense);
 
-            // --- CAR TRACK (Via Verde) atribuído ao motorista ativo na data ---
+            // ---------- CAR TRACK (Via Verde) ----------
             $car_track = 0.0;
-
             if ($tvde_week->id) {
-                $car_track = \DB::table('car_tracks as ct')
+                $car_track = (float) \DB::table('car_tracks as ct')
                     ->join('vehicle_items as vi', 'vi.license_plate', '=', 'ct.license_plate')
                     ->join('vehicle_usages as vu', 'vu.vehicle_item_id', '=', 'vi.id')
-                    ->where('ct.tvde_week_id', $tvde_week->id)          // registos CarTrack dessa semana
-                    ->where('vu.driver_id', $driver->id)                 // atribuir ao teu motorista
-                    // motorista ativo nessa viatura na data do CarTrack
+                    ->where('ct.tvde_week_id', $tvde_week->id)
+                    ->where('vu.driver_id', $driver->id)
                     ->whereColumn('vu.start_date', '<=', 'ct.date')
                     ->where(function ($q) {
                         $q->whereNull('vu.end_date')
                             ->orWhereColumn('vu.end_date', '>=', 'ct.date');
                     })
-                    // (Opcional) Contar apenas utilização "real"
                     ->where(function ($q) {
                         $q->whereNull('vu.usage_exceptions')
                             ->orWhere('vu.usage_exceptions', 'usage');
                     })
                     ->sum('ct.value');
-
             }
 
+            // =======================
+            // PIPELINE NOVO COM TIPS
+            // =======================
+            $tips_total = $uber_tips + $bolt_tips;
+
+            // 1) Base: líquidos uber+bolt
+            $base_liquida = $net_total;
+
+            // 2) Retirar tips e abastecimento
+            $base_before_vat = $base_liquida - $tips_total - $driver->fuel;
+
+            // 3) Calcular e retirar IVA (usando percent do contract_vat; se faltar, 0%)
+            $vat = $driver->contract_vat ? (float) $driver->contract_vat->percent : 0.0;
+            $vat_factor = ($vat / 100) + 1;
+
+            // Evitar divisão por zero
+            $after_vat = ($vat_factor > 0) ? ($base_before_vat / $vat_factor) : $base_before_vat;
+            $vat_value = $base_before_vat - $after_vat;
+
+            // Alias para compatibilidade com código que ainda lê "total_after_vat"
+            $total_after_vat_alias = $after_vat;
+
+            // 4) Somar novamente as tips
+            $subtotal_after_tips = $after_vat + $tips_total;
+
+            // 5) Retirar rent e Via Verde
+            // 6) Processar ajustes e subtrair fleet_management
+            $final_total = $subtotal_after_tips + $adjustments - $fleet_management - $car_track - $rent_value;
+
+            // ---------- LEGADO: earnings_after_discount (como dantes, a partir do gross_total e VAT) ----------
+            // Isto mantém compatibilidade com o total_earnings_after_discount original.
+            $legacy_vat_factor = ($vat / 100) + 1;
+            $earnings_after_discount = ($legacy_vat_factor > 0) ? ($gross_total / $legacy_vat_factor) : $gross_total;
+
+            // ---------- Guardar breakdown no driver ----------
             $earnings = collect([
                 'uber' => $uber,
                 'bolt' => $bolt,
                 'total_gross' => $gross_total,
                 'total_net' => $net_total,
-                'car_track' => $car_track ?? 0,
+
+                // Tips e etapas do pipeline
+                'tips_total' => $tips_total,
+                'base_before_vat' => $base_before_vat,
                 'vat_value' => $vat_value,
-                'total_after_vat' => $total_after_vat,
-                'adjustments' => $adjustments,
+                'after_vat' => $after_vat,                   // novo
+                'total_after_vat' => $total_after_vat_alias, // alias compat
+                'subtotal_after_tips' => $subtotal_after_tips,
+
+                // Custos e ajustes
+                'car_track' => $car_track,
                 'fuel_transactions' => $driver->fuel,
-                'car_hire' => $car_hire ? $car_hire->amount : 0,
-                'company_expense' => $total_company_adjustments,
-                'adjustments_array' => $adjustments_array
+                'car_hire' => $rent_value,
+                'adjustments' => $adjustments,
+                'fleet_management' => $fleet_management,
+                'company_expense' => array_sum($company_expense),
+
+                // Legado
+                'earnings_after_discount' => $earnings_after_discount,
+                'adjustments_array' => $adjustments_array,
             ]);
 
             $driver->earnings = $earnings;
@@ -301,61 +343,86 @@ trait Reports
             $driver->adjustments = $adjustments;
             $driver->fleet_management = $fleet_management;
 
-            //BALANCE
+            // BALANCE
             $driver_balance = DriversBalance::where('driver_id', $driver->id)->orderBy('id', 'desc')->first();
+            $driver->balance = $driver_balance ? (float) $driver_balance->drivers_balance : 0.0;
 
-            $driver->balance = $driver_balance ? $driver_balance->drivers_balance : 0;
-
-            $driver->total = $total_after_vat - $driver->fuel + $adjustments - $fleet_management - $driver->earnings['car_track'] - ($car_hire ? $car_hire->amount : 0);
-
+            // Totais finais do driver (pipeline novo)
+            $driver->total = $final_total;
             $driver->final_total = $driver->total;
-
             $driver->final_total_balance = $driver->final_total + $driver->balance;
 
-            $earnings['total'] = $driver->total;
-
+            // ---------- Alimentar arrays de totais ----------
             $gross_uber[] = $uber_gross;
             $gross_bolt[] = $bolt_gross;
-            $total_operators[] = $gross_total;
-            $total_net_operators[] = $net_total ?? 0;
             $net_uber[] = $uber_net;
             $net_bolt[] = $bolt_net;
-            $total_earnings_after_discount[] = $earnings_after_discount;
-            $total_drivers[] = $driver->total;
-            $total_vat_value[] = $vat_value;
-            $total_earnings_after_vat[] = $total_after_vat;
-            $total_car_track[] = $driver->earnings['car_track'];
-            $total_car_hire[] = $car_hire ? $car_hire->amount : 0;
 
+            $total_operators[] = $gross_total;
+            $total_net_operators[] = $net_total;
+            $total_vat_value[] = $vat_value;
+            $total_car_track[] = $car_track;
+            $total_car_hire[] = $rent_value;
+            $total_drivers[] = $driver->total;
+
+            // Novos totais
+            $uber_tips_total[] = $uber_tips;
+            $bolt_tips_total[] = $bolt_tips;
+            $tips_total_all[]  = $tips_total;
+            $total_base_before_vat[] = $base_before_vat;
+            $total_after_vat_arr[]   = $after_vat;
+            $total_after_vat_plus_tips[] = $subtotal_after_tips;
+
+            // Compat com chave antiga total_earnings_after_discount
+            $total_earnings_after_discount[] = $earnings_after_discount;
+
+            // Compat com chave antiga total_earnings_after_vat
+            $total_earnings_after_vat[] = $total_after_vat_alias;
+
+            // current_account flag
             $current_account = CurrentAccount::where([
                 'tvde_week_id' => $tvde_week_id,
                 'driver_id' => $driver->id,
             ])->first();
 
-            if ($current_account) {
-                $driver->current_account = true;
-            } else {
-                $driver->current_account = false;
-            }
+            $driver->current_account = (bool) $current_account;
         }
 
         $totals = collect([
-            'gross_uber' => isset($gross_uber) ? array_sum($gross_uber) : 0,
-            'gross_bolt' => isset($gross_bolt) ? array_sum($gross_bolt) : 0,
-            'net_uber' => isset($net_uber) ? array_sum($net_uber) : 0,
-            'net_bolt' => isset($net_bolt) ? array_sum($net_bolt) : 0,
+            // Operadores (brutos e líquidos)
+            'gross_uber' => array_sum($gross_uber),
+            'gross_bolt' => array_sum($gross_bolt),
+            'net_uber' => array_sum($net_uber),
+            'net_bolt' => array_sum($net_bolt),
+
             'total_operators' => array_sum($total_operators),
-            'total_earnings_after_discount' => array_sum($total_earnings_after_discount),
-            'total_fuel_transactions' => array_sum($total_fuel_transactions),
-            'total_adjustments' => array_sum($total_adjustments),
-            'total_fleet_management' => array_sum($total_fleet_management),
-            'total_drivers' => array_sum($total_drivers),
-            'total_company_adjustments' => array_sum($total_company_adjustments),
-            'total_vat_value' => array_sum($total_vat_value),
             'total_net_operators' => array_sum($total_net_operators),
-            'total_earnings_after_vat' => array_sum($total_earnings_after_vat),
-            'total_car_track' => array_sum($total_car_track),
-            'total_car_hire' => array_sum($total_car_hire),
+
+            // Tips
+            'uber_tips_total' => array_sum($uber_tips_total),
+            'bolt_tips_total' => array_sum($bolt_tips_total),
+            'tips_total'      => array_sum($tips_total_all),
+
+            // Pipeline
+            'total_base_before_vat'     => array_sum($total_base_before_vat),
+            'total_vat_value'           => array_sum($total_vat_value),
+            'total_after_vat'           => array_sum($total_after_vat_arr),      // novo
+            'total_earnings_after_vat'  => array_sum($total_earnings_after_vat), // compat (alias)
+            'total_after_vat_plus_tips' => array_sum($total_after_vat_plus_tips),
+
+            // Custos/Ajustes
+            'total_fuel_transactions' => array_sum($total_fuel_transactions),
+            'total_adjustments'       => array_sum($total_adjustments),
+            'total_fleet_management'  => array_sum($total_fleet_management),
+            'total_car_track'         => array_sum($total_car_track),
+            'total_car_hire'          => array_sum($total_car_hire),
+
+            // Total final (após tudo)
+            'total_drivers' => array_sum($total_drivers),
+
+            // Legado (compat)
+            'total_earnings_after_discount' => array_sum($total_earnings_after_discount),
+            'total_company_adjustments'     => array_sum($total_company_adjustments),
         ]);
 
         return [
@@ -363,6 +430,7 @@ trait Reports
             'totals' => $totals,
         ];
     }
+
 
     public function getDriverWeekReport($driver_id, $company_id, $tvde_week_id)
     {
@@ -616,9 +684,9 @@ trait Reports
 
     public function filter($state_id = 1)
     {
-        
+
         $company_id = Company::where('main', true)->first()->id;
-        
+
         $tvde_year_id = session()->get('tvde_year_id') ? session()->get('tvde_year_id') : $tvde_year_id = TvdeYear::orderBy('name', 'desc')->first()->id;
         if (session()->has('tvde_month_id')) {
             $tvde_month_id = session()->get('tvde_month_id');
