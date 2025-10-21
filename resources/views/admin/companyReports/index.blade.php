@@ -162,6 +162,7 @@
                         <th style="text-align: right;">Líquido Uber</th>
                         <th style="text-align: right;">Líquido Bolt</th>
                         <th style="text-align: right; display: none;">Líquido operadores</th>
+                        <th style="text-align: right;">Gorjetas</th>
                         <th style="text-align: right;">IVA</th>
                         <th style="text-align: right; display: none;">Depois do IVA</th>
                         <th style="text-align: right;">Abastecimento</th>
@@ -199,6 +200,10 @@
                         </td>
                         <td style="text-align: right; display: none;">{{ number_format($driver->earnings['total_net'] ??
                             0, 2) }} <small>€</small>
+                        </td>
+                        <td style="text-align: right;">{{ number_format($driver->earnings['tips_total'], 2)
+                            }}
+                            <small>€</small>
                         </td>
                         <td style="text-align: right; color: red;">- {{ number_format($driver->earnings['vat_value'], 2)
                             }}
@@ -260,6 +265,9 @@
                             }} <small>€</small>
                         </th>
                         <th style="text-align: right; display: none;">{{ number_format($totals['total_net_operators'], 2)
+                            }} <small>€</small>
+                        </th>
+                        <th style="text-align: right;">{{ number_format($totals['tips_total'], 2)
                             }} <small>€</small>
                         </th>
                         <th style="text-align: right; color: red;">- {{ number_format($totals['total_vat_value'], 2) }}

@@ -45,16 +45,16 @@ trait Reports
                 'cards'
             ]);
 
-        // Totais (mantendo compatibilidade com a versão anterior)
+        // Totais (mantendo compatibilidade)
         $total_operators = [];
-        $total_earnings_after_discount = []; // legado (calculado como antes, a partir de gross_total e VAT)
+        $total_earnings_after_discount = []; // legado
         $total_fuel_transactions = [];
         $total_adjustments = [];
         $total_fleet_management = [];
         $total_drivers = [];
         $total_company_adjustments = [];
         $total_vat_value = [];
-        $total_earnings_after_vat = []; // compat: soma de total_after_vat (alias do after_vat)
+        $total_earnings_after_vat = []; // compat (alias)
         $total_car_track = [];
         $total_car_hire = [];
         $total_net_operators = [];
@@ -65,16 +65,15 @@ trait Reports
         $net_uber = [];
         $net_bolt = [];
 
-        // Novos totais de tips e etapas do pipeline
+        // Novos totais de tips e pipeline
         $uber_tips_total = [];
         $bolt_tips_total = [];
         $tips_total_all = [];
         $total_base_before_vat = [];
-        $total_after_vat_arr = [];           // novo (after_vat)
-        $total_after_vat_plus_tips = [];     // after_vat + tips
+        $total_after_vat_arr = [];
+        $total_after_vat_plus_tips = [];
 
         foreach ($drivers as $driver) {
-
             // ---------- Atividades UBER ----------
             $uber_activities = TvdeActivity::where([
                 'company_id' => $company_id,
@@ -85,7 +84,6 @@ trait Reports
 
             $uber_gross = (float) $uber_activities->sum('gross');
             $uber_net   = (float) $uber_activities->sum('net');
-            // tips podem vir null em alguns registos -> tratamos como 0
             $uber_tips  = (float) $uber_activities->sum(function ($a) {
                 return $a->tips ?? 0;
             });
@@ -120,7 +118,7 @@ trait Reports
             $gross_total = $uber_gross + $bolt_gross;
             $net_total   = $uber_net   + $bolt_net;
 
-            // ---------- FUEL (combustão/eléctrico) ----------
+            // ---------- FUEL ----------
             $fuel_transactions = 0;
 
             if ($driver->electric) {
@@ -287,15 +285,14 @@ trait Reports
             // 2) Retirar tips e abastecimento
             $base_before_vat = $base_liquida - $tips_total - $driver->fuel;
 
-            // 3) Calcular e retirar IVA (usando percent do contract_vat; se faltar, 0%)
-            $vat = $driver->contract_vat ? (float) $driver->contract_vat->percent : 0.0;
-            $vat_factor = ($vat / 100) + 1;
+            // 3) Calcular e retirar IVA (retenção) -> IVA = base * taxa; after_vat = base - IVA
+            $vat_percent = $driver->contract_vat ? (float) $driver->contract_vat->percent : 0.0;
+            $vat_rate = $vat_percent / 100.0;
 
-            // Evitar divisão por zero
-            $after_vat = ($vat_factor > 0) ? ($base_before_vat / $vat_factor) : $base_before_vat;
-            $vat_value = $base_before_vat - $after_vat;
+            $vat_value = $base_before_vat * $vat_rate;
+            $after_vat = $base_before_vat - $vat_value;
 
-            // Alias para compatibilidade com código que ainda lê "total_after_vat"
+            // Alias compat
             $total_after_vat_alias = $after_vat;
 
             // 4) Somar novamente as tips
@@ -305,10 +302,9 @@ trait Reports
             // 6) Processar ajustes e subtrair fleet_management
             $final_total = $subtotal_after_tips + $adjustments - $fleet_management - $car_track - $rent_value;
 
-            // ---------- LEGADO: earnings_after_discount (como dantes, a partir do gross_total e VAT) ----------
-            // Isto mantém compatibilidade com o total_earnings_after_discount original.
-            $legacy_vat_factor = ($vat / 100) + 1;
-            $earnings_after_discount = ($legacy_vat_factor > 0) ? ($gross_total / $legacy_vat_factor) : $gross_total;
+            // ---------- LEGADO: earnings_after_discount ----------
+            // Por consistência com o novo entendimento (IVA é retenção), calculamos também por multiplicação:
+            $earnings_after_discount = $gross_total - ($gross_total * $vat_rate);
 
             // ---------- Guardar breakdown no driver ----------
             $earnings = collect([
@@ -317,7 +313,7 @@ trait Reports
                 'total_gross' => $gross_total,
                 'total_net' => $net_total,
 
-                // Tips e etapas do pipeline
+                // Tips e pipeline
                 'tips_total' => $tips_total,
                 'base_before_vat' => $base_before_vat,
                 'vat_value' => $vat_value,
@@ -373,10 +369,8 @@ trait Reports
             $total_after_vat_arr[]   = $after_vat;
             $total_after_vat_plus_tips[] = $subtotal_after_tips;
 
-            // Compat com chave antiga total_earnings_after_discount
+            // Legado
             $total_earnings_after_discount[] = $earnings_after_discount;
-
-            // Compat com chave antiga total_earnings_after_vat
             $total_earnings_after_vat[] = $total_after_vat_alias;
 
             // current_account flag
@@ -430,7 +424,6 @@ trait Reports
             'totals' => $totals,
         ];
     }
-
 
     public function getDriverWeekReport($driver_id, $company_id, $tvde_week_id)
     {
