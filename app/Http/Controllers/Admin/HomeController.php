@@ -58,12 +58,20 @@ class HomeController
         ])->first();
 
         if ($driver_balance) {
+            if ($driver->contract_vat) {
+                $factor = $driver->contract_vat->iva / 100;
+            } else {
+                $factor = 0;
+            }
 
-            $factor = $driver->contract_vat->iva / 100;
             $iva = number_format($driver_balance->value * $factor, 2);
             $driver_balance->iva = $iva;
 
-            $factor = $driver->contract_vat->rf / 100;
+            if ($driver->contract_vat) {
+                $factor = $driver->contract_vat->rf / 100;
+            } else {
+                $factor = 0;
+            }
             $rf = number_format(- ($driver_balance->value * $factor), 2);
             $driver_balance ? $driver_balance->rf = $rf ?? 0 : 0;
 
@@ -117,7 +125,7 @@ class HomeController
             'total_net' => isset($results) ? $results->total_net : 0,
             'adjustments' => isset($results) ? $results->adjustments : 0,
             'adjustments_array' => isset($results) && isset($results->adjustments_array) ? $results->adjustments_array : 0,
-            'total' => isset($results) ? $results->total : 0,
+            'total' => (isset($results) && isset($results->total)) ? $results->total : 0,
             'vat_value' => isset($results) ? $results->vat_value : 0,
             'car_track' => isset($results) ? $results->car_track : 0,
             'car_hire' => isset($results) ? $results->car_hire : 0,
