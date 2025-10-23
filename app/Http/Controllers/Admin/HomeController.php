@@ -107,6 +107,8 @@ class HomeController
             $driver_balance_last_week = null; // ou valor default
         }
 
+        $total = ($results->subtotal_after_tips ?? 0) - ($results->car_hire ?? 0) - ($results->car_track ?? 0) + ($results->adjustments ?? 0);
+
         return view('home')->with([
             'company_id' => $company_id,
             'tvde_year_id' => $tvde_year_id,
@@ -125,7 +127,7 @@ class HomeController
             'total_net' => isset($results) ? $results->total_net : 0,
             'adjustments' => isset($results) ? $results->adjustments : 0,
             'adjustments_array' => isset($results) && isset($results->adjustments_array) ? $results->adjustments_array : 0,
-            'total' => (isset($results) && isset($results->total)) ? $results->total : 0,
+            'total' => $total ?? 0,
             'vat_value' => isset($results) ? $results->vat_value : 0,
             'car_track' => isset($results) ? $results->car_track : 0,
             'car_hire' => isset($results) ? $results->car_hire : 0,

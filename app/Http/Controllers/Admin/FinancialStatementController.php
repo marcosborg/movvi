@@ -71,7 +71,9 @@ class FinancialStatementController extends Controller
             'tvde_week_id' => $tvde_week_id
         ])->first();
 
-        $total = ($results->after_vat ?? 0) - ($results->car_hire ?? 0) - ($results->car_track ?? 0) + ($results->adjustments ?? 0);
+        //return $results;
+
+        $total = ($results->subtotal_after_tips ?? 0) - ($results->car_hire ?? 0) - ($results->car_track ?? 0) + ($results->adjustments ?? 0);
 
         return view('admin.financialStatements.index')->with([
             'company_id' => $company_id,
