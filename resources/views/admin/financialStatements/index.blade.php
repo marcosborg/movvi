@@ -141,11 +141,7 @@
                             </tr>
                         </tbody>
                     </table>
-                    @if ($driver_balance && $driver_balance->drivers_balance > 0)
-                        <p><small>Saldo transitado: {{ number_format(($total - ($driver_balance->drivers_balance ?? 0)) * -1, 2) }}€</small></p>
-                    @else
-                        <p><small>Saldo transitado: {{ number_format(($total + ($driver_balance->drivers_balance ?? 0)) * -1, 2) }}€</small></p>
-                    @endif
+                    <p><small>Saldo transitado: 0.00 €</small></p>
                 </div>
             </div>
             <div class="panel panel-default">
@@ -164,7 +160,7 @@
                         <div class="form-inline">
                             <div class="input-group">
                                 <div class="input-group-addon">Saldo (€)</div>
-                                <input type="text" class="form-control" value="{{ $driver_balance->drivers_balance ?? 0 }}" name="balance">
+                                <input type="text" class="form-control" value="{{ number_format(($total ?? 0), 2) }}" name="balance">
                             </div>
                             <button type="submit" class="btn btn-success">Atualizar saldo</button>
                     </form>

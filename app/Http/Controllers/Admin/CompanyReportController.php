@@ -47,6 +47,7 @@ class CompanyReportController extends Controller
 
     public function validateData(Request $request)
     {
+
         foreach ($request->data as $data) {
 
             // 🔹 Função inline para normalizar valores vindos do front
@@ -96,7 +97,6 @@ class CompanyReportController extends Controller
         */
         }
     }
-
 
     public function revalidateData(Request $request)
     {

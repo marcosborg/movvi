@@ -46,7 +46,7 @@ class FinancialStatementController extends Controller
         $driver_id = session()->get('driver_id') ? session()->get('driver_id') : $driver_id = 0;
 
         if (!session()->has('company_id')) {
-            $company_id = 27;
+            $company_id = 1;
             session()->put('company_id', $company_id);
         }
 
@@ -71,6 +71,8 @@ class FinancialStatementController extends Controller
             'tvde_week_id' => $tvde_week_id
         ])->first();
 
+        $total = ($results->after_vat ?? 0) - ($results->car_hire ?? 0) - ($results->car_track ?? 0) + ($results->adjustments ?? 0);
+
         return view('admin.financialStatements.index')->with([
             'company_id' => $company_id,
             'tvde_year_id' => $tvde_year_id,
@@ -88,7 +90,7 @@ class FinancialStatementController extends Controller
             'total_gross' => isset($results) ? $results->total_gross : 0,
             'total_net' => isset($results) ? $results->total_net : 0,
             'adjustments' => isset($results) ? $results->adjustments : 0,
-            'total' => isset($results) ? $results->total : 0,
+            'total' => $total ?? 0,
             'vat_value' => isset($results) ? $results->vat_value : 0,
             'car_track' => isset($results) ? $results->car_track : 0,
             'car_hire' => isset($results) ? $results->car_hire : 0,

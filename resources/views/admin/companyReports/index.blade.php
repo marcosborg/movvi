@@ -169,9 +169,7 @@
                         <th style="text-align: right;">Ajustes</th>
                         <th style="text-align: right;">Via verde</th>
                         <th style="text-align: right;">Aluguer</th>
-                        <th style="text-align: right;">Saldo</th>
                         <th style="text-align: right">Valor da semana</th>
-                        <th style="text-align: right">A pagar</th>
                         <th style="text-align: right">Validar</th>
                         <th></th>
                         <th></th>
@@ -223,13 +221,7 @@
                             "><i class="fa-fw fas fa-eye"></i></button></td>
                         <td style="text-align: right">{{ number_format($driver->earnings['car_track'], 2) }} <small>€</small></td>
                         <td style="text-align: right">-{{ number_format($driver->earnings['car_hire'], 2) }} <small>€</small></td>
-                        <td style="text-align: right">{{ number_format($driver->balance, 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>€</small></td>
-                        @if ($driver->current_account)
-                        <td style="text-align: right">{{ number_format($driver->balance, 2) }} <small>€</small></td>
-                        @else
-                        <td style="text-align: right">{{ number_format($driver->final_total_balance, 2) }} <small>€</small></td>
-                        @endif
                         <td style="text-align: right">
                             <div class="checkbox">
                                 <label>
@@ -288,11 +280,8 @@
                         <th style="text-align: right;">-{{ number_format($totals['total_car_hire'], 2) }}
                             <small>€</small>
                         </th>
-                        <th style="text-align: right;">
-                        </th>
                         <th style="text-align: right;">{{ number_format($totals['total_drivers'], 2) }} <small>€</small>
                         </th>
-                        <th></th>
                         <th></th>
                         <th></th>
                     </tr>
