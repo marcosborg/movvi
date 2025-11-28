@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">
+  <CstmrCdtTrfInitn>
+    <GrpHdr>
+      <MsgId>MSG20250114T123000</MsgId>
+      <CreDtTm>2025-01-14T12:30:00</CreDtTm>
+      <NbOfTxs>1</NbOfTxs>
+      <CtrlSum>270.40</CtrlSum>
+      <InitgPty>
+        <Nm>Tribos &amp; Montanhas</Nm>
+      </InitgPty>
+    </GrpHdr>
+    <PmtInf>
+      <PmtInfId>PAY20250205T123000</PmtInfId>
+      <PmtMtd>TRF</PmtMtd>
+      <NbOfTxs>1</NbOfTxs>
+      <CtrlSum>270.40</CtrlSum>
+      <ReqdExctnDt>2025-02-05</ReqdExctnDt>
+      <Dbtr>
+        <Nm>Tribos &amp; Montanhas</Nm>
+      </Dbtr>
+      <DbtrAcct>
+        <Id>
+          <IBAN>PT50001000006292691000127</IBAN>
+        </Id>
+      </DbtrAcct>
+      <DbtrAgt>
+        <FinInstnId>
+          <BIC>BBPIPTPL</BIC>
+        </FinInstnId>
+      </DbtrAgt>
+      <CdtTrfTxInf>
+        <PmtId>
+          <EndToEndId>TRANS20250205T123000</EndToEndId>
+        </PmtId>
+        <Amt>
+          <InstdAmt Ccy="EUR">270.40</InstdAmt>
+        </Amt>
+        <Cdtr>
+          <Nm>TVDE - Paula Monteiro</Nm>
+        </Cdtr>
+        <CdtrAcct>
+          <Id>
+            <IBAN>PT50001800035580939602006</IBAN>
+          </Id>
+        </CdtrAcct>
+      </CdtTrfTxInf>
+    </PmtInf>
+  </CstmrCdtTrfInitn>
+</Document>

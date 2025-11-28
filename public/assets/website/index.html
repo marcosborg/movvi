@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF‑8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movvi.pt – Mobilidade à sua medida</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Swiper CSS for the image slider -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10.3.1/swiper-bundle.min.css" />
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+    <!-- Navigation bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">Movvi</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link active" aria-current="page" href="index.html">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="quem-somos.html">Quem Somos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="stand.html">Stand</a></li>
+                    <li class="nav-item"><a class="nav-link" href="aluguer.html">Aluguer</a></li>
+                    <li class="nav-item"><a class="nav-link" href="transfers-tours.html">Transfers & Tours</a></li>
+                    <li class="nav-item"><a class="nav-link" href="contactos.html">Contactos</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Image slider using Swiper -->
+    <section class="hero-section">
+        <div class="swiper heroSwiper">
+            <div class="swiper-wrapper">
+                <div class="swiper-slide">
+                    <img src="https://picsum.photos/seed/movvi1/1920/800" class="d-block w-100" alt="Carro moderno">
+                    <div class="swiper-caption">
+                        <h2>Mobilidade Simplificada</h2>
+                        <p>Descubra o conforto e a versatilidade das nossas viaturas.</p>
+                    </div>
+                </div>
+                <div class="swiper-slide">
+                    <img src="https://picsum.photos/seed/movvi2/1920/800" class="d-block w-100" alt="Estrada panorâmica">
+                    <div class="swiper-caption">
+                        <h2>Viagens que inspiram</h2>
+                        <p>Do aluguer ao tour, temos a solução perfeita para si.</p>
+                    </div>
+                </div>
+                <div class="swiper-slide">
+                    <img src="https://picsum.photos/seed/movvi3/1920/800" class="d-block w-100" alt="Pessoa a conduzir">
+                    <div class="swiper-caption">
+                        <h2>Confiança e profissionalismo</h2>
+                        <p>Serviços pensados para motoristas e passageiros exigentes.</p>
+                    </div>
+                </div>
+            </div>
+            <!-- If we need navigation buttons -->
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-pagination"></div>
+        </div>
+    </section>
+
+    <!-- Quem somos block -->
+    <section class="py-5 bg-light" id="about-preview">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <img src="https://picsum.photos/seed/about/600/400" class="img-fluid rounded" alt="Sobre a Movvi">
+                </div>
+                <div class="col-lg-6">
+                    <h3>Sobre a Movvi</h3>
+                    <p>Somos apaixonados por mobilidade e tecnologia. A Movvi nasce com a missão de ligar pessoas e lugares através de soluções de transporte modernas e acessíveis. Desde o aluguer de viaturas até tours personalizados, trabalhamos todos os dias para melhorar a experiência de condução e viagem dos nossos clientes.</p>
+                    <a href="quem-somos.html" class="btn btn-primary mt-3">Saber mais</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Notícias / blog block -->
+    <section class="py-5" id="noticias">
+        <div class="container">
+            <h3 class="mb-4 text-center">Últimas Notícias</h3>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <img src="https://picsum.photos/seed/blog1/600/400" class="card-img-top" alt="Notícia 1">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">Documentação obrigatória</h5>
+                            <p class="card-text">Saiba quais os documentos necessários para circular em Portugal com a sua viatura de forma legal.</p>
+                            <a href="#" class="btn btn-outline-primary mt-auto">Ler mais</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <img src="https://picsum.photos/seed/blog2/600/400" class="card-img-top" alt="Notícia 2">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">Novas tendências de mobilidade</h5>
+                            <p class="card-text">Descubra como a tecnologia está a transformar o transporte urbano e quais as tendências para o futuro.</p>
+                            <a href="#" class="btn btn-outline-primary mt-auto">Ler mais</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <img src="https://picsum.photos/seed/blog3/600/400" class="card-img-top" alt="Notícia 3">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">Movvi no terreno</h5>
+                            <p class="card-text">Conheça as nossas parcerias e iniciativas que promovem uma mobilidade mais sustentável.</p>
+                            <a href="#" class="btn btn-outline-primary mt-auto">Ler mais</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testemunhos block -->
+    <section class="py-5 bg-light" id="testemunhos">
+        <div class="container">
+            <h3 class="mb-4 text-center">O que dizem os nossos clientes</h3>
+            <div id="testimonialCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    <div class="carousel-item active">
+                        <div class="d-flex flex-column align-items-center">
+                            <p class="lead text-center">“A melhor decisão que tomei. A Movvi foi a solução que procurava.”</p>
+                            <h5 class="fw-bold mb-0">Vitor Sampaio</h5>
+                            <span class="text-muted">Motorista</span>
+                        </div>
+                    </div>
+                    <div class="carousel-item">
+                        <div class="d-flex flex-column align-items-center">
+                            <p class="lead text-center">“Confiança e profissionalismo em cada serviço prestado.”</p>
+                            <h5 class="fw-bold mb-0">Diego Sousa</h5>
+                            <span class="text-muted">Cliente com viatura própria</span>
+                        </div>
+                    </div>
+                    <div class="carousel-item">
+                        <div class="d-flex flex-column align-items-center">
+                            <p class="lead text-center">“Serviço impecável, recomendo a todos os colegas.”</p>
+                            <h5 class="fw-bold mb-0">Rogério Pissarra</h5>
+                            <span class="text-muted">Motorista</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Anterior</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Seguinte</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <h5>Movvi</h5>
+                    <p>Serviços de mobilidade à sua medida: aluguer, stand e tours personalizados.</p>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <h5>Navegação</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="quem-somos.html" class="text-white">Quem Somos</a></li>
+                        <li><a href="stand.html" class="text-white">Stand</a></li>
+                        <li><a href="aluguer.html" class="text-white">Aluguer</a></li>
+                        <li><a href="transfers-tours.html" class="text-white">Transfers & Tours</a></li>
+                        <li><a href="contactos.html" class="text-white">Contactos</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <h5>Newsletter</h5>
+                    <p>Subscreva para receber as últimas novidades sobre os nossos serviços.</p>
+                    <form>
+                        <div class="input-group">
+                            <input type="email" class="form-control" placeholder="O seu email" aria-label="Email" required>
+                            <button class="btn btn-primary" type="submit">Subscrever</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="text-center mt-3">
+                <small>© 2025 Movvi.pt – Todos os direitos reservados.</small>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Swiper JS -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@10.3.1/swiper-bundle.min.js"></script>
+    <script>
+        // Initialise Swiper slider
+        const heroSwiper = new Swiper('.heroSwiper', {
+            loop: true,
+            autoplay: {
+                delay: 5000,
+                disableOnInteraction: false,
+            },
+            pagination: {
+                el: '.swiper-pagination',
+                clickable: true,
+            },
+            navigation: {
+                nextEl: '.swiper-button-next',
+                prevEl: '.swiper-button-prev',
+            },
+        });
+    </script>
+</body>
+</html>
