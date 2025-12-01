@@ -214,7 +214,6 @@ section {
 .hero-section .swiper-slide img {
     height: 78vh;
     object-fit: cover;
-    filter: brightness(0.58);
 }
 
 .hero-section::after {

@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\Reports;
 use App\Services\Cartrack\CartrackFleetApiService;
+use App\Services\Cartrack\Exceptions\CartrackException;
 use App\Models\Driver;
 use App\Models\TvdeWeek;
 use App\Models\VehicleUsage;
 use Carbon\Carbon;
 use Gate;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -47,7 +47,7 @@ class CartrackDashboardController extends Controller
 
             $rows[] = [
                 'driver'    => $driver,
-                'license'   => $plate,
+                'license'   => $this->formatPlateForDisplay($plate),
                 'km'        => null,
                 'incidents' => [
                     'braking'      => 0,
@@ -88,37 +88,72 @@ class CartrackDashboardController extends Controller
 
         $params = $this->rangeQuery($range['from'], $range['to']);
 
+        $variants    = $this->plateVariants($plate);
+        $usedPlate   = $variants[0] ?? $plate;
+        $trips       = null;
+        $events      = null;
+        $last404Body = null;
+        $last404Msg  = null;
+
+        foreach ($variants as $candidate) {
+            try {
+                $trips     = $cartrack->getTripsByRegistration($candidate, $params);
+                $events    = $cartrack->getEventsByRegistration($candidate, $params);
+                $usedPlate = $candidate;
+                break;
+            } catch (CartrackException $e) {
+                $status = $e->status ?? 500;
+                $body   = $e->body;
+
+                if ($status === 404) {
+                    $last404Body = $body;
+                    $last404Msg  = $e->getMessage();
+                    Log::warning('Cartrack fetch 404, trying next plate format', [
+                        'driver_id' => $driverId,
+                        'plate'     => $candidate,
+                        'params'    => $params,
+                        'status'    => $status,
+                        'body'      => $body,
+                        'message'   => $e->getMessage(),
+                    ]);
+                    continue;
+                }
+
+                Log::warning('Cartrack fetch failed', [
+                    'driver_id' => $driverId,
+                    'plate'     => $candidate,
+                    'params'    => $params,
+                    'status'    => $status,
+                    'body'      => $body,
+                    'message'   => $e->getMessage(),
+                ]);
+
+                return response()->json([
+                    'error'  => $e->getMessage(),
+                    'body'   => $body,
+                    'status' => $status,
+                ], $status);
+            }
+        }
+
+        if ($trips === null || $events === null) {
+            return response()->json([
+                'error'  => $last404Msg ?? 'Falha ao obter dados da matrícula',
+                'body'   => $last404Body,
+                'status' => 404,
+            ], 404);
+        }
+
         try {
-            $trips  = $cartrack->getTripsByRegistration($plate, $params);
-            $events = $cartrack->getEventsByRegistration($plate, $params);
-
             return response()->json([
-                'plate'     => $plate,
+                'plate'     => $this->formatPlateForDisplay($usedPlate),
                 'km'        => $this->sumDistance($trips),
-                'incidents' => $this->summarizeIncidents($events),
+                'incidents' => $this->summarizeIncidents($events, $trips),
             ]);
-        } catch (RequestException $e) {
-            $status = optional($e->response)->status() ?: 500;
-            $body   = optional($e->response)->json() ?? optional($e->response)->body();
-
-            Log::warning('Cartrack fetch failed', [
-                'driver_id' => $driverId,
-                'plate'     => $plate,
-                'params'    => $params,
-                'status'    => $status,
-                'body'      => $body,
-                'message'   => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'error'  => $e->getMessage(),
-                'body'   => $body,
-                'status' => $status,
-            ], $status);
         } catch (Throwable $e) {
             Log::error('Cartrack fetch exception', [
                 'driver_id' => $driverId,
-                'plate'     => $plate,
+                'plate'     => $usedPlate,
                 'params'    => $params,
                 'message'   => $e->getMessage(),
             ]);
@@ -183,7 +218,7 @@ class CartrackDashboardController extends Controller
                 ->latest('start_date')
                 ->first();
 
-            $plate = optional($usage->vehicle_item)->license_plate ?? '';
+            $plate = $usage && $usage->vehicle_item ? $usage->vehicle_item->license_plate : '';
         }
 
         return $plate ? $this->normalizePlate($plate) : null;
@@ -194,22 +229,48 @@ class CartrackDashboardController extends Controller
         return Str::of($plate)->upper()->replace('-', '')->replace(' ', '')->__toString();
     }
 
+    protected function formatPlateForDisplay(?string $plate): ?string
+    {
+        if (!$plate) {
+            return null;
+        }
+
+        $normalized = $this->normalizePlate($plate);
+
+        if (strlen($normalized) === 6) {
+            return implode('-', str_split($normalized, 2));
+        }
+
+        return Str::of($normalized)->upper()->__toString();
+    }
+
+    protected function plateVariants(string $plate): array
+    {
+        $normalized = $this->normalizePlate($plate);
+        $variants   = [];
+
+        if (strlen($normalized) === 6) {
+            $variants[] = implode('-', str_split($normalized, 2)); // prefer AA-00-AA first
+        }
+
+        $variants[] = $normalized; // plain, sem hífen
+        $variants[] = Str::of($plate)->upper()->__toString(); // original (uppercase)
+
+        return array_values(array_unique(array_filter($variants)));
+    }
+
     protected function rangeQuery(?string $from, ?string $to): array
     {
         $data = [];
 
         if ($from) {
             $fromCarbon = Carbon::parse($from)->startOfDay();
-            $data['start_timestamp']    = $fromCarbon->timestamp;            // seconds
-            $data['start_timestamp_ms'] = $fromCarbon->timestamp * 1000;     // ms
-            $data['start']              = $fromCarbon->toIso8601String();
+            $data['start_timestamp'] = $fromCarbon->toDateTimeString(); // format expected by Cartrack
         }
 
         if ($to) {
             $toCarbon = Carbon::parse($to)->endOfDay();
-            $data['end_timestamp']      = $toCarbon->timestamp;              // seconds
-            $data['end_timestamp_ms']   = $toCarbon->timestamp * 1000;       // ms
-            $data['end']                = $toCarbon->toIso8601String();
+            $data['end_timestamp'] = $toCarbon->toDateTimeString();   // format expected by Cartrack
         }
 
         return $data;
@@ -232,6 +293,14 @@ class CartrackDashboardController extends Controller
                     $distance = $trip['odometerEnd'] - $trip['odometerStart'];
                 }
 
+                if ($distance === null && isset($trip['start_odometer'], $trip['end_odometer'])) {
+                    $distance = $trip['end_odometer'] - $trip['start_odometer'];
+                }
+
+                if ($distance === null && isset($trip['trip_distance'])) {
+                    $distance = $trip['trip_distance'];
+                }
+
                 if ($distance === null && isset($trip['length'])) {
                     $distance = $trip['length'];
                 }
@@ -249,7 +318,7 @@ class CartrackDashboardController extends Controller
         return round($total, 2);
     }
 
-    protected function summarizeIncidents($events): array
+    protected function summarizeIncidents($events, $trips = null): array
     {
         $counts = [
             'braking'      => 0,
@@ -261,7 +330,7 @@ class CartrackDashboardController extends Controller
         $list = is_array($events) && array_key_exists('data', $events) ? $events['data'] : $events;
 
         if (!is_iterable($list)) {
-            return $counts;
+            $list = [];
         }
 
         foreach ($list as $event) {
@@ -283,6 +352,25 @@ class CartrackDashboardController extends Controller
                 $counts['acceleration']++;
             } else {
                 $counts['other']++;
+            }
+        }
+
+        // Fallback/extra contagem usando os campos agregados das trips
+        $tripList = is_array($trips) && array_key_exists('data', $trips) ? $trips['data'] : (is_iterable($trips) ? $trips : []);
+
+        if (is_iterable($tripList)) {
+            foreach ($tripList as $trip) {
+                if (!is_array($trip)) {
+                    continue;
+                }
+
+                $counts['braking']      += (int) ($trip['harsh_braking_events'] ?? 0);
+                $counts['cornering']    += (int) ($trip['harsh_cornering_events'] ?? 0);
+                $counts['acceleration'] += (int) ($trip['harsh_acceleration_events'] ?? 0);
+
+                $speeding = (int) ($trip['road_speeding_events'] ?? 0);
+                $thresholdSpeeding = (int) ($trip['thresholds_speeding_events'] ?? 0);
+                $counts['other'] += $speeding + $thresholdSpeeding;
             }
         }
 
