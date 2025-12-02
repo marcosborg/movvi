@@ -34,7 +34,7 @@ class CartrackDashboardController extends Controller
         $filter      = $this->filter();
         $tvdeWeek    = $filter['tvde_week'];
         $tvde_weeks  = $filter['tvde_weeks'];
-        $drivers     = $filter['drivers'];
+        $drivers     = $filter['drivers']->where('state_id', 1);
         $range       = $this->weekRange($tvdeWeek);
         $usagePlates = $this->usagePlates($range['from'], $range['to']);
 

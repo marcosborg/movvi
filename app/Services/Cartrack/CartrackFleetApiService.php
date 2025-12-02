@@ -23,12 +23,14 @@ class CartrackFleetApiService extends CartrackFleetClient
 
     public function getTripsByRegistration(string $registration, array $filters = []): array
     {
+        $filters = $this->withDefaultLimit($filters, 500);
+
         try {
-            return $this->trips()->byRegistration($registration, $filters)->toArray();
+            return $this->fetchAllPages('GET', "/trips/{$registration}", $filters);
         } catch (NotFoundException $e) {
-            return $this->trips()->list(array_merge($filters, [
+            return $this->fetchAllPages('GET', '/trips', array_merge($filters, [
                 'registration' => $registration,
-            ]))->toArray();
+            ]));
         }
     }
 
@@ -44,6 +46,22 @@ class CartrackFleetApiService extends CartrackFleetClient
 
     public function getEventsByRegistration(string $registration, array $filters = []): array
     {
-        return $this->vehicles()->eventsByRegistration($registration, $filters)->toArray();
+        $filters = $this->withDefaultLimit($filters, 500);
+
+        return $this->fetchAllPages('GET', "/vehicles/{$registration}/events", $filters);
+    }
+
+    public function getOdometerByRegistration(string $registration, array $filters = []): array
+    {
+        return $this->vehicles()->odometer($registration, $filters)->toArray();
+    }
+
+    protected function withDefaultLimit(array $filters, int $limit): array
+    {
+        if (!array_key_exists('limit', $filters) || !$filters['limit']) {
+            $filters['limit'] = $limit;
+        }
+
+        return $filters;
     }
 }
