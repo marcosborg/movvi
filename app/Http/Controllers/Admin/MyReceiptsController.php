@@ -179,10 +179,11 @@ class MyReceiptsController extends Controller
         $drivers_balance = DriversBalance::where([
             'driver_id' => $driver_id
         ])->orderBy('id', 'desc')->first();
-        $balance = $drivers_balance->balance - $receipt_value;
-        $drivers_balance->balance = $balance;
-        $drivers_balance->drivers_balance = $balance;
-        $drivers_balance->save();
+        if ($drivers_balance) {
+            $balance = $drivers_balance->new_balance - $receipt_value;
+            $drivers_balance->new_balance = $balance;
+            $drivers_balance->save();
+        }
 
     }
 

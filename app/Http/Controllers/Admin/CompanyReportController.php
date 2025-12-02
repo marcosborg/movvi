@@ -155,15 +155,17 @@ class CompanyReportController extends Controller
 
         $last_balance = DriversBalance::where([
             'driver_id' => $data['driver']['id'],
-        ])
-            ->orderBy('tvde_week_id', 'desc')->first();
+        ])->orderBy('tvde_week_id', 'desc')->first();
+
+        $previous_balance = $last_balance ? (float) $last_balance->new_balance : 0.0;
+        $new_balance = $previous_balance + ($data['driver']['total'] ?? 0);
 
         $driver_balance = new DriversBalance;
         $driver_balance->driver_id = $data['driver']['id'];
         $driver_balance->tvde_week_id = $data['tvde_week_id'];
         $driver_balance->value = $data['driver']['total'];
-        $driver_balance->balance = $last_balance ? $last_balance->balance + $data['driver']['total'] : $data['driver']['total'];
-        $driver_balance->drivers_balance = $last_balance ? $last_balance->balance + $data['driver']['total'] : $data['driver']['total'];
+        $driver_balance->last_balance = $previous_balance;
+        $driver_balance->new_balance = $new_balance;
         $driver_balance->save();
     }
 

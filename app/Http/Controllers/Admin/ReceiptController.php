@@ -142,7 +142,7 @@ class ReceiptController extends Controller
     public function store(StoreReceiptRequest $request)
     {
 
-        $tvde_week_id = session()->get('tvde_week_id');
+        $tvde_week_id = session()->get('tvde_week_id', $request->tvde_week_id);
 
         $receipt = Receipt::create($request->all());
 
@@ -161,8 +161,10 @@ class ReceiptController extends Controller
             'driver_id' => $driver_id,
             'tvde_week_id' => $tvde_week_id
         ])->first();
-        $drivers_balance->drivers_balance = $value;
-        $drivers_balance->save();
+        if ($drivers_balance) {
+            $drivers_balance->new_balance = $value;
+            $drivers_balance->save();
+        }
 
         return redirect()->back()->with('message', 'Recibo enviado com sucesso. Obrigado.');
     }
@@ -258,9 +260,10 @@ class ReceiptController extends Controller
         $drivers_balance = DriversBalance::where([
             'driver_id' => $driver_id
         ])->orderBy('id', 'desc')->first();
-        $balance = $drivers_balance->balance - $receipt_value;
-        $drivers_balance->balance = $balance;
-        $drivers_balance->drivers_balance = $balance;
-        $drivers_balance->save();
+        if ($drivers_balance) {
+            $balance = $drivers_balance->new_balance - $receipt_value;
+            $drivers_balance->new_balance = $balance;
+            $drivers_balance->save();
+        }
     }
 }
