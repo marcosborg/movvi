@@ -86,7 +86,7 @@
             const weekId = document.getElementById('tvde_week_id')?.value || null;
             const rows = Array.from(document.querySelectorAll('.js-cartrack-row'));
             const queue = rows.slice();
-            const maxConcurrent = 3;
+            const maxConcurrent = 4;
             let active = 0;
 
             const setStatus = ($row, html) => {

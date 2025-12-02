@@ -70,11 +70,14 @@ class CartrackDashboardController extends Controller
 
     public function fetch(Request $request, CartrackFleetApiService $cartrack)
     {
-        abort_if(Gate::denies('website_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
-
         $driverId = (int) $request->integer('driver_id');
         if (!$driverId) {
             return response()->json(['error' => 'Driver inválido'], 422);
+        }
+
+        $driver = Driver::find($driverId);
+        if (Gate::denies('website_access') && (!$driver || $driver->user_id !== auth()->id())) {
+            abort(Response::HTTP_FORBIDDEN, '403 Forbidden');
         }
 
         $weekId   = $request->integer('tvde_week_id') ?: session('tvde_week_id');

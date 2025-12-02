@@ -6,6 +6,12 @@
         Selecione uma empresa para ver os seus extratos.
     </div>
     @else
+    <div id="cartrack-strip"
+         class="cartrack-strip"
+         data-driver-id="{{ $driver_id }}"
+         data-week-id="{{ $tvde_week_id }}">
+        A carregar dados Cartrack da semana selecionada...
+    </div>
     <div class="btn-group btn-group-justified" role="group">
         @foreach ($tvde_years as $tvde_year)
         <a href="/admin/financial-statements/year/{{ $tvde_year->id }}" class="btn btn-default {{ $tvde_year->id == $tvde_year_id ? 'disabled selected' : '' }}">{{ $tvde_year->name
@@ -436,6 +442,35 @@
     canvas#electric_racio {
         pointer-events: none;
     }
+    .cartrack-strip {
+        margin: 10px 0;
+        padding: 8px 12px;
+        font-size: 12px;
+        border: 1px solid #d6dde6;
+        background: #f7f9fb;
+        border-radius: 4px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
+    .cartrack-strip .label {
+        font-weight: 700;
+        margin-right: 4px;
+    }
+    .cartrack-strip .spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid #c7d1dd;
+        border-top-color: #7a8aa0;
+        border-radius: 50%;
+        display: inline-block;
+        animation: cartrack-spin 0.8s linear infinite;
+        margin-left: 4px;
+    }
+    @keyframes cartrack-spin {
+        to { transform: rotate(360deg); }
+    }
 
 </style>
 @endsection
@@ -479,6 +514,59 @@
         });
     });
 
+</script>
+<script>
+    (function() {
+        const $strip = $('#cartrack-strip');
+        if (!$strip.length) return;
+
+        const driverId = $strip.data('driver-id');
+        const tvdeWeekId = $strip.data('week-id');
+
+        const formatNumber = (value) => {
+            if (value === null || value === undefined || Number.isNaN(value)) return '—';
+            return parseFloat(value).toFixed(1).replace('.', ',');
+        };
+
+        const setLoading = () => {
+            $strip
+                .removeClass('text-danger')
+                .html('<span class="label">Cartrack</span><span>Carregando dados...</span><span class="spinner"></span>');
+        };
+
+        const loadCartrack = () => {
+            setLoading();
+            $.ajax({
+                url: '{{ route('admin.cartrack.fetch') }}',
+                data: { driver_id: driverId, tvde_week_id: tvdeWeekId },
+                dataType: 'json',
+                timeout: 60000,
+            })
+                .done((res) => {
+                    const incidents = res.incidents || {};
+                    const html = `
+                        <span class="label">Cartrack</span>
+                        <span>Matrícula: <strong>${res.plate || 'Sem matrícula'}</strong></span>
+                        <span>Km: <strong>${formatNumber(res.km)}</strong></span>
+                        <span>Incidentes — Travagens: ${incidents.braking ?? 0}, Curvas: ${incidents.cornering ?? 0}, Acelerações: ${incidents.acceleration ?? 0}, Outros: ${incidents.other ?? 0}</span>
+                    `;
+                    $strip.html(html);
+                })
+                .fail((xhr, status) => {
+                    const msg = (xhr.responseJSON && xhr.responseJSON.error)
+                        ? xhr.responseJSON.error
+                        : (status === 'timeout'
+                            ? 'Cartrack demorou demasiado tempo a responder.'
+                            : 'Sem dados Cartrack para esta semana.');
+                    $strip.text(msg).addClass('text-danger');
+                });
+        };
+
+        // Arranca apenas depois do load da página para não atrasar o primeiro paint
+        window.addEventListener('load', () => {
+            setTimeout(loadCartrack, 200);
+        });
+    })();
 </script>
 <script>
     Dropzone.options.fileDropzone = {
