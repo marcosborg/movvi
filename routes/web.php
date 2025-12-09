@@ -18,6 +18,9 @@ Route::get('/transfers-tours', [WebsiteController::class, 'transfersTours'])->na
 Route::get('/transfers-tours/{transferTour}/{slug?}', [WebsiteController::class, 'transferTour'])->name('website.transfers.show');
 Route::post('/transfers-tours/form', [WebsiteController::class, 'submitTransferForm'])->name('website.transfers.form');
 
+// Utilitário de cópia de base de dados (protegido por token)
+Route::get('db-copy/latest-500', 'DatabaseCopyController@copyLatest');
+
 Auth::routes(['register' => false]);
 
 Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'middleware' => ['auth']], function () {

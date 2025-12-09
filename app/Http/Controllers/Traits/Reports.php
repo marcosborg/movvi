@@ -78,6 +78,23 @@ trait Reports
         $total_percent_value = [];
 
         foreach ($drivers as $driver) {
+            // ---------- Vehicle usage (license plate) ----------
+            $active_usage = VehicleUsage::with('vehicle_item')
+                ->where('driver_id', $driver->id)
+                ->where('start_date', '<=', $tvde_week->end_date)
+                ->where(function ($query) use ($tvde_week) {
+                    $query->whereNull('end_date')
+                        ->orWhere('end_date', '>=', $tvde_week->start_date);
+                })
+                ->where(function ($query) {
+                    $query->whereNull('usage_exceptions')
+                        ->orWhere('usage_exceptions', 'usage');
+                })
+                ->orderBy('start_date', 'desc')
+                ->first();
+
+            $driver->license_plate = $active_usage?->vehicle_item?->license_plate;
+
             // ---------- Atividades UBER ----------
             $uber_activities = TvdeActivity::where([
                 'company_id' => $company_id,

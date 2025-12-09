@@ -157,6 +157,7 @@
                 <thead>
                     <tr>
                         <th>Condutor</th>
+                        <th>Matrícula</th>
                         <th style="text-align: right; background: #eeeeee; display: none;">Bruto Uber</th>
                         <th style="text-align: right; background: #eeeeee; display: none;">Bruto Bolt</th>
                         <th style="text-align: right; background: #eeeeee; display: none;">Bruto operadores</th>
@@ -184,6 +185,7 @@
                     @if ($driver->earnings)
                     <tr>
                         <td>{{ $driver->name }}</td>
+                        <td>{{ $driver->license_plate ?? '-' }}</td>
                         <td style="text-align: right; background: #eeeeee; display: none;">{{
                             number_format($driver->earnings['uber']['uber_gross'] ??
                             0, 2) }} <small>€</small></td>
@@ -250,6 +252,7 @@
                 <tfoot>
                     <tr>
                         <th>Totais</th>
+                        <th></th>
                         <th style="text-align: right; background: #eeeeee; display: none;">{{ number_format($totals['gross_uber'], 2)
                             }} <small>€</small>
                         </th>

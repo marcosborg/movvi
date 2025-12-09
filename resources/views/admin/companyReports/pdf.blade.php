@@ -24,6 +24,7 @@
     <table>
         <colgroup>
             <col style="width: 13%;">
+            <col style="width: 9%;">
             <col style="width: 8%;">
             <col style="width: 8%;">
             <col style="width: 7%;">
@@ -40,6 +41,7 @@
         <thead>
             <tr>
                 <th class="wrap">Condutor</th>
+                <th class="wrap" style="text-align: left;">Matrícula</th>
                 <th>Líquido Uber</th>
                 <th>Líquido Bolt</th>
                 <th>Gorjetas</th>
@@ -58,6 +60,7 @@
             @foreach ($drivers as $driver)
                 <tr>
                     <td class="wrap">{{ $driver->name }}</td>
+                    <td class="wrap" style="text-align: left;">{{ $driver->license_plate ?? '-' }}</td>
                     <td class="nowrap">{{ number_format($driver->earnings['uber']['uber_net'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['bolt']['bolt_net'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['tips_total'] ?? 0, 2) }} &euro;</td>
@@ -76,6 +79,7 @@
         <tfoot>
             <tr>
                 <th>Totais</th>
+                <th></th>
                 <th>{{ number_format($totals['net_uber'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['net_bolt'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['tips_total'] ?? 0, 2) }} &euro;</th>
