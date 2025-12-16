@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
 
 class MakeInstallPackage extends Command
 {
@@ -15,16 +14,17 @@ class MakeInstallPackage extends Command
      * @var string
      */
     protected $signature = 'db:make-install-package 
-        {--limit=500 : Numero de linhas por tabela} 
-        {--connection= : Ligacao a utilizar (default do projeto)} 
-        {--path= : Caminho do ficheiro .sql de saida (default: storage/app/install-package.sql)}';
+        {--source= : Ligacao de origem (default: mysql_production)} 
+        {--target=mysql_sandbox : Ligacao destino (default: mysql_sandbox)} 
+        {--target-database= : Nome da base de dados destino (default da ligacao)} 
+        {--chunk=500 : Numero de linhas por insercao}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Gera um pacote de instalacao (.sql) com as ultimas linhas de cada tabela';
+    protected $description = 'Copia integralmente uma base de dados para outra ligacao (ex: producao -> sandbox/local)';
 
     /**
      * Execute the console command.
@@ -33,16 +33,50 @@ class MakeInstallPackage extends Command
      */
     public function handle()
     {
-        $limit = (int) $this->option('limit');
-        $limit = $limit > 0 ? $limit : 500;
+        $sourceName = $this->option('source') ?: 'mysql_production';
+        $targetName = $this->option('target') ?: 'mysql_sandbox';
+        $chunkSize = max((int) $this->option('chunk'), 1);
 
-        $connectionName = $this->option('connection') ?: config('database.default');
-        $connection = DB::connection($connectionName);
+        $sourceConfig = config("database.connections.{$sourceName}");
+        if (!$sourceConfig) {
+            $this->error("Ligacao de origem '{$sourceName}' nao existe.");
 
-        $path = $this->option('path') ?: storage_path('app/install-package.sql');
+            return self::FAILURE;
+        }
 
-        $tableKey = 'Tables_in_' . $connection->getDatabaseName();
-        $tables = collect($connection->select('SHOW TABLES'))
+        $targetConfig = config("database.connections.{$targetName}");
+        if (!$targetConfig) {
+            $this->error("Ligacao de destino '{$targetName}' nao existe.");
+
+            return self::FAILURE;
+        }
+
+        $targetDatabase = $this->option('target-database') ?: Arr::get($targetConfig, 'database');
+        if (!$targetDatabase) {
+            $this->error("Nao foi possivel determinar a base de dados destino. Use --target-database= ou configure a ligacao.");
+
+            return self::FAILURE;
+        }
+
+        try {
+            $this->ensureDatabaseExists($targetConfig, $targetDatabase);
+        } catch (\Throwable $e) {
+            $this->error("Falha ao criar/verificar base de dados destino '{$targetDatabase}': {$e->getMessage()}");
+
+            return self::FAILURE;
+        }
+
+        config([
+            "database.connections.{$targetName}.database" => $targetDatabase,
+        ]);
+        DB::purge($targetName);
+
+        $source = DB::connection($sourceName);
+        $target = DB::connection($targetName);
+        $source->disableQueryLog();
+
+        $tableKey = 'Tables_in_' . $source->getDatabaseName();
+        $tables = collect($source->select('SHOW TABLES'))
             ->map(function ($row) use ($tableKey) {
                 $rowArray = (array) $row;
                 return $rowArray[$tableKey] ?? Arr::first(array_values($rowArray));
@@ -50,78 +84,90 @@ class MakeInstallPackage extends Command
             ->filter()
             ->values();
 
-        $sqlLines = [];
-        $sqlLines[] = '-- Install package generated for database ' . $connection->getDatabaseName();
-        $sqlLines[] = 'SET FOREIGN_KEY_CHECKS=0;';
-
-        $pdo = $connection->getPdo();
+        $target->statement('SET FOREIGN_KEY_CHECKS=0');
 
         foreach ($tables as $table) {
             try {
-                $create = (array) $connection->selectOne("SHOW CREATE TABLE `{$table}`");
+                $create = (array) $source->selectOne("SHOW CREATE TABLE `{$table}`");
                 $createSql = $create['Create Table'] ?? $create['Create View'] ?? null;
 
                 if (!$createSql) {
                     throw new \RuntimeException("Nao foi possivel obter CREATE TABLE para {$table}");
                 }
 
-                $columns = collect($connection->select("SHOW COLUMNS FROM `{$table}`"))->pluck('Field')->all();
-                $orderColumn = $this->resolveOrderColumn($connection, $table);
+                $target->statement("DROP TABLE IF EXISTS `{$table}`");
+                $target->statement($createSql);
 
-                $query = $connection->table($table);
-                if ($orderColumn) {
-                    $query->orderByDesc($orderColumn);
-                }
-
-                $rows = $query->limit($limit)->get()->reverse();
-
-                $sqlLines[] = "\n-- {$table}";
-                $sqlLines[] = "DROP TABLE IF EXISTS `{$table}`;";
-                $sqlLines[] = rtrim($createSql, ';') . ';';
-
-                if ($rows->isEmpty()) {
+                if (isset($create['Create View'])) {
+                    $this->info("View {$table} criada.");
                     continue;
                 }
 
-                $columnList = '`' . implode('`, `', $columns) . '`';
+                $orderColumn = $this->resolveOrderColumn($source, $table);
+                $copiedRows = 0;
 
-                foreach ($rows as $row) {
-                    $values = [];
-                    foreach ($columns as $column) {
-                        $value = $row->{$column} ?? null;
-                        $values[] = is_null($value) ? 'NULL' : $pdo->quote($value);
-                    }
+                $source->table($table)
+                    ->orderBy($orderColumn)
+                    ->chunk($chunkSize, function ($rows) use ($target, $table, &$copiedRows) {
+                        $batch = $rows->map(fn($row) => (array) $row)->toArray();
 
-                    $sqlLines[] = "INSERT INTO `{$table}` ({$columnList}) VALUES (" . implode(', ', $values) . ");";
-                }
+                        if (!empty($batch)) {
+                            $target->table($table)->insert($batch);
+                            $copiedRows += count($batch);
+                        }
+                    });
+
+                $this->info("Tabela {$table}: {$copiedRows} linhas copiadas.");
             } catch (\Throwable $e) {
                 $this->warn("Falha na tabela {$table}: {$e->getMessage()}");
             }
         }
 
-        $sqlLines[] = 'SET FOREIGN_KEY_CHECKS=1;';
+        $target->statement('SET FOREIGN_KEY_CHECKS=1');
 
-        File::ensureDirectoryExists(dirname($path));
-        File::put($path, implode("\n", $sqlLines));
-
-        $this->info("Pacote gerado em: {$path}");
+        $this->line('');
+        $this->info("Base de dados origem: {$source->getDatabaseName()} ({$sourceName})");
+        $this->info("Base de dados destino: {$targetDatabase} ({$targetName})");
         $this->info('Tabelas processadas: ' . $tables->count());
 
         return self::SUCCESS;
     }
 
-    private function resolveOrderColumn($connection, string $table): ?string
+    private function resolveOrderColumn($connection, string $table): string
     {
-        $hasId = !empty($connection->select("SHOW COLUMNS FROM `{$table}` LIKE 'id'"));
-        if ($hasId) {
+        $columns = collect($connection->select("SHOW COLUMNS FROM `{$table}`"))->pluck('Field')->all();
+
+        if (in_array('id', $columns, true)) {
             return 'id';
         }
 
-        $hasCreated = !empty($connection->select("SHOW COLUMNS FROM `{$table}` LIKE 'created_at'"));
-        if ($hasCreated) {
+        if (in_array('created_at', $columns, true)) {
             return 'created_at';
         }
 
-        return null;
+        if (!empty($columns)) {
+            return $columns[0];
+        }
+
+        throw new \RuntimeException("Nao foi possivel determinar colunas para {$table}");
+    }
+
+    private function ensureDatabaseExists(array $config, string $database): void
+    {
+        $host = Arr::get($config, 'host', '127.0.0.1');
+        $port = Arr::get($config, 'port', '3306');
+        $username = Arr::get($config, 'username');
+        $password = Arr::get($config, 'password');
+        $charset = Arr::get($config, 'charset', 'utf8mb4');
+        $collation = Arr::get($config, 'collation', 'utf8mb4_unicode_ci');
+
+        $safeDatabase = str_replace('`', '``', $database);
+
+        $dsn = "mysql:host={$host};port={$port}";
+        $pdo = new \PDO($dsn, $username, $password, [
+            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+        ]);
+
+        $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$safeDatabase}` CHARACTER SET {$charset} COLLATE {$collation}");
     }
 }

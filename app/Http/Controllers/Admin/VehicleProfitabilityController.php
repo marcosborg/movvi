@@ -37,6 +37,8 @@ class VehicleProfitabilityController extends Controller
         $vehicle_items   = VehicleItem::with('driver')->get();
         $vehicle_item_id = session('vehicle_item_id', optional(VehicleItem::first())->id ?? 0);
         $vehicle_item    = VehicleItem::find($vehicle_item_id);
+        $capex = $vehicle_item->acquisition_value ?? 0;
+        $sale  = $vehicle_item->sale_value ?? 0;
 
         // ---- Determinar semanas alvo conforme o período ----
         $weeksQuery = TvdeWeek::query();
@@ -87,6 +89,7 @@ class VehicleProfitabilityController extends Controller
             return view('admin.vehicleProfitabilities.index', [
                 'vehicle_items' => $vehicle_items,
                 'vehicle_item_id' => $vehicle_item_id,
+                'vehicle_item' => $vehicle_item,
                 'period' => $period,
                 'groupBy' => $groupBy,
                 'year' => $year,
@@ -98,6 +101,13 @@ class VehicleProfitabilityController extends Controller
                 'rows' => [],
                 'groups' => [],
                 'totals' => ['treasury' => 0, 'taxes' => 0, 'final' => 0],
+                'expense_breakdown' => collect(),
+                'expense_totals' => ['value' => 0, 'vat' => 0, 'with_vat' => 0],
+                'periodStart' => null,
+                'periodEnd' => null,
+                'capex' => $capex,
+                'sale' => $sale,
+                'lifecycle_total' => -$capex + $sale,
             ]);
         }
 
@@ -128,6 +138,27 @@ class VehicleProfitabilityController extends Controller
             'final'    => $groups->sum('final'),
         ];
 
+        $periodStart = $weeks->min('start_date');
+        $periodEnd   = $weeks->max('end_date');
+
+        $expense_breakdown = VehicleExpense::where('vehicle_item_id', $vehicle_item->id)
+            ->when($periodStart, fn($q) => $q->whereDate('date', '>=', $periodStart))
+            ->when($periodEnd, fn($q) => $q->whereDate('date', '<=', $periodEnd))
+            ->selectRaw('expense_type, SUM(value) as total_value, SUM(CASE WHEN vat IS NOT NULL THEN value * (vat/100) ELSE 0 END) as total_vat')
+            ->groupBy('expense_type')
+            ->orderBy('expense_type')
+            ->get();
+
+        $expense_totals = [
+            'value'    => $expense_breakdown->sum('total_value'),
+            'vat'      => $expense_breakdown->sum('total_vat'),
+            'with_vat' => $expense_breakdown->sum(function ($row) {
+                return ($row->total_value ?? 0) + ($row->total_vat ?? 0);
+            }),
+        ];
+
+        $lifecycle_total = ($totals['final'] ?? 0) - $capex + $sale;
+
         // ---- Listas auxiliares para o formulário (anos/meses/semanas) ----
         $tvde_years  = TvdeWeek::selectRaw('YEAR(start_date) as y')->distinct()->orderBy('y', 'desc')->pluck('y');
         $tvde_months = TvdeWeek::when($year, fn($q) => $q->whereYear('start_date', $year))
@@ -137,6 +168,7 @@ class VehicleProfitabilityController extends Controller
         return view('admin.vehicleProfitabilities.index', compact(
             'vehicle_items',
             'vehicle_item_id',
+            'vehicle_item',
             'period',
             'groupBy',
             'year',
@@ -147,7 +179,14 @@ class VehicleProfitabilityController extends Controller
             'weeks',
             'rows',
             'groups',
-            'totals'
+            'totals',
+            'expense_breakdown',
+            'expense_totals',
+            'periodStart',
+            'periodEnd',
+            'capex',
+            'sale',
+            'lifecycle_total'
         ));
     }
 

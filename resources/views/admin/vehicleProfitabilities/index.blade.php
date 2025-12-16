@@ -141,6 +141,81 @@
                 </div>
             </div>
 
+            {{-- CapEx / Alienação + Despesas por categoria --}}
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">Aquisição / Alienação</div>
+                        <div class="panel-body">
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <th style="width:45%;">Data aquisição</th>
+                                    <td>{{ optional($vehicle_item)->acquisition_date ?? '—' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Valor aquisição</th>
+                                    <td>{{ optional($vehicle_item)->acquisition_value !== null ? number_format($vehicle_item->acquisition_value, 2, ',', '.') . ' €' : '—' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Data alienação</th>
+                                    <td>{{ optional($vehicle_item)->sale_date ?? '—' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Valor alienação</th>
+                                    <td>{{ optional($vehicle_item)->sale_value !== null ? number_format($vehicle_item->sale_value, 2, ',', '.') . ' €' : '—' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Resultado c/ compra/venda</th>
+                                    <td><strong>{{ number_format($lifecycle_total ?? $final, 2, ',', '.') }} €</strong></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            Despesas operacionais no período
+                            @if($periodStart && $periodEnd)
+                                <small>({{ \Carbon\Carbon::parse($periodStart)->format('d/m/Y') }} a {{ \Carbon\Carbon::parse($periodEnd)->format('d/m/Y') }})</small>
+                            @endif
+                        </div>
+                        <div class="panel-body table-responsive">
+                            <table class="table table-striped table-condensed">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th class="text-right">Valor</th>
+                                        <th class="text-right">IVA</th>
+                                        <th class="text-right">Total c/ IVA</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($expense_breakdown as $exp)
+                                        <tr>
+                                            <td>{{ $exp->expense_type }}</td>
+                                            <td class="text-right">{{ number_format($exp->total_value ?? 0, 2, ',', '.') }} €</td>
+                                            <td class="text-right">{{ number_format($exp->total_vat ?? 0, 2, ',', '.') }} €</td>
+                                            <td class="text-right">{{ number_format(($exp->total_value ?? 0) + ($exp->total_vat ?? 0), 2, ',', '.') }} €</td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="4">Sem despesas registadas para este período.</td></tr>
+                                    @endforelse
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th>Total</th>
+                                        <th class="text-right">{{ number_format($expense_totals['value'] ?? 0, 2, ',', '.') }} €</th>
+                                        <th class="text-right">{{ number_format($expense_totals['vat'] ?? 0, 2, ',', '.') }} €</th>
+                                        <th class="text-right"><strong>{{ number_format($expense_totals['with_vat'] ?? 0, 2, ',', '.') }} €</strong></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {{-- TABELA POR GRUPOS --}}
             <div class="panel panel-default">
                 <div class="panel-heading">

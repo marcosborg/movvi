@@ -40,6 +40,7 @@ class VehicleExpense extends Model implements HasMedia
         'Limpeza' => 'Limpeza',
         'Acessórios' => 'Acessórios',
         'Distico verde' => 'Distico verde',
+        'Rastreamento' => 'Rastreamento',
         'Outros'     => 'Outros',
     ];
 

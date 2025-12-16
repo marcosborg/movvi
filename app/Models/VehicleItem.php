@@ -24,6 +24,8 @@ class VehicleItem extends Model implements HasMedia
         'created_at',
         'updated_at',
         'deleted_at',
+        'acquisition_date',
+        'sale_date',
     ];
 
     protected $fillable = [
@@ -34,6 +36,10 @@ class VehicleItem extends Model implements HasMedia
         'year',
         'license_plate',
         'suspended',
+        'acquisition_date',
+        'acquisition_value',
+        'sale_date',
+        'sale_value',
         'created_at',
         'updated_at',
         'deleted_at',

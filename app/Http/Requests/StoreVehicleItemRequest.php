@@ -36,6 +36,24 @@ class StoreVehicleItemRequest extends FormRequest
             'documents' => [
                 'array',
             ],
+            'acquisition_value' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+            'acquisition_date' => [
+                'nullable',
+                'date_format:' . config('panel.date_format'),
+            ],
+            'sale_value' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+            'sale_date' => [
+                'nullable',
+                'date_format:' . config('panel.date_format'),
+            ],
         ];
     }
 }

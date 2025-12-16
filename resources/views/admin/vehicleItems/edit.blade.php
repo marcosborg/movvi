@@ -64,6 +64,38 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.vehicleItem.fields.license_plate_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('acquisition_date') ? 'has-error' : '' }}">
+                            <label for="acquisition_date">{{ trans('cruds.vehicleItem.fields.acquisition_date') }}</label>
+                            <input class="form-control" type="date" name="acquisition_date" id="acquisition_date" value="{{ old('acquisition_date', $vehicleItem->acquisition_date) }}">
+                            @if($errors->has('acquisition_date'))
+                                <span class="help-block" role="alert">{{ $errors->first('acquisition_date') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.vehicleItem.fields.acquisition_date_helper') }}</span>
+                        </div>
+                        <div class="form-group {{ $errors->has('acquisition_value') ? 'has-error' : '' }}">
+                            <label for="acquisition_value">{{ trans('cruds.vehicleItem.fields.acquisition_value') }}</label>
+                            <input class="form-control" type="number" name="acquisition_value" id="acquisition_value" value="{{ old('acquisition_value', $vehicleItem->acquisition_value) }}" step="0.01">
+                            @if($errors->has('acquisition_value'))
+                                <span class="help-block" role="alert">{{ $errors->first('acquisition_value') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.vehicleItem.fields.acquisition_value_helper') }}</span>
+                        </div>
+                        <div class="form-group {{ $errors->has('sale_date') ? 'has-error' : '' }}">
+                            <label for="sale_date">{{ trans('cruds.vehicleItem.fields.sale_date') }}</label>
+                            <input class="form-control" type="date" name="sale_date" id="sale_date" value="{{ old('sale_date', $vehicleItem->sale_date) }}">
+                            @if($errors->has('sale_date'))
+                                <span class="help-block" role="alert">{{ $errors->first('sale_date') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.vehicleItem.fields.sale_date_helper') }}</span>
+                        </div>
+                        <div class="form-group {{ $errors->has('sale_value') ? 'has-error' : '' }}">
+                            <label for="sale_value">{{ trans('cruds.vehicleItem.fields.sale_value') }}</label>
+                            <input class="form-control" type="number" name="sale_value" id="sale_value" value="{{ old('sale_value', $vehicleItem->sale_value) }}" step="0.01">
+                            @if($errors->has('sale_value'))
+                                <span class="help-block" role="alert">{{ $errors->first('sale_value') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.vehicleItem.fields.sale_value_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('documents') ? 'has-error' : '' }}">
                             <label for="documents">{{ trans('cruds.vehicleItem.fields.documents') }}</label>
                             <div class="needsclick dropzone" id="documents-dropzone">

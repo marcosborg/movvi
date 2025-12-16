@@ -1421,6 +1421,14 @@ return [
             'year_helper'          => ' ',
             'license_plate'        => 'Matrícula',
             'license_plate_helper' => ' ',
+            'acquisition_date'     => 'Data de aquisição',
+            'acquisition_date_helper' => ' ',
+            'acquisition_value'    => 'Valor de aquisição (€)',
+            'acquisition_value_helper' => 'Inclui impostos e custos de entrada',
+            'sale_date'            => 'Data de alienação',
+            'sale_date_helper'     => ' ',
+            'sale_value'           => 'Valor de alienação (€)',
+            'sale_value_helper'    => 'Valor recebido na venda/saída',
             'documents'            => 'Documentos',
             'documents_helper'     => ' ',
             'created_at'           => 'Created at',
@@ -2520,7 +2528,6 @@ return [
         ],
     ],
 ];
-
 
 
 

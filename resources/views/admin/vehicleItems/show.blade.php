@@ -75,6 +75,38 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        {{ trans('cruds.vehicleItem.fields.acquisition_date') }}
+                                    </th>
+                                    <td>
+                                        {{ $vehicleItem->acquisition_date ?? '' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        {{ trans('cruds.vehicleItem.fields.acquisition_value') }}
+                                    </th>
+                                    <td>
+                                        {{ $vehicleItem->acquisition_value !== null ? number_format($vehicleItem->acquisition_value, 2, ',', '.') . ' €' : '' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        {{ trans('cruds.vehicleItem.fields.sale_date') }}
+                                    </th>
+                                    <td>
+                                        {{ $vehicleItem->sale_date ?? '' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        {{ trans('cruds.vehicleItem.fields.sale_value') }}
+                                    </th>
+                                    <td>
+                                        {{ $vehicleItem->sale_value !== null ? number_format($vehicleItem->sale_value, 2, ',', '.') . ' €' : '' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.vehicleItem.fields.documents') }}
                                     </th>
                                     <td>
