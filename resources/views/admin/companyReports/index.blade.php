@@ -165,12 +165,12 @@
                         <th style="text-align: right;">Líquido Bolt</th>
                         <th style="text-align: right; display: none;">Líquido operadores</th>
                         <th style="text-align: right;">Gorjetas</th>
-                        <th style="text-align: right;">IVA</th>
-                        <th style="text-align: right;">Percentagem</th>
-                        <th style="text-align: right; display: none;">Depois do IVA</th>
+                        <th style="text-align: right;">Taxa 6%</th>
+                        <th style="text-align: right; display: none;">Depois da taxa 6%</th>
                         <th style="text-align: right;">Abastecimento</th>
                         <th style="text-align: right;">Ajustes</th>
                         <th style="text-align: right;">Via verde</th>
+                        <th style="text-align: right;">Percentagem</th>
                         <th style="text-align: right;">Aluguer</th>
                         <th style="text-align: right">Valor da semana</th>
                         <th style="text-align: right">Último saldo</th>
@@ -213,10 +213,6 @@
                             }}
                             <small>€</small>
                         </td>
-                        <td style="text-align: right; color: red;">{{ number_format($driver->earnings['percent_value'], 2)
-                            }}
-                            <small>€</small>
-                        </td>
                         <td style="text-align: right; display: none;">{{ number_format($driver->earnings['total_after_vat'], 2)
                             }}
                             <small>€</small>
@@ -230,6 +226,10 @@
                             @endforeach
                             "><i class="fa-fw fas fa-eye"></i></button></td>
                         <td style="text-align: right">{{ number_format($driver->earnings['car_track'], 2) }} <small>€</small></td>
+                        <td style="text-align: right; color: red;">{{ number_format($driver->earnings['percent_value'], 2)
+                            }}
+                            <small>€</small>
+                        </td>
                         <td style="text-align: right">-{{ number_format($driver->earnings['car_hire'], 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->last_balance, 2) }} <small>€</small></td>
@@ -278,9 +278,6 @@
                         <th style="text-align: right; color: red;">{{ number_format($totals['total_iva_value'], 2) }}
                             <small>€</small>
                         </th>
-                        <th style="text-align: right; color: red;">{{ number_format($totals['total_percent_value'], 2) }}
-                            <small>€</small>
-                        </th>
                         <th style="text-align: right; display: none;">{{ number_format($totals['total_earnings_after_vat'], 2)
                             }} <small>€</small>
                         </th>
@@ -291,6 +288,9 @@
                             <small>€</small>
                         </th>
                         <th style="text-align: right;">{{ number_format($totals['total_car_track'], 2) }}
+                            <small>€</small>
+                        </th>
+                        <th style="text-align: right; color: red;">{{ number_format($totals['total_percent_value'], 2) }}
                             <small>€</small>
                         </th>
                         <th style="text-align: right;">-{{ number_format($totals['total_car_hire'], 2) }}

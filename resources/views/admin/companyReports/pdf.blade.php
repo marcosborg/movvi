@@ -45,11 +45,11 @@
                 <th>Líquido Uber</th>
                 <th>Líquido Bolt</th>
                 <th>Gorjetas</th>
-                <th>IVA</th>
-                <th>Percentagem</th>
+                <th>Taxa 6%</th>
                 <th>Combustível</th>
                 <th>Ajustes</th>
                 <th>Via Verde</th>
+                <th>Percentagem</th>
                 <th>Aluguer</th>
                 <th>Total semana</th>
                 <th>Último saldo</th>
@@ -65,10 +65,10 @@
                     <td class="nowrap">{{ number_format($driver->earnings['bolt']['bolt_net'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['tips_total'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['iva_value'] ?? 0, 2) }} &euro;</td>
-                    <td class="nowrap">{{ number_format($driver->earnings['percent_value'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->fuel ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->adjustments ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['car_track'] ?? 0, 2) }} &euro;</td>
+                    <td class="nowrap">{{ number_format($driver->earnings['percent_value'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['car_hire'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->total ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->last_balance ?? 0, 2) }} &euro;</td>
@@ -84,10 +84,10 @@
                 <th>{{ number_format($totals['net_bolt'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['tips_total'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_iva_value'] ?? 0, 2) }} &euro;</th>
-                <th>{{ number_format($totals['total_percent_value'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_fuel_transactions'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_adjustments'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_car_track'] ?? 0, 2) }} &euro;</th>
+                <th>{{ number_format($totals['total_percent_value'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_car_hire'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_drivers'] ?? 0, 2) }} &euro;</th>
                 <th></th>
