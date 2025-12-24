@@ -140,7 +140,7 @@ trait Reports
             $net_total = $uber_net + $bolt_net;
 
             // ---------- FUEL ----------
-            $fuel_transactions = 0;
+            $fuel_transactions = 0.0;
 
             if ($driver->electric) {
                 $electric_transactions = (float) ElectricTransaction::where([
@@ -153,27 +153,19 @@ trait Reports
                 }
             }
 
-            if ($driver->cards) {
-                $fuel_sum_list = [];
-                foreach ($driver->cards as $card) {
-                    $combustion_transactions = (float) CombustionTransaction::where([
-                        'tvde_week_id' => $tvde_week_id,
-                        'card' => $card->code
-                    ])->sum('total');
+            $cardCodes = $driver->cards ? $driver->cards->pluck('code')->filter()->all() : [];
+            if (empty($cardCodes) && $driver->card) {
+                $cardCodes = [$driver->card->code];
+            }
 
-                    if ($combustion_transactions > 0) {
-                        $fuel_sum_list[] = $combustion_transactions;
-                    }
-                }
-                $fuel_transactions = array_sum($fuel_sum_list);
-            } elseif ($driver->card) {
-                $combustion_transactions = (float) CombustionTransaction::where([
-                    'tvde_week_id' => $tvde_week_id,
-                    'card' => $driver->card->code
-                ])->sum('total');
+            if (!empty($cardCodes)) {
+                $combustionTransactions = $this->uniqueCombustionTransactions($tvde_week_id, $cardCodes);
+                $combustion_total = (float) $combustionTransactions->sum(function ($t) {
+                    return (float) $t->total;
+                });
 
-                if ($combustion_transactions > 0) {
-                    $fuel_transactions = $combustion_transactions;
+                if ($combustion_total > 0) {
+                    $fuel_transactions = $combustion_total;
                 }
             }
 
@@ -579,19 +571,17 @@ trait Reports
         $combustion_expenses = null;
         if ($driver && $driver->card_id) {
             $card = Card::find($driver->card_id);
-            if (!$card) {
-                $code = 0;
-            } else {
-                $code = $card->code;
-            }
-            $combustion_transactions = CombustionTransaction::where([
-                'card' => $code,
-                'tvde_week_id' => $tvde_week_id
-            ])->get();
+            $code = $card ? $card->code : 0;
+
+            $combustion_transactions = $this->uniqueCombustionTransactions($tvde_week_id, [$code]);
+            $combustion_total = $combustion_transactions->sum(function ($t) {
+                return (float) $t->total;
+            });
+
             $combustion_expenses = collect([
                 'amount' => number_format($combustion_transactions->sum('amount'), 2, '.', '') . ' L',
-                'total' => number_format($combustion_transactions->sum('total'), 2, '.', '') . ' €',
-                'value' => $combustion_transactions->sum('total')
+                'total' => number_format($combustion_total, 2, '.', '') . ' �',
+                'value' => $combustion_total
             ]);
         }
 
@@ -736,6 +726,25 @@ trait Reports
             'team_final_result',
             'team_results'
         ]);
+    }
+
+    /**
+     * Devolve abastecimentos de combustÇ§o deduplicados por combinaÇ§o (card+amount+total).
+     * Usado para evitar somas duplicadas quando o mesmo registo entra mais de uma vez.
+     */
+    protected function uniqueCombustionTransactions(int $tvde_week_id, array $cardCodes = [])
+    {
+        $query = CombustionTransaction::where('tvde_week_id', $tvde_week_id);
+
+        if (!empty($cardCodes)) {
+            $query->whereIn('card', $cardCodes);
+        }
+
+        return $query->get()
+            ->unique(function ($transaction) {
+                return sprintf('%s|%s|%s', $transaction->card, $transaction->amount, $transaction->total);
+            })
+            ->values();
     }
 
     public function filter($state_id = 1)
@@ -964,3 +973,4 @@ trait Reports
         $company_data->save();
     }
 }
+

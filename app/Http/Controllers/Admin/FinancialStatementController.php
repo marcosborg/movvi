@@ -210,14 +210,14 @@ class FinancialStatementController extends Controller
             } else {
                 $code = $card->code;
             }
-            $combustion_transactions = CombustionTransaction::where([
-                'card' => $code,
-                'tvde_week_id' => $tvde_week_id
-            ])->get();
+            $combustion_transactions = $this->uniqueCombustionTransactions($tvde_week_id, [$code]);
+            $combustion_total = $combustion_transactions->sum(function ($t) {
+                return (float) $t->total;
+            });
             $combustion_expenses = collect([
                 'amount' => number_format($combustion_transactions->sum('amount'), 2, '.', '') . ' L',
-                'total' => number_format($combustion_transactions->sum('total'), 2, '.', '') . ' â‚¬',
-                'value' => $combustion_transactions->sum('total')
+                'total' => number_format($combustion_total, 2, '.', '') . ' €',
+                'value' => $combustion_total
             ]);
         }
 
