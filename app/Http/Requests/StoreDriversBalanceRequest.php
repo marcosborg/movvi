@@ -24,12 +24,19 @@ class StoreDriversBalanceRequest extends FormRequest
             'tvde_week_id' => [
                 'required',
                 'integer',
+                'unique:drivers_balances,tvde_week_id,NULL,id,driver_id,' . $this->driver_id,
             ],
             'value' => [
                 'required',
+                'numeric',
             ],
-            'balance' => [
-                'required',
+            'last_balance' => [
+                'nullable',
+                'numeric',
+            ],
+            'new_balance' => [
+                'nullable',
+                'numeric',
             ],
         ];
     }

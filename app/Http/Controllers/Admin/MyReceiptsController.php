@@ -174,17 +174,25 @@ class MyReceiptsController extends Controller
         $receipt->amount_transferred = $amount_transferred;
         $receipt->save();
 
-        //AtualDriversBalance
-        $driver_id = $receipt->driver_id;
-        $drivers_balance = DriversBalance::where([
-            'driver_id' => $driver_id
-        ])->orderBy('id', 'desc')->first();
-        if ($drivers_balance) {
-            $balance = $drivers_balance->new_balance - $receipt_value;
-            $drivers_balance->new_balance = $balance;
-            $drivers_balance->save();
+        $this->applyReceiptToBalance($receipt, (float) $receipt_value);
+
+    }
+
+    protected function applyReceiptToBalance(Receipt $receipt, float $receiptValue): void
+    {
+        $query = DriversBalance::where('driver_id', $receipt->driver_id);
+
+        if ($receipt->tvde_week_id) {
+            $query->where('tvde_week_id', $receipt->tvde_week_id);
         }
 
+        $drivers_balance = $query->orderBy('id', 'desc')->first();
+        if (!$drivers_balance) {
+            return;
+        }
+
+        $drivers_balance->new_balance = (float) ($drivers_balance->new_balance ?? 0) - $receiptValue;
+        $drivers_balance->save();
     }
 
 }
