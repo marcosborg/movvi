@@ -320,8 +320,8 @@ trait Reports
             // Base from platforms excludes tips (tips are passed through in full at the end).
             $base_before_taxes = $net_total - $tips_total;
 
-            // IVA is fixed at 6% on the platform base per the agreed payout rule.
-            $iva_rate = 0.06;
+            // IVA comes from the contract VAT model (default 6%) per payout rule.
+            $iva_rate = (($driver->contract_vat ? (float) ($driver->contract_vat->iva ?? 6.0) : 6.0) / 100.0);
             $iva_value = max(0.0, $base_before_taxes) * $iva_rate;
 
             // Company percentage applies after IVA is removed.
@@ -339,7 +339,7 @@ trait Reports
             $final_total = $subtotal_after_tips + $adjustments + $tips_total;
 
             // Legacy IVA/percent fields are kept for older reports.
-            $iva_percent = 6.0;
+            $iva_percent = $iva_rate * 100.0;
             $total_after_vat_alias = $base_after_iva - $percent_value; // alias compat
             $after_vat = $total_after_vat_alias;
 
@@ -1009,6 +1009,7 @@ trait Reports
         $company_data->save();
     }
 }
+
 
 
 
