@@ -133,12 +133,11 @@ class HomeController
                 }
             });
 
-        // Carregar abastecimentos já normalizados para a Blade
-        $combustion_transactions = CombustionTransaction::query()
-            ->where('tvde_week_id', $tvde_week_id)
-            ->when($cardCodes->isNotEmpty(), fn ($q) => $q->whereIn('card', $cardCodes))
-            ->latest()
-            ->get();
+        // Carregar abastecimentos normalizados, removendo duplicados na importacao.
+        $combustion_transactions = $this->uniqueCombustionTransactions(
+            $tvde_week_id,
+            $cardCodes->isNotEmpty() ? $cardCodes->all() : []
+        );
 
         // Totais por unidade
         $total_liters = $combustion_transactions
