@@ -26,6 +26,7 @@ use App\Models\CompanyData;
 use App\Models\CarTrack;
 use App\Models\TeslaCharging;
 use App\Models\VehicleUsage;
+use Carbon\Carbon;
 
 trait Reports
 {
@@ -143,13 +144,11 @@ trait Reports
             $fuel_transactions = 0.0;
 
             if ($driver->electric) {
-                $electric_transactions = (float) ElectricTransaction::where([
-                    'tvde_week_id' => $tvde_week_id,
-                    'card' => $driver->electric->code
-                ])->sum('total');
+                $electric_transactions = $this->uniqueElectricTransactions($tvde_week_id, $driver->electric->code);
+                $electric_total = (float) $electric_transactions->sum('total');
 
-                if ($electric_transactions > 0) {
-                    $fuel_transactions = $electric_transactions;
+                if ($electric_total > 0) {
+                    $fuel_transactions = $electric_total;
                 }
             }
 
@@ -212,7 +211,27 @@ trait Reports
                 })
                 ->first();
 
-            $rent_value = $car_hire ? (float) $car_hire->amount : 0.0;
+            $rent_value = 0.0;
+            if ($car_hire) {
+                // Prorate car hire across the actual overlap with the TVDE week.
+                $week_start = Carbon::parse($tvde_week->getRawOriginal('start_date'))->startOfDay();
+                $week_end = Carbon::parse($tvde_week->getRawOriginal('end_date'))->endOfDay();
+                $hire_start = $car_hire->getRawOriginal('start_date')
+                    ? Carbon::parse($car_hire->getRawOriginal('start_date'))->startOfDay()
+                    : $week_start;
+                $hire_end = $car_hire->getRawOriginal('end_date')
+                    ? Carbon::parse($car_hire->getRawOriginal('end_date'))->endOfDay()
+                    : $week_end;
+
+                $overlap_start = $hire_start->greaterThan($week_start) ? $hire_start : $week_start;
+                $overlap_end = $hire_end->lessThan($week_end) ? $hire_end : $week_end;
+
+                if ($overlap_end->greaterThanOrEqualTo($overlap_start)) {
+                    $week_days = $week_start->diffInDays($week_end) + 1;
+                    $overlap_days = $overlap_start->diffInDays($overlap_end) + 1;
+                    $rent_value = (float) $car_hire->amount * ($overlap_days / $week_days);
+                }
+            }
 
             // ---------- ADJUSTMENTS ----------
             $adjustments_array = Adjustment::whereHas('drivers', function ($query) use ($driver) {
@@ -271,57 +290,62 @@ trait Reports
             $car_track = 0.0;
             if ($tvde_week->id) {
                 $car_track = (float) \DB::table('car_tracks as ct')
-                    ->join('vehicle_items as vi', 'vi.license_plate', '=', 'ct.license_plate')
-                    ->join('vehicle_usages as vu', 'vu.vehicle_item_id', '=', 'vi.id')
                     ->where('ct.tvde_week_id', $tvde_week->id)
-                    ->where('vu.driver_id', $driver->id)
-                    ->whereColumn('vu.start_date', '<=', 'ct.date')
-                    ->where(function ($q) {
-                        $q->whereNull('vu.end_date')
-                            ->orWhereColumn('vu.end_date', '>=', 'ct.date');
-                    })
-                    ->where(function ($q) {
-                        $q->whereNull('vu.usage_exceptions')
-                            ->orWhere('vu.usage_exceptions', 'usage');
+                    ->whereExists(function ($q) use ($driver) {
+                        // Avoid double counting when multiple usage rows match the same toll record.
+                        $q->selectRaw('1')
+                            ->from('vehicle_items as vi')
+                            ->join('vehicle_usages as vu', 'vu.vehicle_item_id', '=', 'vi.id')
+                            ->where('vu.driver_id', $driver->id)
+                            ->whereColumn('vu.start_date', '<=', 'ct.date')
+                            ->where(function ($w) {
+                                $w->whereNull('vu.end_date')
+                                    ->orWhereColumn('vu.end_date', '>=', 'ct.date');
+                            })
+                            ->where(function ($w) {
+                                $w->whereNull('vu.usage_exceptions')
+                                    ->orWhere('vu.usage_exceptions', 'usage');
+                            })
+                            ->whereRaw(
+                                "REPLACE(REPLACE(UPPER(vi.license_plate), '-', ''), ' ', '') = REPLACE(REPLACE(UPPER(ct.license_plate), '-', ''), ' ', '')"
+                            );
                     })
                     ->sum('ct.value');
             }
-
             // =======================
-            // PIPELINE NOVO COM TIPS
+            // COMMISSION 60/40 WITH TIPS
             // =======================
             $tips_total = $uber_tips + $bolt_tips;
 
-            // 1) Base: líquidos uber+bolt
-            $base_liquida = $net_total;
+            // Base without tips (tips remain 100% driver).
+            $base_before_expenses = $net_total - $tips_total;
 
-            // 2) Retirar tips e abastecimento
-            $base_before_vat = $base_liquida - $tips_total - $driver->fuel;
+            // Deduct expenses before commission so company does not keep 40% of driver costs.
+            $expense_total = $driver->fuel + $car_track + $rent_value + $fleet_management;
 
-            // 3) Calcular retenções SEQUENCIALMENTE: primeiro IVA, depois percent
+            $commission_base = max(0.0, $base_before_expenses - $expense_total);
+            $driver_commission = $commission_base * 0.60;
+
+            // Add tips back and apply driver-specific adjustments.
+            $subtotal_after_tips = $driver_commission + $tips_total;
+            $final_total = $subtotal_after_tips + $adjustments;
+
+            // Legacy IVA/percent fields are kept for older reports.
             $iva_percent = $driver->contract_vat ? (float) ($driver->contract_vat->iva ?? 0) : 0.0;
             $percent_percent = $driver->contract_vat ? (float) ($driver->contract_vat->percent ?? 0) : 0.0;
 
             $iva_rate = $iva_percent / 100.0;
             $percent_rate = $percent_percent / 100.0;
 
-            // Travão: nunca aplicar retenções sobre base negativa
-            $base_for_iva = max(0.0, $base_before_vat);
+            $base_for_iva = max(0.0, $base_before_expenses);
             $iva_value = $base_for_iva * $iva_rate;
-            $base_after_iva = $base_before_vat - $iva_value;
+            $base_after_iva = $base_before_expenses - $iva_value;
 
             $base_for_percent = max(0.0, $base_after_iva);
             $percent_value = $base_for_percent * $percent_rate;
 
-            $after_vat = $base_after_iva - $percent_value;   // mantém naming existente
+            $after_vat = $base_after_iva - $percent_value;   // mantem naming existente
             $total_after_vat_alias = $after_vat;             // alias compat
-
-            // 4) Somar novamente as tips
-            $subtotal_after_tips = $after_vat + $tips_total;
-
-            // 5) Retirar rent e Via Verde
-            // 6) Processar ajustes e subtrair fleet_management
-            $final_total = $subtotal_after_tips + $adjustments - $fleet_management - $car_track - $rent_value;
 
             // ---------- LEGADO: earnings_after_discount ----------
             // Sequencial ao bruto (não precisa travão porque o bruto é >= 0):
@@ -342,7 +366,9 @@ trait Reports
 
                 // Tips e pipeline
                 'tips_total' => $tips_total,
-                'base_before_vat' => $base_before_vat,
+                'base_before_vat' => $base_before_expenses,
+                'commission_base' => $commission_base,
+                'driver_commission' => $driver_commission,
 
                 // Retenções (novos campos)
                 'iva_percent' => $iva_percent,
@@ -356,6 +382,7 @@ trait Reports
                 'after_vat' => $after_vat,                   // novo
                 'total_after_vat' => $total_after_vat_alias, // alias compat
                 'subtotal_after_tips' => $subtotal_after_tips,
+                'driver_total' => $final_total,
 
                 // Custos e ajustes
                 'car_track' => $car_track,
@@ -416,7 +443,7 @@ trait Reports
             $uber_tips_total[] = $uber_tips;
             $bolt_tips_total[] = $bolt_tips;
             $tips_total_all[] = $tips_total;
-            $total_base_before_vat[] = $base_before_vat;
+            $total_base_before_vat[] = $base_before_expenses;
             $total_after_vat_arr[] = $after_vat;
             $total_after_vat_plus_tips[] = $subtotal_after_tips;
 
@@ -729,8 +756,22 @@ trait Reports
     }
 
     /**
-     * Devolve abastecimentos de combustÇ§o deduplicados por combinaÇ§o (card+amount+total).
-     * Usado para evitar somas duplicadas quando o mesmo registo entra mais de uma vez.
+     * Return electric top-ups deduplicated by card+amount+total.
+     */
+    protected function uniqueElectricTransactions(int $tvde_week_id, string $cardCode)
+    {
+        return ElectricTransaction::where([
+            'tvde_week_id' => $tvde_week_id,
+            'card' => $cardCode,
+        ])->get()
+            ->unique(function ($transaction) {
+                return sprintf('%s|%s|%s', $transaction->card, $transaction->amount, $transaction->total);
+            })
+            ->values();
+    }
+
+    /**
+     * Return combustion refuels deduplicated by card+amount+total.
      */
     protected function uniqueCombustionTransactions(int $tvde_week_id, array $cardCodes = [])
     {
@@ -973,4 +1014,13 @@ trait Reports
         $company_data->save();
     }
 }
+
+
+
+
+
+
+
+
+
 

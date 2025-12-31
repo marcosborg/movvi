@@ -73,7 +73,13 @@ class FinancialStatementController extends Controller
 
         //return $results;
 
-        $total = ($results->subtotal_after_tips ?? 0) - ($results->car_hire ?? 0) - ($results->car_track ?? 0) + ($results->adjustments ?? 0);
+        // Prefer the new commission total when available to avoid re-applying expenses.
+        $total = $results->driver_total
+            ?? $results->total
+            ?? (($results->subtotal_after_tips ?? 0)
+                - ($results->car_hire ?? 0)
+                - ($results->car_track ?? 0)
+                + ($results->adjustments ?? 0));
 
         return view('admin.financialStatements.index')->with([
             'company_id' => $company_id,
@@ -454,3 +460,4 @@ class FinancialStatementController extends Controller
     }
 
 }
+

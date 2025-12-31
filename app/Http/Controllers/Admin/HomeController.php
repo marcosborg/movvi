@@ -96,10 +96,13 @@ class HomeController
             $driver_balance_last_week = null;
         }
 
-        $total = ($results->subtotal_after_tips ?? 0)
-               - ($results->car_hire ?? 0)
-               - ($results->car_track ?? 0)
-               + ($results->adjustments ?? 0);
+        // Prefer the new commission total when available to avoid re-applying expenses.
+        $total = $results->driver_total
+            ?? $results->total
+            ?? (($results->subtotal_after_tips ?? 0)
+                - ($results->car_hire ?? 0)
+                - ($results->car_track ?? 0)
+                + ($results->adjustments ?? 0));
 
         // === Abastecimentos: cartões do driver e unidades ===
         $driver->load(['cards:id,code,type']);
