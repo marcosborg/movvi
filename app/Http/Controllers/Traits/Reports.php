@@ -285,33 +285,40 @@ trait Reports
             $total_adjustments[] = $adjustments;
             $total_fleet_management[] = $fleet_management;
             $total_company_adjustments[] = array_sum($company_expense);
-
             // ---------- CAR TRACK (Via Verde) ----------
             $car_track = 0.0;
             if ($tvde_week->id) {
-                $car_track = (float) \DB::table('car_tracks as ct')
-                    ->where('ct.tvde_week_id', $tvde_week->id)
-                    ->whereExists(function ($q) use ($driver) {
-                        // Avoid double counting when multiple usage rows match the same toll record.
-                        $q->selectRaw('1')
-                            ->from('vehicle_items as vi')
-                            ->join('vehicle_usages as vu', 'vu.vehicle_item_id', '=', 'vi.id')
-                            ->where('vu.driver_id', $driver->id)
-                            ->whereColumn('vu.start_date', '<=', 'ct.date')
-                            ->where(function ($w) {
-                                $w->whereNull('vu.end_date')
-                                    ->orWhereColumn('vu.end_date', '>=', 'ct.date');
-                            })
-                            ->where(function ($w) {
-                                $w->whereNull('vu.usage_exceptions')
-                                    ->orWhere('vu.usage_exceptions', 'usage');
-                            })
-                            ->whereRaw(
-                                "REPLACE(REPLACE(UPPER(vi.license_plate), '-', ''), ' ', '') = REPLACE(REPLACE(UPPER(ct.license_plate), '-', ''), ' ', '')"
-                            );
+                $week_start = Carbon::parse($tvde_week->getRawOriginal('start_date'))->startOfDay();
+                $week_end = Carbon::parse($tvde_week->getRawOriginal('end_date'))->endOfDay();
+
+                // Only plates with usage entries inside the week are eligible for Via Verde.
+                $usage_plates = \DB::table('vehicle_usages as vu')
+                    ->join('vehicle_items as vi', 'vi.id', '=', 'vu.vehicle_item_id')
+                    ->where('vu.driver_id', $driver->id)
+                    ->where(function ($w) {
+                        $w->whereNull('vu.usage_exceptions')
+                            ->orWhere('vu.usage_exceptions', 'usage');
                     })
-                    ->sum('ct.value');
+                    ->where(function ($w) use ($week_start, $week_end) {
+                        $w->whereBetween('vu.start_date', [$week_start, $week_end])
+                            ->orWhereBetween('vu.end_date', [$week_start, $week_end]);
+                    })
+                    ->pluck('vi.license_plate')
+                    ->filter()
+                    ->unique()
+                    ->map(function ($plate) {
+                        return strtoupper(str_replace(['-', ' '], '', $plate));
+                    })
+                    ->values();
+
+                if ($usage_plates->isNotEmpty()) {
+                    $car_track = (float) \DB::table('car_tracks as ct')
+                        ->where('ct.tvde_week_id', $tvde_week->id)
+                        ->whereIn(\DB::raw("REPLACE(REPLACE(UPPER(ct.license_plate), '-', ''), ' ', '')"), $usage_plates->all())
+                        ->sum('ct.value');
+                }
             }
+
             // =======================
             // DRIVER PAYOUT (NET - TIPS - IVA 6% - COMPANY % - EXPENSES + ADJUSTMENTS + TIPS)
             // =======================
@@ -1009,6 +1016,9 @@ trait Reports
         $company_data->save();
     }
 }
+
+
+
 
 
 
