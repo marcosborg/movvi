@@ -19,7 +19,6 @@ class CompanyReportController extends Controller
 {
 
     use Reports;
-
     public function index()
     {
         abort_if(Gate::denies('company_report_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');

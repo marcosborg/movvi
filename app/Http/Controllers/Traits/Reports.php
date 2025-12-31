@@ -313,39 +313,35 @@ trait Reports
                     ->sum('ct.value');
             }
             // =======================
-            // COMMISSION 60/40 WITH TIPS
+            // DRIVER PAYOUT (NET - TIPS - IVA 6% - COMPANY % - EXPENSES + ADJUSTMENTS + TIPS)
             // =======================
             $tips_total = $uber_tips + $bolt_tips;
 
-            // Base without tips (tips remain 100% driver).
-            $base_before_expenses = $net_total - $tips_total;
+            // Base from platforms excludes tips (tips are passed through in full at the end).
+            $base_before_taxes = $net_total - $tips_total;
 
-            // Deduct expenses before commission so company does not keep 40% of driver costs.
-            $expense_total = $driver->fuel + $car_track + $rent_value + $fleet_management;
+            // IVA is fixed at 6% on the platform base per the agreed payout rule.
+            $iva_rate = 0.06;
+            $iva_value = max(0.0, $base_before_taxes) * $iva_rate;
 
-            $commission_base = max(0.0, $base_before_expenses - $expense_total);
-            $driver_commission = $commission_base * 0.60;
+            // Company percentage applies after IVA is removed.
+            $percent_percent = $driver->contract_vat ? (float) ($driver->contract_vat->percent ?? 0) : 0.0;
+            $percent_rate = $percent_percent / 100.0;
+            $base_after_iva = $base_before_taxes - $iva_value;
+            $percent_value = max(0.0, $base_after_iva) * $percent_rate;
 
-            // Add tips back and apply driver-specific adjustments.
-            $subtotal_after_tips = $driver_commission + $tips_total;
-            $final_total = $subtotal_after_tips + $adjustments;
+            // Expenses (rent, fuel, Via Verde, fleet fees) are deducted after company percentage per payout rule.
+            $base_after_company = $base_after_iva - $percent_value;
+            $expenses_total = $rent_value + $driver->fuel + $car_track + $fleet_management;
+
+            // Final driver total: base after taxes/percent - expenses + adjustments + tips.
+            $subtotal_after_tips = $base_after_company - $expenses_total;
+            $final_total = $subtotal_after_tips + $adjustments + $tips_total;
 
             // Legacy IVA/percent fields are kept for older reports.
-            $iva_percent = $driver->contract_vat ? (float) ($driver->contract_vat->iva ?? 0) : 0.0;
-            $percent_percent = $driver->contract_vat ? (float) ($driver->contract_vat->percent ?? 0) : 0.0;
-
-            $iva_rate = $iva_percent / 100.0;
-            $percent_rate = $percent_percent / 100.0;
-
-            $base_for_iva = max(0.0, $base_before_expenses);
-            $iva_value = $base_for_iva * $iva_rate;
-            $base_after_iva = $base_before_expenses - $iva_value;
-
-            $base_for_percent = max(0.0, $base_after_iva);
-            $percent_value = $base_for_percent * $percent_rate;
-
-            $after_vat = $base_after_iva - $percent_value;   // mantem naming existente
-            $total_after_vat_alias = $after_vat;             // alias compat
+            $iva_percent = 6.0;
+            $total_after_vat_alias = $base_after_iva - $percent_value; // alias compat
+            $after_vat = $total_after_vat_alias;
 
             // ---------- LEGADO: earnings_after_discount ----------
             // Sequencial ao bruto (não precisa travão porque o bruto é >= 0):
@@ -366,9 +362,8 @@ trait Reports
 
                 // Tips e pipeline
                 'tips_total' => $tips_total,
-                'base_before_vat' => $base_before_expenses,
-                'commission_base' => $commission_base,
-                'driver_commission' => $driver_commission,
+                'base_before_vat' => $base_before_taxes,
+                'base_after_company' => $base_after_company,
 
                 // Retenções (novos campos)
                 'iva_percent' => $iva_percent,
@@ -443,7 +438,7 @@ trait Reports
             $uber_tips_total[] = $uber_tips;
             $bolt_tips_total[] = $bolt_tips;
             $tips_total_all[] = $tips_total;
-            $total_base_before_vat[] = $base_before_expenses;
+            $total_base_before_vat[] = $base_before_taxes;
             $total_after_vat_arr[] = $after_vat;
             $total_after_vat_plus_tips[] = $subtotal_after_tips;
 
@@ -607,7 +602,7 @@ trait Reports
 
             $combustion_expenses = collect([
                 'amount' => number_format($combustion_transactions->sum('amount'), 2, '.', '') . ' L',
-                'total' => number_format($combustion_total, 2, '.', '') . ' �',
+                'total' => number_format($combustion_total, 2, '.', '') . ' �',
                 'value' => $combustion_total
             ]);
         }
@@ -1014,6 +1009,15 @@ trait Reports
         $company_data->save();
     }
 }
+
+
+
+
+
+
+
+
+
 
 
 
