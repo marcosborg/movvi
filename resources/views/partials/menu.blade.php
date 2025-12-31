@@ -516,6 +516,17 @@
                             </li>
                         @endcan
                         @can('company_report_access')
+                            <li class="{{ request()->is("admin/company-reports-history") || request()->is("admin/company-reports-history/*") ? "active" : "" }}">
+                                <a href="{{ route("admin.company-reports-history.index") }}">
+                                    <i class="fa-fw fas fa-file-contract">
+
+                                    </i>
+                                    <span>Company Report History</span>
+
+                                </a>
+                            </li>
+                        @endcan
+                        @can('company_report_access')
                             <li class="{{ request()->is("admin/driver-report-all-weeks") || request()->is("admin/driver-report-all-weeks/*") ? "active" : "" }}">
                                 <a href="{{ route("admin.company-reports.driver-report-all-weeks") }}">
                                     <i class="fa-fw fas fa-file-contract">

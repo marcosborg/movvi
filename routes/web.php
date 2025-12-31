@@ -443,6 +443,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
         Route::get('delete-data/{tvde_week_id}/{driver_id}', 'CompanyReportController@deleteData')->name('company-reports.delete-data');
         Route::get('driver-report-all-weeks/{driver_id?}/{state_id?}', 'CompanyReportController@driverReportAllWeeks')->name('company-reports.driver-report-all-weeks');
     });
+    Route::get('company-reports-history', 'CompanyReportHistoryController@index')->name('company-reports-history.index');
 
     // Company Park
     Route::delete('company-parks/destroy', 'CompanyParkController@massDestroy')->name('company-parks.massDestroy');
