@@ -291,14 +291,16 @@ trait Reports
                 $week_start = Carbon::parse($tvde_week->getRawOriginal('start_date'))->startOfDay();
                 $week_end = Carbon::parse($tvde_week->getRawOriginal('end_date'))->endOfDay();
 
-                // Only plates with usage entries inside the week are eligible for Via Verde.
-                $usage_plates = \DB::table('vehicle_usages as vu')
+                $usage_query = \DB::table('vehicle_usages as vu')
                     ->join('vehicle_items as vi', 'vi.id', '=', 'vu.vehicle_item_id')
                     ->where('vu.driver_id', $driver->id)
                     ->where(function ($w) {
                         $w->whereNull('vu.usage_exceptions')
                             ->orWhere('vu.usage_exceptions', 'usage');
-                    })
+                    });
+
+                // Prefer usages that start/end inside the week; fallback to any overlap when none exist.
+                $usage_plates_in_week = (clone $usage_query)
                     ->where(function ($w) use ($week_start, $week_end) {
                         $w->whereBetween('vu.start_date', [$week_start, $week_end])
                             ->orWhereBetween('vu.end_date', [$week_start, $week_end]);
@@ -310,6 +312,21 @@ trait Reports
                         return strtoupper(str_replace(['-', ' '], '', $plate));
                     })
                     ->values();
+
+                $usage_plates = $usage_plates_in_week;
+
+                if ($usage_plates->isEmpty()) {
+                    $latest_plate = (clone $usage_query)
+                        ->where('vu.start_date', '<=', $week_end)
+                        ->where(function ($w) use ($week_start) {
+                            $w->whereNull('vu.end_date')
+                                ->orWhere('vu.end_date', '>=', $week_start);
+                        })
+                        ->orderBy('vu.start_date', 'desc')
+                        ->value('vi.license_plate');
+
+                    $usage_plates = collect($latest_plate ? [strtoupper(str_replace(['-', ' '], '', $latest_plate))] : []);
+                }
 
                 if ($usage_plates->isNotEmpty()) {
                     $car_track = (float) \DB::table('car_tracks as ct')
@@ -1016,6 +1033,9 @@ trait Reports
         $company_data->save();
     }
 }
+
+
+
 
 
 
