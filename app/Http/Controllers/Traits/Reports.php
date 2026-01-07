@@ -341,8 +341,9 @@ trait Reports
             // =======================
             $tips_total = $uber_tips + $bolt_tips;
 
-            // Base from platforms excludes tips (tips are passed through in full at the end).
-            $base_before_taxes = $net_total - $tips_total;
+            // Base from platforms excludes tips and fuel (tips are passed through in full at the end).
+            // Fuel is discounted before IVA per payout rule.
+            $base_before_taxes = $net_total - $tips_total - $driver->fuel;
 
             // IVA comes from the contract VAT model (default 6%) per payout rule.
             $iva_rate = (($driver->contract_vat ? (float) ($driver->contract_vat->iva ?? 6.0) : 6.0) / 100.0);
@@ -354,9 +355,9 @@ trait Reports
             $base_after_iva = $base_before_taxes - $iva_value;
             $percent_value = max(0.0, $base_after_iva) * $percent_rate;
 
-            // Expenses (rent, fuel, Via Verde, fleet fees) are deducted after company percentage per payout rule.
+            // Expenses (rent, Via Verde, fleet fees) are deducted after company percentage per payout rule.
             $base_after_company = $base_after_iva - $percent_value;
-            $expenses_total = $rent_value + $driver->fuel + $car_track + $fleet_management;
+            $expenses_total = $rent_value + $car_track + $fleet_management;
 
             // Final driver total: base after taxes/percent - expenses + adjustments + tips.
             $subtotal_after_tips = $base_after_company - $expenses_total;
