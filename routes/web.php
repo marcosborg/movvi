@@ -575,6 +575,9 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
         Route::get('set-vehicle-item-id/{vehicle_item_id}', [\App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'setVehicleItemId']);
     });
 
+    Route::get('vehicle-profitability', 'VehicleProfitabilityController@index')->name('vehicle-profitability.index');
+    Route::get('vehicle-profitability/pdf', 'VehicleProfitabilityController@pdf')->name('vehicle-profitability.pdf');
+
     // Expense Receipts
     Route::delete('expense-receipts/destroy', 'ExpenseReceiptsController@massDestroy')->name('expense-receipts.massDestroy');
     Route::post('expense-receipts/media', 'ExpenseReceiptsController@storeMedia')->name('expense-receipts.storeMedia');
