@@ -331,6 +331,7 @@ trait Reports
                 if ($usage_plates->isNotEmpty()) {
                     $car_track = (float) \DB::table('car_tracks as ct')
                         ->where('ct.tvde_week_id', $tvde_week->id)
+                        ->whereNull('ct.deleted_at')
                         ->whereIn(\DB::raw("REPLACE(REPLACE(UPPER(ct.license_plate), '-', ''), ' ', '')"), $usage_plates->all())
                         ->sum('ct.value');
                 }
