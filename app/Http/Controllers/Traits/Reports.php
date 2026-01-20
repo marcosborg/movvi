@@ -232,7 +232,6 @@ trait Reports
                 $week_days = $week_start->diffInDays($week_end) + 1;
                 $weekly_value = (float) $car_hire->amount;
                 $daily_value = $weekly_value / $week_days;
-                $half_day_value = $daily_value / 2;
                 $discount = 0.0;
 
                 $usage_intervals = VehicleUsage::with('vehicle_item')
@@ -249,27 +248,22 @@ trait Reports
                     $day_end = $day->copy()->endOfDay();
 
                     $has_any = false;
-                    $has_full = false;
 
                     foreach ($usage_intervals as $usage) {
-                        $usage_start = $usage->start_date ? Carbon::parse($usage->start_date) : $week_start;
-                        $usage_end = $usage->end_date ? Carbon::parse($usage->end_date) : $week_end;
+                        // Normalize to whole-day boundaries to avoid half-day proration.
+                        $usage_start = $usage->start_date ? Carbon::parse($usage->start_date)->startOfDay() : $week_start;
+                        $usage_end = $usage->end_date ? Carbon::parse($usage->end_date)->endOfDay() : $week_end;
 
                         if ($usage_end->lt($day_start) || $usage_start->gt($day_end)) {
                             continue;
                         }
 
                         $has_any = true;
-                        if ($usage_start->lte($day_start) && $usage_end->gte($day_end)) {
-                            $has_full = true;
-                            break;
-                        }
+                        break;
                     }
 
                     if (!$has_any) {
                         $discount += $daily_value;
-                    } elseif (!$has_full) {
-                        $discount += $half_day_value;
                     }
                 }
 
