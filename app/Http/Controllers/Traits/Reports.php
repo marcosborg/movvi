@@ -213,62 +213,8 @@ trait Reports
             $total_fuel_transactions[] = $driver->fuel;
 
             // ---------- CAR HIRE ----------
-            $car_hire = CarHire::where(['driver_id' => $driver->id])
-                ->where(function ($query) use ($tvde_week) {
-                    $query->where('start_date', '<=', $tvde_week->start_date)
-                        ->orWhereNull('start_date');
-                })
-                ->where(function ($query) use ($tvde_week) {
-                    $query->where('end_date', '>=', $tvde_week->end_date)
-                        ->orWhereNull('end_date');
-                })
-                ->first();
-
-            $rent_value = 0.0;
-            if ($car_hire) {
-                // Prorate car hire by day coverage using vehicle usages.
-                $week_start = Carbon::parse($tvde_week->getRawOriginal('start_date'))->startOfDay();
-                $week_end = Carbon::parse($tvde_week->getRawOriginal('end_date'))->endOfDay();
-                $week_days = $week_start->diffInDays($week_end) + 1;
-                $weekly_value = (float) $car_hire->amount;
-                $daily_value = $weekly_value / $week_days;
-                $discount = 0.0;
-
-                $usage_intervals = VehicleUsage::with('vehicle_item')
-                    ->where('driver_id', $driver->id)
-                    ->where('start_date', '<=', $week_end)
-                    ->where(function ($query) use ($week_start) {
-                        $query->whereNull('end_date')
-                            ->orWhere('end_date', '>=', $week_start);
-                    })
-                    ->get();
-
-                for ($day = $week_start->copy(); $day->lte($week_end); $day->addDay()) {
-                    $day_start = $day->copy()->startOfDay();
-                    $day_end = $day->copy()->endOfDay();
-
-                    $has_any = false;
-
-                    foreach ($usage_intervals as $usage) {
-                        // Normalize to whole-day boundaries to avoid half-day proration.
-                        $usage_start = $usage->start_date ? Carbon::parse($usage->start_date)->startOfDay() : $week_start;
-                        $usage_end = $usage->end_date ? Carbon::parse($usage->end_date)->endOfDay() : $week_end;
-
-                        if ($usage_end->lt($day_start) || $usage_start->gt($day_end)) {
-                            continue;
-                        }
-
-                        $has_any = true;
-                        break;
-                    }
-
-                    if (!$has_any) {
-                        $discount += $daily_value;
-                    }
-                }
-
-                $rent_value = max(0.0, $weekly_value - $discount);
-            }
+            $carHireResult = $this->calculateCarHireForWeek($driver, $tvde_week);
+            $rent_value = (float) $carHireResult['total'];
 
             // ---------- ADJUSTMENTS ----------
             $adjustments_array = Adjustment::whereHas('drivers', function ($query) use ($driver) {
@@ -834,6 +780,106 @@ trait Reports
                 return sprintf('%s|%s|%s', $transaction->card, $transaction->amount, $transaction->total);
             })
             ->values();
+    }
+
+    /**
+     * CarHire is the single source of truth for rental proration (civil days).
+     */
+    protected function calculateCarHireForWeek(Driver $driver, TvdeWeek $week): array
+    {
+        $weekStart = Carbon::parse($week->getRawOriginal('start_date'))->startOfDay();
+        $weekEnd = Carbon::parse($week->getRawOriginal('end_date'))->endOfDay();
+
+        $contracts = CarHire::where('driver_id', $driver->id)
+            ->where(function ($query) use ($weekEnd) {
+                $query->whereNull('start_date')
+                    ->orWhere('start_date', '<=', $weekEnd);
+            })
+            ->where(function ($query) use ($weekStart) {
+                $query->whereNull('end_date')
+                    ->orWhere('end_date', '>=', $weekStart);
+            })
+            ->orderBy('start_date')
+            ->get();
+
+        $days = [];
+        $totalCharged = 0.0;
+        $daysCharged = 0;
+
+        foreach ($contracts as $contract) {
+            $contractStart = $contract->start_date
+                ? Carbon::parse($contract->start_date)->startOfDay()
+                : $weekStart;
+            $contractEnd = $contract->end_date
+                ? Carbon::parse($contract->end_date)->endOfDay()
+                : $weekEnd;
+
+            $effectiveStart = $contractStart->greaterThan($weekStart) ? $contractStart : $weekStart;
+            $effectiveEnd = $contractEnd->lessThan($weekEnd) ? $contractEnd : $weekEnd;
+
+            if ($effectiveEnd->lt($effectiveStart)) {
+                continue;
+            }
+
+            $daysInContract = $effectiveStart->diffInDays($effectiveEnd) + 1;
+            $dailyValue = ((float) $contract->amount) / 7;
+            $totalCharged += $dailyValue * $daysInContract;
+            $daysCharged += $daysInContract;
+        }
+
+        for ($day = $weekStart->copy(); $day->lte($weekEnd); $day->addDay()) {
+            $dayStart = $day->copy()->startOfDay();
+            $dayEnd = $day->copy()->endOfDay();
+            $activeContract = null;
+            $activeStart = null;
+
+            foreach ($contracts as $contract) {
+                $contractStart = $contract->start_date
+                    ? Carbon::parse($contract->start_date)->startOfDay()
+                    : $weekStart;
+                $contractEnd = $contract->end_date
+                    ? Carbon::parse($contract->end_date)->endOfDay()
+                    : $weekEnd;
+
+                if ($contractStart->gt($dayEnd) || $contractEnd->lt($dayStart)) {
+                    continue;
+                }
+
+                if (!$activeContract || ($activeStart && $contractStart->gt($activeStart))) {
+                    $activeContract = $contract;
+                    $activeStart = $contractStart;
+                }
+            }
+
+            if ($activeContract) {
+                $dailyValue = ((float) $activeContract->amount) / 7;
+                $days[] = [
+                    'date' => $dayStart->toDateString(),
+                    'car_hire_id' => $activeContract->id,
+                    'weekly_amount' => (float) $activeContract->amount,
+                    'daily_amount' => $dailyValue,
+                    'charged_value' => $dailyValue,
+                ];
+            } else {
+                $days[] = [
+                    'date' => $dayStart->toDateString(),
+                    'car_hire_id' => null,
+                    'weekly_amount' => 0.0,
+                    'daily_amount' => 0.0,
+                    'charged_value' => 0.0,
+                ];
+            }
+        }
+
+        return [
+            'total' => $totalCharged,
+            'breakdown' => [
+                'days' => $days,
+                'total_charged' => $totalCharged,
+                'days_charged' => $daysCharged,
+                'total_value' => $totalCharged,
+            ],
+        ];
     }
 
     public function filter($state_id = 1)

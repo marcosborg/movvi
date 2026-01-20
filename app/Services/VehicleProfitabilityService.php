@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
+use App\Http\Controllers\Traits\Reports;
 use App\Models\CurrentAccount;
-use App\Models\CarHire;
 use App\Models\ExpenseReimbursement;
 use App\Models\TvdeWeek;
 use App\Models\VehicleExpense;
@@ -13,6 +13,8 @@ use Carbon\Carbon;
 
 class VehicleProfitabilityService
 {
+    use Reports;
+
     /**
      * Build a profitability snapshot for a vehicle in a given TVDE week.
      * This consumes existing weekly driver report data (CurrentAccount).
@@ -105,9 +107,9 @@ class VehicleProfitabilityService
             ->whereDate('date', '<=', $week->end_date)
             ->sum('value');
 
-        // Build a day-by-day car hire breakdown using contract dates only (no vehicle usage logic).
-        $carHireBreakdown = self::buildCarHireBreakdownFromContracts($driver->id, $weekStart, $weekEnd);
-        $carHire = (float) $carHireBreakdown['total_value'];
+        $carHireResult = (new self())->calculateCarHireForWeek($driver, $week);
+        $carHireBreakdown = $carHireResult['breakdown'];
+        $carHire = (float) $carHireResult['total'];
 
         $totalCosts = ($carHire + $viaVerde + $fuel + $otherDriverCosts)
             + $vehicleExpenses
@@ -216,83 +218,5 @@ class VehicleProfitabilityService
         ];
     }
 
-    /**
-     * Build a daily car hire breakdown based exclusively on CarHire contracts.
-     * Uses full-day pricing only, per contract dates, without vehicle usage logic.
-     *
-     * Example (comment-only):
-     * 3 days on a 200/week contract + 4 days on a 300/week contract
-     * => (200/7 * 3) + (300/7 * 4).
-     */
-    private static function buildCarHireBreakdownFromContracts(
-        int $driverId,
-        Carbon $weekStart,
-        Carbon $weekEnd
-    ): array {
-        $days = [];
-        $totalCharged = 0.0;
-        $daysCharged = 0;
-        $daysInWeek = 7;
-
-        $contracts = CarHire::where('driver_id', $driverId)
-            ->where('start_date', '<=', $weekEnd)
-            ->where(function ($q) use ($weekStart) {
-                $q->whereNull('end_date')->orWhere('end_date', '>=', $weekStart);
-            })
-            ->whereNull('deleted_at')
-            ->orderBy('start_date')
-            ->get();
-
-        for ($day = $weekStart->copy(); $day->lte($weekEnd); $day->addDay()) {
-            $dayStart = $day->copy()->startOfDay();
-            $dayEnd = $day->copy()->endOfDay();
-
-            $activeContract = null;
-            foreach ($contracts as $contract) {
-                $contractStart = Carbon::parse($contract->start_date)->startOfDay();
-                $contractEnd = $contract->end_date
-                    ? Carbon::parse($contract->end_date)->endOfDay()
-                    : $weekEnd;
-
-                if ($contractStart->gt($dayEnd) || $contractEnd->lt($dayStart)) {
-                    continue;
-                }
-
-                // If multiple contracts intersect the day, the latest start_date wins.
-                if (!$activeContract || $contractStart->gt(Carbon::parse($activeContract->start_date))) {
-                    $activeContract = $contract;
-                }
-            }
-
-            if ($activeContract) {
-                $weeklyAmount = (float) $activeContract->amount;
-                $dailyAmount = $daysInWeek > 0 ? ($weeklyAmount / $daysInWeek) : 0.0;
-                $chargedValue = $dailyAmount;
-                $totalCharged += $chargedValue;
-                $daysCharged++;
-                $days[] = [
-                    'date' => $dayStart->toDateString(),
-                    'car_hire_id' => $activeContract->id,
-                    'weekly_amount' => $weeklyAmount,
-                    'daily_amount' => $dailyAmount,
-                    'charged_value' => $chargedValue,
-                ];
-            } else {
-                $days[] = [
-                    'date' => $dayStart->toDateString(),
-                    'car_hire_id' => null,
-                    'weekly_amount' => 0.0,
-                    'daily_amount' => 0.0,
-                    'charged_value' => 0.0,
-                ];
-            }
-        }
-
-        return [
-            'days' => $days,
-            'total_charged' => $totalCharged,
-            'days_charged' => $daysCharged,
-            'total_value' => $totalCharged,
-        ];
-    }
+    //
 }
