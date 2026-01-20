@@ -107,7 +107,7 @@ class VehicleProfitabilityService
 
         // Build a day-by-day car hire breakdown using contract dates only (no vehicle usage logic).
         $carHireBreakdown = self::buildCarHireBreakdownFromContracts($driver->id, $weekStart, $weekEnd);
-        $carHire = (float) $carHireBreakdown['final_value'];
+        $carHire = (float) $carHireBreakdown['total_value'];
 
         $totalCosts = ($carHire + $viaVerde + $fuel + $otherDriverCosts)
             + $vehicleExpenses
@@ -192,11 +192,10 @@ class VehicleProfitabilityService
                 'other_driver_costs' => 0.0,
             ],
             'car_hire_breakdown' => [
-                'weekly_value' => 0.0,
-                'daily_value' => 0.0,
                 'days' => [],
-                'total_discount' => 0.0,
-                'final_value' => 0.0,
+                'total_charged' => 0.0,
+                'days_charged' => 0,
+                'total_value' => 0.0,
             ],
             'vehicle_costs' => [
                 'expenses' => 0.0,
@@ -220,21 +219,27 @@ class VehicleProfitabilityService
     /**
      * Build a daily car hire breakdown based exclusively on CarHire contracts.
      * Uses full-day pricing only, per contract dates, without vehicle usage logic.
+     *
+     * Example (comment-only):
+     * 3 days on a 200/week contract + 4 days on a 300/week contract
+     * => (200/7 * 3) + (300/7 * 4).
      */
     private static function buildCarHireBreakdownFromContracts(
         int $driverId,
         Carbon $weekStart,
         Carbon $weekEnd
     ): array {
-        $weekDays = $weekStart->diffInDays($weekEnd) + 1;
         $days = [];
-        $totalCharge = 0.0;
+        $totalCharged = 0.0;
+        $daysCharged = 0;
+        $daysInWeek = 7;
 
         $contracts = CarHire::where('driver_id', $driverId)
             ->where('start_date', '<=', $weekEnd)
             ->where(function ($q) use ($weekStart) {
                 $q->whereNull('end_date')->orWhere('end_date', '>=', $weekStart);
             })
+            ->whereNull('deleted_at')
             ->orderBy('start_date')
             ->get();
 
@@ -260,32 +265,34 @@ class VehicleProfitabilityService
             }
 
             if ($activeContract) {
-                $dailyPrice = $weekDays > 0 ? ((float) $activeContract->amount / $weekDays) : 0.0;
-                $totalCharge += $dailyPrice;
+                $weeklyAmount = (float) $activeContract->amount;
+                $dailyAmount = $daysInWeek > 0 ? ($weeklyAmount / $daysInWeek) : 0.0;
+                $chargedValue = $dailyAmount;
+                $totalCharged += $chargedValue;
+                $daysCharged++;
                 $days[] = [
                     'date' => $dayStart->toDateString(),
-                    'status' => 'full',
-                    'discount' => $dailyPrice,
                     'car_hire_id' => $activeContract->id,
-                    'daily_price' => $dailyPrice,
+                    'weekly_amount' => $weeklyAmount,
+                    'daily_amount' => $dailyAmount,
+                    'charged_value' => $chargedValue,
                 ];
             } else {
                 $days[] = [
                     'date' => $dayStart->toDateString(),
-                    'status' => 'none',
-                    'discount' => 0.0,
                     'car_hire_id' => null,
-                    'daily_price' => 0.0,
+                    'weekly_amount' => 0.0,
+                    'daily_amount' => 0.0,
+                    'charged_value' => 0.0,
                 ];
             }
         }
 
         return [
-            'weekly_value' => 0.0,
-            'daily_value' => 0.0,
             'days' => $days,
-            'total_discount' => 0.0,
-            'final_value' => $totalCharge,
+            'total_charged' => $totalCharged,
+            'days_charged' => $daysCharged,
+            'total_value' => $totalCharged,
         ];
     }
 }
