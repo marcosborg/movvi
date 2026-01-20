@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CurrentAccount;
+use App\Models\CarHire;
 use App\Models\ExpenseReimbursement;
 use App\Models\TvdeWeek;
 use App\Models\VehicleExpense;
@@ -88,7 +89,7 @@ class VehicleProfitabilityService
         $results = $currentAccount ? json_decode($currentAccount->data) : (object) [];
 
         $totalRevenue = (float) ($results->total_net ?? 0);
-        $carHire = (float) ($results->car_hire ?? 0);
+        $carHire = 0.0;
         $viaVerde = (float) ($results->car_track ?? 0);
         $fuel = (float) ($results->fuel_transactions ?? 0);
         $otherDriverCosts = (float) ($results->fleet_management ?? 0);
@@ -104,8 +105,9 @@ class VehicleProfitabilityService
             ->whereDate('date', '<=', $week->end_date)
             ->sum('value');
 
-        // Build a day-by-day car hire breakdown using existing usage intervals.
-        $carHireBreakdown = self::buildCarHireBreakdown($carHire, $weekStart, $weekEnd, $usages);
+        // Build a day-by-day car hire breakdown using contract dates only (no vehicle usage logic).
+        $carHireBreakdown = self::buildCarHireBreakdownFromContracts($driver->id, $weekStart, $weekEnd);
+        $carHire = (float) $carHireBreakdown['final_value'];
 
         $totalCosts = ($carHire + $viaVerde + $fuel + $otherDriverCosts)
             + $vehicleExpenses
@@ -216,70 +218,74 @@ class VehicleProfitabilityService
     }
 
     /**
-     * Build a daily car hire breakdown for a vehicle-week using usage intervals.
+     * Build a daily car hire breakdown based exclusively on CarHire contracts.
+     * Uses full-day pricing only, per contract dates, without vehicle usage logic.
      */
-    private static function buildCarHireBreakdown(
-        float $weeklyValue,
+    private static function buildCarHireBreakdownFromContracts(
+        int $driverId,
         Carbon $weekStart,
-        Carbon $weekEnd,
-        $usages
+        Carbon $weekEnd
     ): array {
-        // Avoid division by zero if week bounds are malformed.
         $weekDays = $weekStart->diffInDays($weekEnd) + 1;
-        $dailyValue = $weekDays > 0 ? $weeklyValue / $weekDays : 0.0;
-        $halfDayValue = $dailyValue / 2;
-
         $days = [];
-        $totalDiscount = 0.0;
+        $totalCharge = 0.0;
+
+        $contracts = CarHire::where('driver_id', $driverId)
+            ->where('start_date', '<=', $weekEnd)
+            ->where(function ($q) use ($weekStart) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', $weekStart);
+            })
+            ->orderBy('start_date')
+            ->get();
 
         for ($day = $weekStart->copy(); $day->lte($weekEnd); $day->addDay()) {
             $dayStart = $day->copy()->startOfDay();
             $dayEnd = $day->copy()->endOfDay();
 
-            // Determine if any usage intersects the day, and if any covers it fully.
-            $hasAny = false;
-            $hasFull = false;
+            $activeContract = null;
+            foreach ($contracts as $contract) {
+                $contractStart = Carbon::parse($contract->start_date)->startOfDay();
+                $contractEnd = $contract->end_date
+                    ? Carbon::parse($contract->end_date)->endOfDay()
+                    : $weekEnd;
 
-            foreach ($usages as $usage) {
-                $usageStart = Carbon::parse($usage->start_date);
-                $usageEnd = $usage->end_date ? Carbon::parse($usage->end_date) : $weekEnd;
-
-                if ($usageStart->gt($dayEnd) || $usageEnd->lt($dayStart)) {
+                if ($contractStart->gt($dayEnd) || $contractEnd->lt($dayStart)) {
                     continue;
                 }
 
-                $hasAny = true;
-                if ($usageStart->lte($dayStart) && $usageEnd->gte($dayEnd)) {
-                    $hasFull = true;
-                    break;
+                // If multiple contracts intersect the day, the latest start_date wins.
+                if (!$activeContract || $contractStart->gt(Carbon::parse($activeContract->start_date))) {
+                    $activeContract = $contract;
                 }
             }
 
-            if (!$hasAny) {
-                $status = 'none';
-                $discount = $dailyValue;
-            } elseif (!$hasFull) {
-                $status = 'partial';
-                $discount = $halfDayValue;
+            if ($activeContract) {
+                $dailyPrice = $weekDays > 0 ? ((float) $activeContract->amount / $weekDays) : 0.0;
+                $totalCharge += $dailyPrice;
+                $days[] = [
+                    'date' => $dayStart->toDateString(),
+                    'status' => 'full',
+                    'discount' => $dailyPrice,
+                    'car_hire_id' => $activeContract->id,
+                    'daily_price' => $dailyPrice,
+                ];
             } else {
-                $status = 'full';
-                $discount = 0.0;
+                $days[] = [
+                    'date' => $dayStart->toDateString(),
+                    'status' => 'none',
+                    'discount' => 0.0,
+                    'car_hire_id' => null,
+                    'daily_price' => 0.0,
+                ];
             }
-
-            $totalDiscount += $discount;
-            $days[] = [
-                'date' => $dayStart->toDateString(),
-                'status' => $status,
-                'discount' => $discount,
-            ];
         }
 
         return [
-            'weekly_value' => $weeklyValue,
-            'daily_value' => $dailyValue,
+            'weekly_value' => 0.0,
+            'daily_value' => 0.0,
             'days' => $days,
-            'total_discount' => $totalDiscount,
-            'final_value' => max(0.0, $weeklyValue - $totalDiscount),
+            'total_discount' => 0.0,
+            'final_value' => $totalCharge,
         ];
     }
 }
