@@ -226,24 +226,54 @@ trait Reports
 
             $rent_value = 0.0;
             if ($car_hire) {
-                // Prorate car hire across the actual overlap with the TVDE week.
+                // Prorate car hire by day coverage using vehicle usages.
                 $week_start = Carbon::parse($tvde_week->getRawOriginal('start_date'))->startOfDay();
                 $week_end = Carbon::parse($tvde_week->getRawOriginal('end_date'))->endOfDay();
-                $hire_start = $car_hire->getRawOriginal('start_date')
-                    ? Carbon::parse($car_hire->getRawOriginal('start_date'))->startOfDay()
-                    : $week_start;
-                $hire_end = $car_hire->getRawOriginal('end_date')
-                    ? Carbon::parse($car_hire->getRawOriginal('end_date'))->endOfDay()
-                    : $week_end;
+                $week_days = $week_start->diffInDays($week_end) + 1;
+                $weekly_value = (float) $car_hire->amount;
+                $daily_value = $weekly_value / $week_days;
+                $half_day_value = $daily_value / 2;
+                $discount = 0.0;
 
-                $overlap_start = $hire_start->greaterThan($week_start) ? $hire_start : $week_start;
-                $overlap_end = $hire_end->lessThan($week_end) ? $hire_end : $week_end;
+                $usage_intervals = VehicleUsage::with('vehicle_item')
+                    ->where('driver_id', $driver->id)
+                    ->where('start_date', '<=', $week_end)
+                    ->where(function ($query) use ($week_start) {
+                        $query->whereNull('end_date')
+                            ->orWhere('end_date', '>=', $week_start);
+                    })
+                    ->get();
 
-                if ($overlap_end->greaterThanOrEqualTo($overlap_start)) {
-                    $week_days = $week_start->diffInDays($week_end) + 1;
-                    $overlap_days = $overlap_start->diffInDays($overlap_end) + 1;
-                    $rent_value = (float) $car_hire->amount * ($overlap_days / $week_days);
+                for ($day = $week_start->copy(); $day->lte($week_end); $day->addDay()) {
+                    $day_start = $day->copy()->startOfDay();
+                    $day_end = $day->copy()->endOfDay();
+
+                    $has_any = false;
+                    $has_full = false;
+
+                    foreach ($usage_intervals as $usage) {
+                        $usage_start = $usage->start_date ? Carbon::parse($usage->start_date) : $week_start;
+                        $usage_end = $usage->end_date ? Carbon::parse($usage->end_date) : $week_end;
+
+                        if ($usage_end->lt($day_start) || $usage_start->gt($day_end)) {
+                            continue;
+                        }
+
+                        $has_any = true;
+                        if ($usage_start->lte($day_start) && $usage_end->gte($day_end)) {
+                            $has_full = true;
+                            break;
+                        }
+                    }
+
+                    if (!$has_any) {
+                        $discount += $daily_value;
+                    } elseif (!$has_full) {
+                        $discount += $half_day_value;
+                    }
                 }
+
+                $rent_value = max(0.0, $weekly_value - $discount);
             }
 
             // ---------- ADJUSTMENTS ----------
