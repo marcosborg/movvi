@@ -20,31 +20,23 @@
 </head>
 <body>
     <div class="section">
-        <h1>Weekly Vehicle Profitability</h1>
-        <p><strong>Vehicle:</strong> {{ $result['vehicle']['license_plate'] }} @if($result['vehicle']['model']) ({{ $result['vehicle']['model'] }}) @endif</p>
-        <p><strong>Week:</strong> {{ $result['week']['start_date'] }} → {{ $result['week']['end_date'] }}</p>
-        <p><strong>Driver:</strong> {{ $result['meta']['driver_id'] }}</p>
-        <p><strong>Final Result:</strong> <span class="kpi">{{ $result['totals']['final_result'] }}</span></p>
-        <p><strong>Status:</strong>
-            <span class="badge {{ $result['totals']['status'] }}">{{ $result['totals']['status'] }}</span>
-        </p>
+        <h1>Receitas semanais por viatura</h1>
+        <p><strong>Viatura:</strong> {{ $result['vehicle']['license_plate'] }} @if($result['vehicle']['model']) ({{ $result['vehicle']['model'] }}) @endif</p>
+        <p><strong>Semana:</strong> {{ $result['week']['start_date'] }} → {{ $result['week']['end_date'] }}</p>
+        @if(!empty($result['meta']['missing_current_accounts']))
+            <p><strong>Aviso:</strong> Existem motoristas sem dados validados em <code>/admin/company-reports</code> nesta semana.</p>
+        @endif
     </div>
 
     <div class="page-break"></div>
 
     <div class="section">
-        <h2>Financial Breakdown</h2>
+        <h2>Receitas por tipo</h2>
         <table>
             <tbody>
-                <tr><th>Revenues</th><td>{{ $result['revenues']['total_revenue'] }}</td></tr>
-                <tr><th>Car Hire</th><td>{{ $result['costs']['car_hire'] }}</td></tr>
-                <tr><th>Via Verde</th><td>{{ $result['costs']['via_verde'] }}</td></tr>
-                <tr><th>Fuel</th><td>{{ $result['costs']['fuel'] }}</td></tr>
-                <tr><th>Other driver costs</th><td>{{ $result['costs']['other_driver_costs'] }}</td></tr>
-                <tr><th>Vehicle expenses</th><td>{{ $result['vehicle_costs']['expenses'] }}</td></tr>
-                <tr><th>Reimbursements</th><td>{{ $result['vehicle_costs']['reimbursements'] }}</td></tr>
-                <tr><th>Total costs</th><td>{{ $result['totals']['total_costs'] }}</td></tr>
-                <tr><th>Final result</th><td>{{ $result['totals']['final_result'] }}</td></tr>
+                <tr><th>Aluguer (€)</th><td>{{ number_format($result['revenues']['rental_total'] ?? 0, 2, ',', '.') }}</td></tr>
+                <tr><th>Percentagem (€)</th><td>{{ number_format($result['revenues']['commission_total'] ?? 0, 2, ',', '.') }}</td></tr>
+                <tr><th>Total (€)</th><td class="kpi">{{ number_format($result['revenues']['total_revenue'] ?? 0, 2, ',', '.') }}</td></tr>
             </tbody>
         </table>
     </div>
@@ -52,21 +44,25 @@
     <div class="page-break"></div>
 
     <div class="section">
-        <h2>Car Hire Daily Breakdown</h2>
+        <h2>Motoristas</h2>
         <table>
             <thead>
                 <tr>
-                    <th>Date</th>
-                    <th>Status</th>
-                    <th>Discount</th>
+                    <th>Motorista</th>
+                    <th>Tipo</th>
+                    <th style="text-align:right;">Aluguer</th>
+                    <th style="text-align:right;">Percentagem</th>
+                    <th style="text-align:right;">Uso (segundos)</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($result['car_hire_breakdown']['days'] as $day)
+                @foreach(($result['meta']['drivers'] ?? []) as $d)
                     <tr>
-                        <td>{{ $day['date'] }}</td>
-                        <td>{{ $day['status'] }}</td>
-                        <td>{{ $day['discount'] }}</td>
+                        <td>{{ $d['name'] ?? ('#' . $d['id']) }}</td>
+                        <td>{{ $d['type'] }}</td>
+                        <td style="text-align:right;">{{ number_format($d['rental'] ?? 0, 2, ',', '.') }}</td>
+                        <td style="text-align:right;">{{ number_format($d['commission'] ?? 0, 2, ',', '.') }}</td>
+                        <td style="text-align:right;">{{ number_format($d['usage_seconds'] ?? 0, 0, ',', '.') }}</td>
                     </tr>
                 @endforeach
             </tbody>

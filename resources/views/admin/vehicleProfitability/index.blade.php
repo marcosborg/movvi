@@ -34,6 +34,12 @@
                    href="{{ $canExport ? url('admin/vehicle-profitability/pdf') . '?vehicle_id=' . $vehicleId . '&tvde_week_id=' . $weekId : '#' }}">
                     Exportar PDF
                 </a>
+                @php($canWeek = (bool) $weekId)
+                <a class="btn btn-default"
+                   style="margin-left: 10px; {{ $canWeek ? '' : 'pointer-events: none; opacity: 0.6;' }}"
+                   href="{{ $canWeek ? route('admin.vehicle-profitabilities.week', ['tvde_week_id' => $weekId]) : '#' }}">
+                    Todas as viaturas (semana)
+                </a>
             </form>
         </div>
     </div>
@@ -51,13 +57,17 @@
             <div class="col-lg-12">
                 <div class="box box-primary">
                     <div class="box-header with-border">
-                        <h3 class="box-title">Identification</h3>
+                        <h3 class="box-title">Identificação</h3>
                     </div>
                     <div class="box-body">
-                        <p><strong>Vehicle:</strong> {{ $result['vehicle']['license_plate'] }}</p>
-                        <p><strong>Model:</strong> {{ $result['vehicle']['model'] }}</p>
-                        <p><strong>Week:</strong> {{ $result['week']['start_date'] }} → {{ $result['week']['end_date'] }}</p>
-                        <p><strong>Driver:</strong> {{ $result['meta']['driver_id'] }}</p>
+                        <p><strong>Viatura:</strong> {{ $result['vehicle']['license_plate'] }}</p>
+                        <p><strong>Modelo:</strong> {{ $result['vehicle']['model'] }}</p>
+                        <p><strong>Semana:</strong> {{ $result['week']['start_date'] }} → {{ $result['week']['end_date'] }}</p>
+                        @if(!empty($result['meta']['missing_current_accounts']))
+                            <div class="alert alert-warning" role="alert" style="margin-top: 10px;">
+                                Existem motoristas que conduziram esta viatura nesta semana mas ainda não têm dados validados em <code>/admin/company-reports</code>.
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -67,32 +77,32 @@
             <div class="col-md-3">
                 <div class="box box-info">
                     <div class="box-body">
-                        <h4>Revenue</h4>
-                        <p>{{ $result['revenues']['total_revenue'] }}</p>
+                        <h4>Aluguer (€)</h4>
+                        <p>{{ number_format($result['revenues']['rental_total'] ?? 0, 2, ',', '.') }}</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="box box-warning">
                     <div class="box-body">
-                        <h4>Total Costs</h4>
-                        <p>{{ $result['totals']['total_costs'] }}</p>
+                        <h4>Percentagem (€)</h4>
+                        <p>{{ number_format($result['revenues']['commission_total'] ?? 0, 2, ',', '.') }}</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="box box-success">
                     <div class="box-body">
-                        <h4>Final Result</h4>
-                        <p>{{ $result['totals']['final_result'] }}</p>
+                        <h4>Total (€)</h4>
+                        <p>{{ number_format($result['revenues']['total_revenue'] ?? 0, 2, ',', '.') }}</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="box box-default">
                     <div class="box-body">
-                        <h4>Status</h4>
-                        <span class="label {{ $result['totals']['status_class'] }}">{{ $result['totals']['status'] }}</span>
+                        <h4>N.º motoristas</h4>
+                        <p>{{ count($result['meta']['drivers'] ?? []) }}</p>
                     </div>
                 </div>
             </div>
@@ -102,58 +112,31 @@
             <div class="col-lg-12">
                 <div class="box box-primary">
                     <div class="box-header with-border">
-                        <h3 class="box-title">Cost Breakdown</h3>
+                        <h3 class="box-title">Motoristas</h3>
                     </div>
                     <div class="box-body table-responsive">
                         <table class="table table-bordered table-striped">
                             <thead>
                                 <tr>
-                                    <th>Cost</th>
-                                    <th>Value</th>
+                                    <th>Motorista</th>
+                                    <th>Tipo</th>
+                                    <th style="text-align:right;">Aluguer</th>
+                                    <th style="text-align:right;">Percentagem</th>
+                                    <th style="text-align:right;">Uso (segundos)</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td>Car Hire</td><td>{{ $result['costs']['car_hire'] }}</td></tr>
-                                <tr><td>Via Verde</td><td>{{ $result['costs']['via_verde'] }}</td></tr>
-                                <tr><td>Fuel</td><td>{{ $result['costs']['fuel'] }}</td></tr>
-                                <tr><td>Other Driver Costs</td><td>{{ $result['costs']['other_driver_costs'] }}</td></tr>
-                                <tr><td>Vehicle Expenses</td><td>{{ $result['vehicle_costs']['expenses'] }}</td></tr>
-                                <tr><td>Reimbursements</td><td>{{ $result['vehicle_costs']['reimbursements'] }}</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="box box-primary">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Car Hire Daily Breakdown</h3>
-                    </div>
-                    <div class="box-body table-responsive">
-                        <table class="table table-bordered table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Status</th>
-                                    <th>Discount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($result['car_hire_breakdown']['days'] as $day)
+                                @foreach(($result['meta']['drivers'] ?? []) as $d)
                                     <tr>
-                                        <td>{{ $day['date'] }}</td>
-                                        <td>{{ $day['status'] }}</td>
-                                        <td>{{ $day['discount'] }}</td>
+                                        <td>{{ $d['name'] ?? ('#' . $d['id']) }}</td>
+                                        <td>{{ $d['type'] }}</td>
+                                        <td style="text-align:right;">{{ number_format($d['rental'] ?? 0, 2, ',', '.') }}</td>
+                                        <td style="text-align:right;">{{ number_format($d['commission'] ?? 0, 2, ',', '.') }}</td>
+                                        <td style="text-align:right;">{{ number_format($d['usage_seconds'] ?? 0, 0, ',', '.') }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
-                        <p><strong>Weekly Value:</strong> {{ $result['car_hire_breakdown']['weekly_value'] }}</p>
-                        <p><strong>Total Discount:</strong> {{ $result['car_hire_breakdown']['total_discount'] }}</p>
-                        <p><strong>Final Value:</strong> {{ $result['car_hire_breakdown']['final_value'] }}</p>
                     </div>
                 </div>
             </div>

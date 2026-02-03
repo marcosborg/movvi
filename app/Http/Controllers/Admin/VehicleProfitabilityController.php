@@ -51,6 +51,35 @@ class VehicleProfitabilityController extends Controller
         ]);
     }
 
+    public function week(Request $request)
+    {
+        abort_if(Gate::denies('vehicle_profitability_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $weekId = (int) $request->input('tvde_week_id');
+        $weeks = TvdeWeek::orderBy('start_date', 'desc')->get();
+
+        $result = null;
+        $message = null;
+
+        if ($weekId) {
+            $weekExists = TvdeWeek::whereKey($weekId)->exists();
+            if (!$weekExists) {
+                $message = 'Selecione uma semana válida.';
+            } else {
+                $result = VehicleProfitabilityService::makeWeek($weekId);
+            }
+        } elseif ($request->query()) {
+            $message = 'Selecione uma semana para ver o relatório.';
+        }
+
+        return view('admin.vehicleProfitability.week', [
+            'weeks' => $weeks,
+            'weekId' => $weekId,
+            'result' => $result,
+            'message' => $message,
+        ]);
+    }
+
     public function setVehicleItemId($vehicle_item_id)
     {
         session()->put('vehicle_item_id', $vehicle_item_id);
