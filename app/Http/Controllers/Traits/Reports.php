@@ -777,7 +777,14 @@ trait Reports
 
         return $query->get()
             ->unique(function ($transaction) {
-                return sprintf('%s|%s|%s', $transaction->card, $transaction->amount, $transaction->total);
+                $timestamp = $transaction->date ?? $transaction->created_at;
+                return sprintf(
+                    '%s|%s|%s|%s',
+                    $transaction->card,
+                    $transaction->amount,
+                    $transaction->total,
+                    (string) $timestamp
+                );
             })
             ->values();
     }

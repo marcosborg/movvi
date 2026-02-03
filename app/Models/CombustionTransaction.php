@@ -14,6 +14,7 @@ class CombustionTransaction extends Model
     public $table = 'combustion_transactions';
 
     protected $dates = [
+        'date',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -24,6 +25,7 @@ class CombustionTransaction extends Model
         'card',
         'amount',
         'total',
+        'date',
         'created_at',
         'updated_at',
         'deleted_at',

@@ -25,6 +25,10 @@ class UpdateCombustionTransactionRequest extends FormRequest
                 'string',
                 'required',
             ],
+            'date' => [
+                'nullable',
+                'date',
+            ],
             'amount' => [
                 'numeric',
                 'required',

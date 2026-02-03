@@ -43,6 +43,14 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        {{ trans('cruds.combustionTransaction.fields.date') }}
+                                    </th>
+                                    <td>
+                                        {{ $combustionTransaction->date }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.combustionTransaction.fields.amount') }}
                                     </th>
                                     <td>

@@ -55,6 +55,10 @@ class CombustionTransactionController extends Controller
                 return $row->card ? $row->card : '';
             });
 
+            $table->editColumn('date', function ($row) {
+                return $row->date ? $row->date->format('d-m-Y H:i') : '';
+            });
+
             $table->editColumn('exist', function ($row) {
                 if (!$row->card) {
                     return '<span class="badge badge-secondary">Sem cartão</span>';

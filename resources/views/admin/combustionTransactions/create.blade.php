@@ -31,6 +31,14 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.combustionTransaction.fields.card_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('date') ? 'has-error' : '' }}">
+                            <label for="date">{{ trans('cruds.combustionTransaction.fields.date') }}</label>
+                            <input class="form-control datetime" type="text" name="date" id="date" value="{{ old('date', '') }}">
+                            @if($errors->has('date'))
+                                <span class="help-block" role="alert">{{ $errors->first('date') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.combustionTransaction.fields.date_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('amount') ? 'has-error' : '' }}">
                             <label class="required" for="amount">{{ trans('cruds.combustionTransaction.fields.amount') }}</label>
                             <input class="form-control" type="number" name="amount" id="amount" value="{{ old('amount', '') }}" step="0.01" required>

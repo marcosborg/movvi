@@ -104,9 +104,9 @@ trait CsvImportTrait
 
     protected function normalizeImportRow(string $modelName, array $row): array
     {
-        if ($modelName === 'ElectricTransaction') {
-            // Prio Electric uses the recharge timestamp, not the import time.
-            $row = $this->normalizeTimestampFields($row, ['created_at', 'updated_at']);
+        if (in_array($modelName, ['ElectricTransaction', 'CombustionTransaction', 'TollPayment'], true)) {
+            // These imports carry the event timestamp; normalize it to MySQL DATETIME.
+            $row = $this->normalizeTimestampFields($row, ['date', 'created_at', 'updated_at']);
             if (!isset($row['updated_at']) && isset($row['created_at'])) {
                 $row['updated_at'] = $row['created_at'];
             }

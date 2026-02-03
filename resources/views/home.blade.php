@@ -181,7 +181,7 @@
                                     @endphp
                                     <tr>
                                         <td style="text-align:left;">
-                                            {{ \Illuminate\Support\Carbon::parse($tx->created_at)->format('d-m-Y H:i') }}
+                                            {{ ($tx->date ?? $tx->created_at) ? ($tx->date ?? $tx->created_at)->format('d-m-Y H:i') : '-' }}
                                         </td>
                                         <td style="text-align:left;">{{ $tx->card }}</td>
                                         <td>{{ number_format((float)$tx->amount, 2, ',', ' ') }} {{ $unit }}</td>
