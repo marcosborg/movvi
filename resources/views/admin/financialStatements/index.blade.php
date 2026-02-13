@@ -66,12 +66,12 @@
             </div>
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    IVA
+                    Taxa
                 </div>
                 <div class="panel-body">
                     <table class="table table-striped">
                         <tr>
-                            <th>IVA</th>
+                            <th>Taxa</th>
                             <td style="color: red;">- {{ number_format($vat_value, 2) }}€</td>
                         </tr>
                     </table>
@@ -123,7 +123,7 @@
                                 <td>{{ number_format($adjustments, 2) }}€</td>
                             </tr>
                             <tr>
-                                <th>IVA</th>
+                                <th>Taxa</th>
                                 <td></td>
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
