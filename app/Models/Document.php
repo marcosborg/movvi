@@ -75,21 +75,10 @@ class Document extends Model implements HasMedia
         return $this->getMedia('criminal_record');
     }
 
-    /*
-
     public function getProfilePictureAttribute()
     {
-        $file = $this->getMedia('profile_picture')->last();
-        if ($file) {
-            $file->url       = $file->getUrl();
-            $file->thumbnail = $file->getUrl('thumb');
-            $file->preview   = $file->getUrl('preview');
-        }
-
-        return $file;
+        return $this->getMedia('profile_picture');
     }
-
-    */
 
     public function getDrivingLicenseAttribute()
     {

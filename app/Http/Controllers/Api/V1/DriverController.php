@@ -29,7 +29,6 @@ class DriverController extends Controller
             'electric',
             'tool_card',
             'local',
-            'contract_type',
             'contract_vat',
             'state',
             'company',
