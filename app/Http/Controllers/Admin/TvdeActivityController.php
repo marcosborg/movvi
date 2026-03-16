@@ -308,8 +308,8 @@ class TvdeActivityController extends Controller
         if ($platform === 'uber') {
             return [
                 'driver_code' => 0,
-                'gross' => 3,
-                'net' => 6,
+                'gross' => 6,
+                'net' => 3,
                 'tips' => 19,
             ];
         }
