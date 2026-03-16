@@ -700,6 +700,11 @@ class CombustionTransactionController extends Controller
             return null;
         }
 
+        $numericValue = str_replace(',', '.', $value);
+        if (is_numeric($numericValue)) {
+            return $this->convertExcelSerialDate((float) $numericValue);
+        }
+
         foreach ($formats as $format) {
             try {
                 $date = Carbon::createFromFormat($format, $value);
