@@ -46,7 +46,7 @@ class DriverController extends Controller
 
             if (! $driver) {
                 return response()->json([
-                    'error' => 'Driver nao encontrado.',
+                    'error' => 'Motorista nao encontrado.',
                     'driver_id' => $driverId,
                 ], 404);
             }

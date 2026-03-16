@@ -38,7 +38,7 @@
                             @foreach($headers as $key => $header)
                                 <td>
                                     <select name="fields[{{ $key }}]">
-                                        <option value=''>Please select</option>
+                                        <option value=''>Selecione</option>
                                         @foreach($fillables as $k => $fillable)
                                             <option value="{{ $fillable }}" {{ strtolower($header) === strtolower($fillable) ? 'selected' : '' }}>{{ $fillable }}</option>
                                         @endforeach

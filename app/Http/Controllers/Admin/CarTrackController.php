@@ -239,6 +239,14 @@ class CarTrackController extends Controller
 
     protected function readXlsxRows(string $path): array
     {
+        if (class_exists(\ZipArchive::class)) {
+            return $this->readXlsxRowsFromZip($path);
+        }
+
+        if (DIRECTORY_SEPARATOR !== '\\') {
+            throw new \RuntimeException('O servidor nao suporta leitura de ficheiros Excel (.xlsx). Ative a extensao ZIP do PHP ou importe em CSV.');
+        }
+
         $csvPath = tempnam(sys_get_temp_dir(), 'via_verde_');
         if ($csvPath === false) {
             throw new \RuntimeException('Nao foi possivel preparar o ficheiro temporario para importacao.');
@@ -262,6 +270,57 @@ class CarTrackController extends Controller
         }
     }
 
+    protected function readXlsxRowsFromZip(string $path): array
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($path) !== true) {
+            throw new \RuntimeException('Nao foi possivel abrir o ficheiro Excel.');
+        }
+
+        try {
+            $sharedStrings = $this->extractXlsxSharedStrings($zip);
+            $styleMap = $this->extractXlsxStyleMap($zip);
+            $worksheetPath = $this->resolveFirstWorksheetPath($zip);
+            $worksheetXml = $zip->getFromName($worksheetPath);
+
+            if ($worksheetXml === false) {
+                throw new \RuntimeException('Nao foi possivel ler a primeira folha do ficheiro Excel.');
+            }
+
+            $worksheet = simplexml_load_string($worksheetXml);
+            if ($worksheet === false || !isset($worksheet->sheetData)) {
+                throw new \RuntimeException('O ficheiro Excel tem uma estrutura invalida.');
+            }
+
+            $rows = [];
+
+            foreach ($worksheet->sheetData->row as $rowNode) {
+                $row = [];
+
+                foreach ($rowNode->c as $cell) {
+                    $reference = (string) ($cell['r'] ?? '');
+                    $columnIndex = $this->xlsxColumnReferenceToIndex($reference);
+
+                    if ($columnIndex < 0) {
+                        continue;
+                    }
+
+                    while (count($row) < $columnIndex) {
+                        $row[] = '';
+                    }
+
+                    $row[$columnIndex] = $this->extractXlsxCellValue($cell, $sharedStrings, $styleMap);
+                }
+
+                $rows[] = $row;
+            }
+
+            return $rows;
+        } finally {
+            $zip->close();
+        }
+    }
+
     protected function convertExcelToCsv(string $sourcePath, string $targetPath): void
     {
         $sourcePath = str_replace("'", "''", $sourcePath);
@@ -278,6 +337,223 @@ class CarTrackController extends Controller
         if ($exitCode !== 0 || !file_exists($targetPath)) {
             throw new \RuntimeException('Nao foi possivel converter o ficheiro XLSX da Via Verde para CSV.');
         }
+    }
+
+    protected function extractXlsxSharedStrings(\ZipArchive $zip): array
+    {
+        $xml = $zip->getFromName('xl/sharedStrings.xml');
+        if ($xml === false) {
+            return [];
+        }
+
+        $document = simplexml_load_string($xml);
+        if ($document === false) {
+            return [];
+        }
+
+        $strings = [];
+        foreach ($document->si as $item) {
+            if (isset($item->t)) {
+                $strings[] = (string) $item->t;
+                continue;
+            }
+
+            $value = '';
+            foreach ($item->r as $run) {
+                $value .= (string) $run->t;
+            }
+            $strings[] = $value;
+        }
+
+        return $strings;
+    }
+
+    protected function extractXlsxStyleMap(\ZipArchive $zip): array
+    {
+        $xml = $zip->getFromName('xl/styles.xml');
+        if ($xml === false) {
+            return [];
+        }
+
+        $document = simplexml_load_string($xml);
+        if ($document === false) {
+            return [];
+        }
+
+        $customFormats = [];
+        if (isset($document->numFmts->numFmt)) {
+            foreach ($document->numFmts->numFmt as $numFmt) {
+                $customFormats[(int) $numFmt['numFmtId']] = (string) $numFmt['formatCode'];
+            }
+        }
+
+        $styleMap = [];
+        if (!isset($document->cellXfs->xf)) {
+            return $styleMap;
+        }
+
+        foreach ($document->cellXfs->xf as $index => $xf) {
+            $numFmtId = (int) ($xf['numFmtId'] ?? 0);
+            $formatCode = $customFormats[$numFmtId] ?? null;
+
+            $styleMap[(int) $index] = $this->isExcelDateFormat($numFmtId, $formatCode);
+        }
+
+        return $styleMap;
+    }
+
+    protected function resolveFirstWorksheetPath(\ZipArchive $zip): string
+    {
+        $workbookXml = $zip->getFromName('xl/workbook.xml');
+        if ($workbookXml === false) {
+            return 'xl/worksheets/sheet1.xml';
+        }
+
+        $workbook = simplexml_load_string($workbookXml);
+        if ($workbook === false) {
+            return 'xl/worksheets/sheet1.xml';
+        }
+
+        $namespaces = $workbook->getNamespaces(true);
+        $relationshipsNamespace = $namespaces['r'] ?? 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+        $sheets = $workbook->sheets->sheet ?? null;
+
+        if ($sheets === null || !isset($sheets[0])) {
+            return 'xl/worksheets/sheet1.xml';
+        }
+
+        $relationshipId = (string) $sheets[0]->attributes($relationshipsNamespace)->id;
+        if ($relationshipId === '') {
+            return 'xl/worksheets/sheet1.xml';
+        }
+
+        $relsXml = $zip->getFromName('xl/_rels/workbook.xml.rels');
+        if ($relsXml === false) {
+            return 'xl/worksheets/sheet1.xml';
+        }
+
+        $rels = simplexml_load_string($relsXml);
+        if ($rels === false) {
+            return 'xl/worksheets/sheet1.xml';
+        }
+
+        foreach ($rels->Relationship as $relationship) {
+            if ((string) ($relationship['Id'] ?? '') !== $relationshipId) {
+                continue;
+            }
+
+            $target = (string) ($relationship['Target'] ?? '');
+            if ($target === '') {
+                break;
+            }
+
+            if (str_starts_with($target, '/')) {
+                return ltrim($target, '/');
+            }
+
+            return 'xl/' . ltrim($target, '/');
+        }
+
+        return 'xl/worksheets/sheet1.xml';
+    }
+
+    protected function extractXlsxCellValue(\SimpleXMLElement $cell, array $sharedStrings, array $styleMap)
+    {
+        $type = (string) ($cell['t'] ?? '');
+        $styleIndex = isset($cell['s']) ? (int) $cell['s'] : null;
+
+        if ($type === 'inlineStr') {
+            if (isset($cell->is->t)) {
+                return (string) $cell->is->t;
+            }
+
+            $value = '';
+            foreach ($cell->is->r as $run) {
+                $value .= (string) $run->t;
+            }
+
+            return $value;
+        }
+
+        if ($type === 's') {
+            $sharedStringIndex = isset($cell->v) ? (int) $cell->v : null;
+            return $sharedStrings[$sharedStringIndex] ?? '';
+        }
+
+        if ($type === 'b') {
+            return ((string) ($cell->v ?? '')) === '1' ? '1' : '0';
+        }
+
+        if ($type === 'str') {
+            return (string) ($cell->v ?? '');
+        }
+
+        if (isset($cell->f) && !isset($cell->v)) {
+            return '';
+        }
+
+        $value = isset($cell->v) ? (string) $cell->v : '';
+
+        if ($value !== '' && $styleIndex !== null && ($styleMap[$styleIndex] ?? false) && is_numeric($value)) {
+            return $this->convertExcelSerialDate((float) $value);
+        }
+
+        return $value;
+    }
+
+    protected function xlsxColumnReferenceToIndex(string $reference): int
+    {
+        $letters = preg_replace('/[^A-Z]/i', '', strtoupper($reference));
+        if ($letters === '') {
+            return -1;
+        }
+
+        $index = 0;
+        $length = strlen($letters);
+
+        for ($i = 0; $i < $length; $i++) {
+            $index = ($index * 26) + (ord($letters[$i]) - 64);
+        }
+
+        return $index - 1;
+    }
+
+    protected function isExcelDateFormat(int $numFmtId, ?string $formatCode): bool
+    {
+        $builtinDateFormats = [
+            14, 15, 16, 17, 18, 19, 20, 21, 22,
+            27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
+            45, 46, 47, 50, 51, 52, 53, 54, 55, 56, 57, 58,
+        ];
+
+        if (in_array($numFmtId, $builtinDateFormats, true)) {
+            return true;
+        }
+
+        if ($formatCode === null || $formatCode === '') {
+            return false;
+        }
+
+        $normalized = strtolower(preg_replace('/"[^"]*"|\[[^\]]*]/', '', $formatCode));
+
+        return str_contains($normalized, 'yy')
+            || str_contains($normalized, 'dd')
+            || str_contains($normalized, 'mm')
+            || str_contains($normalized, 'hh')
+            || str_contains($normalized, 'ss');
+    }
+
+    protected function convertExcelSerialDate(float $value): string
+    {
+        $base = Carbon::create(1899, 12, 30, 0, 0, 0, 'UTC');
+        $wholeDays = (int) floor($value);
+        $seconds = (int) round(($value - $wholeDays) * 86400);
+
+        return $base->copy()
+            ->addDays($wholeDays)
+            ->addSeconds($seconds)
+            ->setTimezone(config('app.timezone', 'UTC'))
+            ->format('Y-m-d H:i:s');
     }
 
     protected function detectCsvDelimiter($handle): string

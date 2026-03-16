@@ -13,9 +13,9 @@
                     @if ($form_name->has_driver)
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label>Driver</label>
+                            <label>Motorista</label>
                             <select name="driver_id" class="form-control select2" required>
-                                <option selected disabled>Select</option>
+                                <option selected disabled>Selecione</option>
                                 @foreach ($drivers as $driver)
                                 <option value="{{ $driver->id }}">{{ $driver->name }}</option>
                                 @endforeach
@@ -26,9 +26,9 @@
                     @if ($form_name->has_license)
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label>License</label>
+                            <label>Matrícula</label>
                             <select name="vehicle_item_id" class="form-control select2" required>
-                                <option selected disabled>Select</option>
+                                <option selected disabled>Selecione</option>
                                 @foreach ($vehicle_items as $vehicle_item)
                                 <option value="{{ $vehicle_item->id }}">{{ $vehicle_item->license_plate }}</option>
                                 @endforeach
@@ -41,7 +41,7 @@
                         <div class="form-group">
                             <label>Técnico</label>
                             <select name="user_id" class="form-control select2" required>
-                                <option selected disabled>Select</option>
+                                <option selected disabled>Selecione</option>
                                 @foreach ($users as $user)
                                 <option value="{{ $user->id }}">{{ $user->name }}</option>
                                 @endforeach

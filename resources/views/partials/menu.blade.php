@@ -26,7 +26,7 @@
                     <i class="fa-fw fas fa-users">
 
                     </i>
-                    <span>{{ trans('cruds.userManagement.title') }}</span>
+                    <span>Gestao de utilizadores</span>
                     <span class="pull-right-container"><i class="fa fa-fw fa-angle-left pull-right"></i></span>
                 </a>
                 <ul class="treeview-menu">
@@ -59,7 +59,7 @@
                             <i class="fa-fw fas fa-user">
 
                             </i>
-                            <span>{{ trans('cruds.user.title') }}</span>
+                            <span>Utilizadores</span>
 
                         </a>
                     </li>
@@ -82,7 +82,7 @@
                                     <i class="fa-fw fas fa-building">
 
                                     </i>
-                                    <span>{{ trans('cruds.companyInvoice.title') }}</span>
+                                    <span>Faturas da empresa</span>
 
                                 </a>
                             </li>
@@ -197,7 +197,7 @@
                                     <i class="fa-fw fas fa-file-signature">
 
                                     </i>
-                                    <span>{{ trans('cruds.contractType.title') }}</span>
+                                    <span>Tipos de contrato</span>
 
                                 </a>
                             </li>
@@ -209,7 +209,7 @@
                                     <i class="fa-fw fas fa-file-signature">
 
                                     </i>
-                                    <span>{{ trans('cruds.contractTypeRank.title') }}</span>
+                                    <span>Escaloes do contrato</span>
 
                                 </a>
                             </li>
@@ -221,7 +221,7 @@
                                     <i class="fa-fw fas fa-file-signature">
 
                                     </i>
-                                    <span>{{ trans('cruds.contractVat.title') }}</span>
+                                    <span>IVA dos contratos</span>
 
                                 </a>
                             </li>
@@ -279,7 +279,7 @@
                                 <li class="{{ request()->is("admin/periods-of-the-years") || request()->is("admin/periods-of-the-years/*") ? "active" : "" }}">
                                     <a href="{{ route("admin.periods-of-the-years.index") }}">
                                         <i class="fa-fw far fa-calendar"></i>
-                                        <span>{{ trans('cruds.periodsOfTheYear.title') }}</span>
+                                        <span>Periodos do ano</span>
                                     </a>
                                 </li>
                             @endcan
@@ -328,7 +328,7 @@
                             <i class="fa-fw fas fa-table">
 
                             </i>
-                            <span>{{ trans('cruds.tvdeActivity.title') }}</span>
+                            <span>Atividades TVDE</span>
 
                         </a>
                     </li>
@@ -340,7 +340,7 @@
                             <i class="fa-fw fas fa-gas-pump">
 
                             </i>
-                            <span>{{ trans('cruds.combustionTransaction.title') }}</span>
+                            <span>Transacoes de combustao</span>
 
                         </a>
                     </li>
@@ -352,7 +352,7 @@
                             <i class="fa-fw fas fa-bolt">
 
                             </i>
-                            <span>{{ trans('cruds.electricTransaction.title') }}</span>
+                            <span>Transacoes eletricas</span>
 
                         </a>
                     </li>
@@ -363,7 +363,7 @@
                                     <i class="fa-fw fas fa-bolt">
 
                                     </i>
-                                    <span>{{ trans('cruds.teslaCharging.title') }}</span>
+                                    <span>Carregamentos Tesla</span>
 
                                 </a>
                             </li>
@@ -374,7 +374,7 @@
                                     <i class="fa-fw fas fa-road">
 
                                     </i>
-                                    <span>{{ trans('cruds.tollPayment.title') }}</span>
+                                    <span>Pagamentos de portagens</span>
 
                                 </a>
                             </li>
@@ -397,7 +397,7 @@
                                     <i class="fa-fw fas fa-car">
 
                                     </i>
-                                    <span>{{ trans('cruds.weeklyVehicleExpense.title') }}</span>
+                                    <span>Despesas semanais da viatura</span>
 
                                 </a>
                             </li>
@@ -419,7 +419,7 @@
                                     <i class="fa-fw fas fa-car">
 
                                     </i>
-                                    <span>{{ trans('cruds.carHire.title') }}</span>
+                                    <span>Aluguer de viaturas</span>
 
                                 </a>
                             </li>
@@ -430,7 +430,7 @@
                                     <i class="fa-fw fas fa-file-invoice-dollar">
 
                                     </i>
-                                    <span>{{ trans('cruds.expenseReceipt.title') }}</span>
+                                    <span>Recibos de despesas</span>
 
                                 </a>
                             </li>
@@ -445,7 +445,7 @@
                     <i class="fa-fw fas fa-file-invoice-dollar">
 
                     </i>
-                    <span>{{ trans('cruds.financialStatement.title') }}</span>
+                    <span>Relatorios financeiros</span>
 
                 </a>
             </li>
@@ -456,7 +456,7 @@
                         <i class="fa-fw fas fa-building">
 
                         </i>
-                        <span>{{ trans('cruds.companyExpensesMenu.title') }}</span>
+                        <span>Despesas da empresa</span>
                         <span class="pull-right-container"><i class="fa fa-fw fa-angle-left pull-right"></i></span>
                     </a>
                     <ul class="treeview-menu">
@@ -477,7 +477,7 @@
                                     <i class="fa-fw fas fa-euro-sign">
 
                                     </i>
-                                    <span>{{ trans('cruds.companyExpense.title') }}</span>
+                                    <span>Despesa da empresa</span>
 
                                 </a>
                             </li>
@@ -488,7 +488,7 @@
                                     <i class="fa-fw fas fa-parking">
 
                                     </i>
-                                    <span>{{ trans('cruds.companyPark.title') }}</span>
+                                    <span>Parque da empresa</span>
 
                                 </a>
                             </li>
@@ -499,7 +499,7 @@
                                     <i class="fa-fw fas fa-file-pdf">
 
                                     </i>
-                                    <span>{{ trans('cruds.weeklyExpenseReport.title') }}</span>
+                                    <span>Relatorio semanal da empresa</span>
 
                                 </a>
                             </li>
@@ -510,7 +510,7 @@
                                     <i class="fa-fw fas fa-file-contract">
 
                                     </i>
-                                    <span>{{ trans('cruds.companyReport.title') }}</span>
+                                    <span>Relatorio de motoristas</span>
 
                                 </a>
                             </li>
@@ -521,7 +521,7 @@
                                     <i class="fa-fw fas fa-file-contract">
 
                                     </i>
-                                    <span>Company Report History</span>
+                                    <span>Historico de relatorios da empresa</span>
 
                                 </a>
                             </li>
@@ -532,7 +532,7 @@
                                     <i class="fa-fw fas fa-file-contract">
 
                                     </i>
-                                    <span>Driver all weeks</span>
+                                    <span>Motorista - todas as semanas</span>
 
                                 </a>
                             </li>
@@ -543,7 +543,7 @@
                                     <i class="fa-fw fas fa-table">
 
                                     </i>
-                                    <span>{{ trans('cruds.currentAccount.title') }}</span>
+                                    <span>Conta corrente</span>
 
                                 </a>
                             </li>
@@ -554,7 +554,7 @@
                                     <i class="fa-fw fas fa-hand-holding-usd">
 
                                     </i>
-                                    <span>{{ trans('cruds.driversBalance.title') }}</span>
+                                    <span>Saldos dos motoristas</span>
 
                                 </a>
                             </li>
@@ -565,7 +565,7 @@
                                     <i class="fa-fw fas fa-database">
 
                                     </i>
-                                    <span>{{ trans('cruds.companyData.title') }}</span>
+                                    <span>Dados da empresa</span>
 
                                 </a>
                             </li>
@@ -576,7 +576,7 @@
                                     <i class="fa-fw fas fa-euro-sign">
 
                                     </i>
-                                    <span>{{ trans('cruds.driversPayment.title') }}</span>
+                                    <span>Pagamentos a motoristas</span>
 
                                 </a>
                             </li>
@@ -659,7 +659,7 @@
                             <i class="fa-fw fas fa-link">
 
                             </i>
-                            <span>Menu</span>
+                            <span>Menus</span>
 
                         </a>
                     </li>
@@ -669,7 +669,7 @@
                             <i class="fa-fw fas fa-home">
 
                             </i>
-                            <span>{{ trans('cruds.homePage.title') }}</span>
+                            <span>Pagina inicial</span>
                             <span class="pull-right-container"><i class="fa fa-fw fa-angle-left pull-right"></i></span>
                         </a>
                         <ul class="treeview-menu">
@@ -680,7 +680,7 @@
                                     <i class="fa-fw fas fa-image">
 
                                     </i>
-                                    <span>{{ trans('cruds.heroBanner.title') }}</span>
+                                    <span>Banner principal</span>
 
                                 </a>
                             </li>
@@ -716,7 +716,7 @@
                                     <i class="fa-fw fas fa-users">
 
                                     </i>
-                                    <span>{{ trans('cruds.testimonial.title') }}</span>
+                                    <span>Testemunhos</span>
 
                                 </a>
                             </li>
@@ -1112,7 +1112,7 @@
                                     <i class="fa-fw fas fa-folder">
 
                                     </i>
-                                    <span>{{ trans('cruds.productCategory.title') }}</span>
+                                    <span>Categorias</span>
 
                                 </a>
                             </li>
@@ -1138,7 +1138,7 @@
                                     <i class="fa-fw fas fa-shopping-cart">
 
                                     </i>
-                                    <span>{{ trans('cruds.product.title') }}</span>
+                                    <span>Produtos</span>
 
                                 </a>
                             </li>
@@ -1216,7 +1216,7 @@
                                     <i class="fa-fw fas fa-user-tie">
 
                                     </i>
-                                    <span>{{ trans('cruds.consulting.title') }}</span>
+                                    <span>Consultadoria</span>
 
                                 </a>
                             </li>
@@ -1414,7 +1414,7 @@
                                     <i class="fa-fw fas fa-euro-sign">
 
                                     </i>
-                                    <span>{{ trans('cruds.vehicleExpense.title') }}</span>
+                                    <span>Despesas da viatura</span>
 
                                 </a>
                             </li>
@@ -1425,7 +1425,7 @@
                                     <i class="fa-fw fas fa-chart-area">
 
                                     </i>
-                                    <span>{{ trans('cruds.vehicleProfitability.title') }}</span>
+                                    <span>Rentabilidade da viatura</span>
 
                                 </a>
                             </li>
@@ -1436,7 +1436,7 @@
                                     <i class="fa-fw fas fa-calendar-plus">
 
                                     </i>
-                                    <span>{{ trans('cruds.vehicleUsage.title') }}</span>
+                                    <span>Utilizacao da viatura</span>
 
                                 </a>
                             </li>
@@ -1447,7 +1447,7 @@
                                     <i class="fa-fw fas fa-hand-holding-usd">
 
                                     </i>
-                                    <span>{{ trans('cruds.expenseReimbursement.title') }}</span>
+                                    <span>Reembolsos de despesas</span>
 
                                 </a>
                             </li>
@@ -1458,7 +1458,7 @@
                                     <i class="fa-fw fas fa-car">
 
                                     </i>
-                                    <span>{{ trans('cruds.vehicleEarning.title') }}</span>
+                                    <span>Receitas da viatura</span>
 
                                 </a>
                             </li>
@@ -1482,7 +1482,7 @@
                         <i class="fa-fw fas fa-keyboard">
 
                         </i>
-                        <span>{{ trans('cruds.form.title') }}</span>
+                        <span>Formularios</span>
                         <span class="pull-right-container"><i class="fa fa-fw fa-angle-left pull-right"></i></span>
                     </a>
                     <ul class="treeview-menu">
@@ -1492,7 +1492,7 @@
                                     <i class="fa-fw fas fa-keyboard">
 
                                     </i>
-                                    <span>{{ trans('cruds.formName.title') }}</span>
+                                    <span>Nome do formulario</span>
 
                                 </a>
                             </li>
@@ -1503,7 +1503,7 @@
                                     <i class="fa-fw fas fa-keyboard">
 
                                     </i>
-                                    <span>{{ trans('cruds.formInput.title') }}</span>
+                                    <span>Campo do formulario</span>
 
                                 </a>
                             </li>
@@ -1514,7 +1514,7 @@
                                     <i class="fa-fw fas fa-database">
 
                                     </i>
-                                    <span>{{ trans('cruds.formData.title') }}</span>
+                                    <span>Dados do formulario</span>
 
                                 </a>
                             </li>
@@ -1525,7 +1525,7 @@
                                     <i class="fa-fw fas fa-keyboard">
 
                                     </i>
-                                    <span>{{ trans('cruds.formAssembly.title') }}</span>
+                                    <span>Montagem de formulario</span>
 
                                 </a>
                             </li>
@@ -1536,7 +1536,7 @@
                                     <i class="fa-fw fas fa-keyboard">
 
                                     </i>
-                                    <span>{{ trans('cruds.formCommunication.title') }}</span>
+                                    <span>Comunicacao de formularios</span>
 
                                 </a>
                             </li>
@@ -1558,7 +1558,7 @@
                                     <i class="fa-fw fas fa-users">
 
                                     </i>
-                                    <span>{{ trans('cruds.recruitmentForm.title') }}</span>
+                                    <span>Formulario de recrutamento</span>
 
                                 </a>
                             </li>
@@ -1570,7 +1570,7 @@
             <li class="{{ request()->is("admin/company-dashboard") ? "active" : "" }}">
                 <a href="/admin/company-dashboard">
                     <i class="fa-fw fas fa-file-contract"></i>
-                    <span>Relatórios</span>
+                    <span>Relatorios</span>
                 </a>
             </li>
             @endif
