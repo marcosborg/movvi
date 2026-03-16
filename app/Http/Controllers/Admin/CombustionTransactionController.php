@@ -9,6 +9,7 @@ use App\Http\Requests\StoreCombustionTransactionRequest;
 use App\Http\Requests\UpdateCombustionTransactionRequest;
 use App\Models\CombustionTransaction;
 use App\Models\TvdeWeek;
+use Carbon\Carbon;
 use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -96,7 +97,9 @@ class CombustionTransactionController extends Controller
             return $table->make(true);
         }
 
-        return view('admin.combustionTransactions.index');
+        $tvde_weeks = TvdeWeek::orderBy('start_date', 'desc')->get();
+
+        return view('admin.combustionTransactions.index', compact('tvde_weeks'));
     }
 
     public function create()
@@ -160,5 +163,338 @@ class CombustionTransactionController extends Controller
         }
 
         return response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    public function deleteFilter(Request $request)
+    {
+        $request->validate([
+            'week_filter' => ['required', 'integer', 'exists:tvde_weeks,id'],
+        ]);
+
+        CombustionTransaction::where('tvde_week_id', $request->week_filter)->delete();
+
+        return redirect()->back()->with('message', 'Eliminado com sucesso');
+    }
+
+    public function uploadSupplierFile(Request $request)
+    {
+        abort_if(Gate::denies('combustion_transaction_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $validated = $request->validate([
+            'tvde_week_id' => ['required', 'integer', 'exists:tvde_weeks,id'],
+            'supplier' => ['required', 'in:repsol,prio'],
+            'supplier_file' => ['required', 'file', 'mimes:csv,txt,xlsx'],
+        ]);
+
+        $uploadedFile = $request->file('supplier_file');
+        $extension = strtolower($uploadedFile->getClientOriginalExtension() ?: $uploadedFile->extension() ?: '');
+        $rows = $this->readImportRows($uploadedFile->getRealPath(), $extension);
+        $transactions = [];
+
+        foreach ($rows as $index => $row) {
+            $transaction = $validated['supplier'] === 'repsol'
+                ? $this->mapRepsolRow($row, $index, (int) $validated['tvde_week_id'])
+                : $this->mapPrioRow($row, $index, (int) $validated['tvde_week_id']);
+
+            if (!$transaction) {
+                continue;
+            }
+
+            $signature = implode('|', [
+                $transaction['tvde_week_id'],
+                $transaction['card'],
+                $transaction['date'] ?? '',
+                $transaction['amount'],
+                $transaction['total'],
+            ]);
+
+            $transactions[$signature] = $transaction;
+        }
+
+        if (empty($transactions)) {
+            return redirect()->back()
+                ->withErrors(['supplier_file' => 'O ficheiro nao tem linhas validas para importar.'])
+                ->withInput();
+        }
+
+        foreach ($transactions as $transaction) {
+            $existing = CombustionTransaction::withTrashed()
+                ->where('tvde_week_id', $transaction['tvde_week_id'])
+                ->where('card', $transaction['card'])
+                ->where('amount', $transaction['amount'])
+                ->where('total', $transaction['total']);
+
+            if ($transaction['date']) {
+                $existing->where('date', $transaction['date']);
+            } else {
+                $existing->whereNull('date');
+            }
+
+            $existing = $existing->first();
+
+            if ($existing) {
+                if ($existing->trashed()) {
+                    $existing->restore();
+                }
+
+                continue;
+            }
+
+            CombustionTransaction::create($transaction);
+        }
+
+        return redirect()->route('admin.combustion-transactions.index')
+            ->with('message', sprintf('Importadas %d transacoes de %s com sucesso.', count($transactions), strtoupper($validated['supplier'])));
+    }
+
+    protected function mapRepsolRow(array $row, int $index, int $weekId): ?array
+    {
+        if ($index === 0) {
+            return null;
+        }
+
+        $card = trim((string) ($row[3] ?? ''));
+        $amount = $this->normalizeImportedNumber($row[5] ?? null);
+        $total = $this->normalizeImportedNumber($row[7] ?? null);
+        $date = $this->normalizeRepsolDate($row[0] ?? null);
+
+        if ($card === '' || $amount === null || $total === null) {
+            return null;
+        }
+
+        return [
+            'tvde_week_id' => $weekId,
+            'card' => $card,
+            'amount' => $amount,
+            'total' => $total,
+            'date' => $date,
+        ];
+    }
+
+    protected function mapPrioRow(array $row, int $index, int $weekId): ?array
+    {
+        if ($index < 4) {
+            return null;
+        }
+
+        $card = trim((string) ($row[1] ?? ''));
+        $amount = $this->normalizeImportedNumber($row[7] ?? null);
+        $total = $this->normalizeImportedNumber($row[12] ?? null);
+        $date = $this->normalizePrioDate($row[0] ?? null);
+
+        if ($card === '' || $amount === null || $total === null) {
+            return null;
+        }
+
+        return [
+            'tvde_week_id' => $weekId,
+            'card' => $card,
+            'amount' => $amount,
+            'total' => $total,
+            'date' => $date,
+        ];
+    }
+
+    protected function readImportRows(string $path, ?string $extension = null): array
+    {
+        $extension = strtolower($extension ?: pathinfo($path, PATHINFO_EXTENSION));
+
+        if (in_array($extension, ['csv', 'txt'], true)) {
+            return $this->readCsvRows($path);
+        }
+
+        if ($extension === 'xlsx') {
+            return $this->readXlsxRows($path);
+        }
+
+        throw new \RuntimeException('Formato de ficheiro nao suportado.');
+    }
+
+    protected function readCsvRows(string $path): array
+    {
+        $rows = [];
+        $handle = fopen($path, 'r');
+
+        if ($handle === false) {
+            throw new \RuntimeException('Nao foi possivel abrir o ficheiro CSV.');
+        }
+
+        $delimiter = $this->detectCsvDelimiter($handle);
+        rewind($handle);
+
+        while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
+            $rows[] = $row;
+        }
+
+        fclose($handle);
+
+        return $rows;
+    }
+
+    protected function readXlsxRows(string $path): array
+    {
+        $csvPath = tempnam(sys_get_temp_dir(), 'supplier_');
+        if ($csvPath === false) {
+            throw new \RuntimeException('Nao foi possivel preparar o ficheiro temporario para importacao.');
+        }
+
+        $csvWithExtension = $csvPath . '.csv';
+        if (file_exists($csvWithExtension)) {
+            unlink($csvWithExtension);
+        }
+
+        rename($csvPath, $csvWithExtension);
+
+        try {
+            $this->convertExcelToCsv($path, $csvWithExtension);
+
+            return $this->readCsvRows($csvWithExtension);
+        } finally {
+            if (file_exists($csvWithExtension)) {
+                unlink($csvWithExtension);
+            }
+        }
+    }
+
+    protected function convertExcelToCsv(string $sourcePath, string $targetPath): void
+    {
+        $sourcePath = str_replace("'", "''", $sourcePath);
+        $targetPath = str_replace("'", "''", $targetPath);
+
+        $command = sprintf(
+            "powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"\$excel = New-Object -ComObject Excel.Application; \$excel.Visible = \$false; \$excel.DisplayAlerts = \$false; \$workbook = \$excel.Workbooks.Open('%s'); \$worksheet = \$workbook.Worksheets.Item(1); \$worksheet.SaveAs('%s', 6); \$workbook.Close(\$false); \$excel.Quit(); [System.Runtime.Interopservices.Marshal]::ReleaseComObject(\$worksheet) | Out-Null; [System.Runtime.Interopservices.Marshal]::ReleaseComObject(\$workbook) | Out-Null; [System.Runtime.Interopservices.Marshal]::ReleaseComObject(\$excel) | Out-Null;\"",
+            $sourcePath,
+            $targetPath
+        );
+
+        exec($command, $output, $exitCode);
+
+        if ($exitCode !== 0 || !file_exists($targetPath)) {
+            throw new \RuntimeException('Nao foi possivel converter o ficheiro Excel para CSV.');
+        }
+    }
+
+    protected function detectCsvDelimiter($handle): string
+    {
+        $firstLine = fgets($handle);
+
+        if ($firstLine === false) {
+            return ';';
+        }
+
+        $semicolonCount = substr_count($firstLine, ';');
+        $commaCount = substr_count($firstLine, ',');
+
+        return $semicolonCount >= $commaCount ? ';' : ',';
+    }
+
+    protected function normalizeRepsolDate($value): ?string
+    {
+        return $this->normalizeDateByFormats($value, [
+            'm/d/Y',
+            'd/m/Y',
+            'n/j/Y',
+            'j/n/Y',
+            'Y-m-d',
+        ]);
+    }
+
+    protected function normalizePrioDate($value): ?string
+    {
+        return $this->normalizeDateByFormats($value, [
+            'j/n/y H:i:s',
+            'j/n/Y H:i:s',
+            'n/j/y H:i:s',
+            'n/j/Y H:i:s',
+            'd/m/Y H:i:s',
+            'm/d/Y H:i:s',
+            'Y-m-d H:i:s',
+        ]);
+    }
+
+    protected function normalizeDateByFormats($value, array $formats): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        foreach ($formats as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $value);
+
+                if (str_contains($format, '/y') && $date->year < 100) {
+                    $date->year += 2000;
+                }
+
+                if (!str_contains($format, 'H:i')) {
+                    $date = $date->startOfDay();
+                }
+
+                return $date->format('Y-m-d H:i:s');
+            } catch (\Throwable $e) {
+            }
+        }
+
+        try {
+            return Carbon::parse($value)->format('Y-m-d H:i:s');
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    protected function normalizeImportedNumber($value): ?float
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        $negative = false;
+        if (substr($value, 0, 1) === '(' && substr($value, -1) === ')') {
+            $negative = true;
+            $value = substr($value, 1, -1);
+        }
+
+        $value = preg_replace('/[^0-9,.\-]/', '', $value);
+
+        if ($value === '' || $value === '-') {
+            return null;
+        }
+
+        $lastComma = strrpos($value, ',');
+        $lastDot = strrpos($value, '.');
+
+        if ($lastComma !== false && $lastDot !== false) {
+            if ($lastComma > $lastDot) {
+                $value = str_replace('.', '', $value);
+                $value = str_replace(',', '.', $value);
+            } else {
+                $value = str_replace(',', '', $value);
+            }
+        } elseif ($lastComma !== false) {
+            $value = str_replace('.', '', $value);
+            $value = str_replace(',', '.', $value);
+        } else {
+            $value = str_replace(',', '', $value);
+        }
+
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        $number = (float) $value;
+
+        return $negative ? 0 - $number : $number;
     }
 }

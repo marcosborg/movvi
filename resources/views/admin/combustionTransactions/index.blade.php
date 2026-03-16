@@ -4,13 +4,33 @@
     @can('combustion_transaction_create')
         <div style="margin-bottom: 10px;" class="row">
             <div class="col-lg-12">
-                <a class="btn btn-success" href="{{ route('admin.combustion-transactions.create') }}">
-                    {{ trans('global.add') }} {{ trans('cruds.combustionTransaction.title_singular') }}
-                </a>
-                <button class="btn btn-warning" data-toggle="modal" data-target="#csvImportModal">
-                    {{ trans('global.app_csvImport') }}
-                </button>
-                @include('csvImport.modal', ['model' => 'CombustionTransaction', 'route' => 'admin.combustion-transactions.parseCsvImport'])
+                <form id="combustionSupplierUploadForm" action="{{ route('admin.combustion-transactions.uploadSupplierFile') }}" method="POST" enctype="multipart/form-data" style="display: flex; gap: 10px; align-items: center; flex-wrap: nowrap;">
+                    @csrf
+                    <div style="flex: 0 0 320px; min-width: 320px;">
+                        <select name="tvde_week_id" id="combustion_tvde_week_id" class="select2" style="width: 100%;" required>
+                            <option value="" selected disabled>Semana</option>
+                            @foreach ($tvde_weeks as $tvde_week)
+                            <option value="{{ $tvde_week->id }}" {{ (string) old('tvde_week_id') === (string) $tvde_week->id ? 'selected' : '' }}>{{ $tvde_week->start_date }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <input type="hidden" name="supplier" id="combustionSupplierType" value="">
+                    <input type="file" name="supplier_file" id="combustionSupplierFile" accept=".csv,.txt,.xlsx" style="display: none;" required>
+                    <button type="button" class="btn btn-danger js-combustion-upload" data-supplier="repsol">REPSOL</button>
+                    <button type="button" class="btn btn-primary js-combustion-upload" data-supplier="prio">PRIO</button>
+                </form>
+                <form action="{{ route('admin.combustion-transactions.deleteFilter') }}" method="post" style="margin-top: 10px;">
+                    @csrf
+                    <select name="week_filter" class="select2" style="max-width: 200px;" required>
+                        <option value="" selected disabled>Semana</option>
+                        @foreach ($tvde_weeks as $tvde_week)
+                        <option value="{{ $tvde_week->id }}">{{ $tvde_week->start_date }}</option>
+                        @endforeach
+                    </select>
+                    <button onclick="return confirm('Tem certeza que deseja eliminar os abastecimentos desta semana?')" class="btn btn-danger" type="submit">
+                        Eliminar semana
+                    </button>
+                </form>
             </div>
         </div>
     @endcan
@@ -67,6 +87,31 @@
 @parent
 <script>
     $(function () {
+  const weekSelect = document.getElementById('combustion_tvde_week_id');
+  const supplierInput = document.getElementById('combustionSupplierType');
+  const fileInput = document.getElementById('combustionSupplierFile');
+  const uploadForm = document.getElementById('combustionSupplierUploadForm');
+
+  if (weekSelect && supplierInput && fileInput && uploadForm) {
+    $('.js-combustion-upload').on('click', function () {
+      if (!weekSelect.value) {
+        alert('Selecione uma semana antes de importar.');
+        return;
+      }
+
+      supplierInput.value = $(this).data('supplier');
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', function () {
+      if (!fileInput.files.length || !supplierInput.value) {
+        return;
+      }
+
+      uploadForm.submit();
+    });
+  }
+
   let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
 @can('combustion_transaction_delete')
   let deleteButtonTrans = '{{ trans('global.datatables.delete') }}';
