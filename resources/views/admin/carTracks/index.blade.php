@@ -4,13 +4,19 @@
     @can('car_track_create')
         <div style="margin-bottom: 10px;" class="row">
             <div class="col-lg-12">
-                <a class="btn btn-success" href="{{ route('admin.car-tracks.create') }}">
-                    {{ trans('global.add') }} {{ trans('cruds.carTrack.title_singular') }}
-                </a>
-                <button class="btn btn-warning" data-toggle="modal" data-target="#csvImportModal">
-                    {{ trans('global.app_csvImport') }}
-                </button>
-                @include('csvImport.modal', ['model' => 'CarTrack', 'route' => 'admin.car-tracks.parseCsvImport'])
+                <form id="viaVerdeUploadForm" action="{{ route('admin.car-tracks.uploadViaVerde') }}" method="POST" enctype="multipart/form-data" style="display: flex; gap: 10px; align-items: center; flex-wrap: nowrap;">
+                    @csrf
+                    <div style="flex: 0 0 320px; min-width: 320px;">
+                        <select name="tvde_week_id" id="via_verde_tvde_week_id" class="select2" style="width: 100%;" required>
+                            <option value="" selected disabled>Semana</option>
+                            @foreach ($tvde_weeks as $tvde_week)
+                            <option value="{{ $tvde_week->id }}" {{ (string) old('tvde_week_id') === (string) $tvde_week->id ? 'selected' : '' }}>{{ $tvde_week->start_date }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <input type="file" name="via_verde_file" id="viaVerdeFile" accept=".csv,.txt,.xlsx" style="display: none;" required>
+                    <button type="button" class="btn btn-primary" id="viaVerdeUploadButton">Via Verde</button>
+                </form>
             </div>
         </div>
     @endcan
@@ -61,6 +67,30 @@
 @parent
 <script>
     $(function () {
+  const weekSelect = document.getElementById('via_verde_tvde_week_id');
+  const fileInput = document.getElementById('viaVerdeFile');
+  const uploadButton = document.getElementById('viaVerdeUploadButton');
+  const uploadForm = document.getElementById('viaVerdeUploadForm');
+
+  if (weekSelect && fileInput && uploadButton && uploadForm) {
+    uploadButton.addEventListener('click', function () {
+      if (!weekSelect.value) {
+        alert('Selecione uma semana antes de importar.');
+        return;
+      }
+
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', function () {
+      if (!fileInput.files.length) {
+        return;
+      }
+
+      uploadForm.submit();
+    });
+  }
+
   let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
 @can('car_track_delete')
   let deleteButtonTrans = '{{ trans('global.datatables.delete') }}';
