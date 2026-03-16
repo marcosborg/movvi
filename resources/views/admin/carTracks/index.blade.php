@@ -17,6 +17,20 @@
                     <input type="file" name="via_verde_file" id="viaVerdeFile" accept=".csv,.txt,.xlsx" style="display: none;" required>
                     <button type="button" class="btn btn-primary" id="viaVerdeUploadButton">Via Verde</button>
                 </form>
+                <form action="{{ route('admin.car-tracks.deleteFilter') }}" method="post" style="margin-top: 10px;">
+                    @csrf
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: nowrap;">
+                        <div style="flex: 0 0 320px; min-width: 320px;">
+                            <select name="week_filter" class="select2" style="width: 100%;" required>
+                                <option value="" selected disabled>Semana a eliminar</option>
+                                @foreach ($tvde_weeks as $tvde_week)
+                                <option value="{{ $tvde_week->id }}">{{ $tvde_week->start_date }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Tem a certeza que pretende eliminar todos os registos desta semana?')">Eliminar semana</button>
+                    </div>
+                </form>
             </div>
         </div>
     @endcan

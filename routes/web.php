@@ -549,6 +549,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('car-tracks/destroy', 'CarTrackController@massDestroy')->name('car-tracks.massDestroy');
     Route::post('car-tracks/parse-csv-import', 'CarTrackController@parseCsvImport')->name('car-tracks.parseCsvImport');
     Route::post('car-tracks/process-csv-import', 'CarTrackController@processCsvImport')->name('car-tracks.processCsvImport');
+    Route::post('car-tracks/delete-filter', 'CarTrackController@deleteFilter')->name('car-tracks.deleteFilter');
     Route::post('car-tracks/upload-via-verde', 'CarTrackController@uploadViaVerde')->name('car-tracks.uploadViaVerde');
     Route::resource('car-tracks', 'CarTrackController');
 

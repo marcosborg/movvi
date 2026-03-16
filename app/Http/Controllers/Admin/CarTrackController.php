@@ -133,6 +133,17 @@ class CarTrackController extends Controller
         return response(null, Response::HTTP_NO_CONTENT);
     }
 
+    public function deleteFilter(Request $request)
+    {
+        $request->validate([
+            'week_filter' => ['required', 'integer', 'exists:tvde_weeks,id'],
+        ]);
+
+        CarTrack::where('tvde_week_id', $request->week_filter)->delete();
+
+        return redirect()->back()->with('message', 'Eliminado com sucesso');
+    }
+
     public function uploadViaVerde(Request $request)
     {
         abort_if(Gate::denies('car_track_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
