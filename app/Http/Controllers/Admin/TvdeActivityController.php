@@ -13,8 +13,10 @@ use App\Models\TvdeOperator;
 use App\Models\TvdeWeek;
 use Gate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
+use SpreadsheetReader;
 
 class TvdeActivityController extends Controller
 {
@@ -89,8 +91,10 @@ class TvdeActivityController extends Controller
 
         $tvde_weeks = TvdeWeek::all();
         $companies = Company::all();
+        $activeCompanyId = $this->resolveCompanyId();
+        $activeCompany = $activeCompanyId ? Company::find($activeCompanyId) : null;
 
-        return view('admin.tvdeActivities.index', compact('tvde_weeks', 'companies'));
+        return view('admin.tvdeActivities.index', compact('tvde_weeks', 'companies', 'activeCompany'));
     }
 
     public function create()
@@ -185,5 +189,212 @@ class TvdeActivityController extends Controller
         $tvde_activities->delete();
 
         return redirect()->back()->with('message', 'Eliminado com sucesso');
+    }
+
+    public function uploadPlatformCsv(Request $request)
+    {
+        abort_if(Gate::denies('tvde_activity_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $validated = $request->validate([
+            'tvde_week_id' => ['required', 'integer', 'exists:tvde_weeks,id'],
+            'platform' => ['required', 'in:uber,bolt'],
+            'csv_file' => ['required', 'file', 'mimes:csv,txt'],
+        ]);
+
+        $companyId = $this->resolveCompanyId();
+
+        if (!$companyId) {
+            return redirect()->back()
+                ->withErrors(['csv_file' => 'Nao foi possivel determinar a empresa ativa para esta importacao.'])
+                ->withInput();
+        }
+
+        $operator = $this->resolvePlatformOperator($validated['platform']);
+        $mapping = $this->platformCsvMapping($validated['platform']);
+        $reader = new SpreadsheetReader($request->file('csv_file')->getRealPath());
+        $rows = [];
+
+        foreach ($reader as $row) {
+            $activity = $this->mapPlatformActivityRow(
+                $row,
+                $mapping,
+                (int) $validated['tvde_week_id'],
+                $operator->id,
+                (int) $companyId
+            );
+
+            if (!$activity) {
+                continue;
+            }
+
+            $signature = implode('|', [
+                $activity['tvde_week_id'],
+                $activity['tvde_operator_id'],
+                $activity['company_id'],
+                $activity['driver_code'],
+            ]);
+
+            if (isset($rows[$signature])) {
+                $rows[$signature]['gross'] += $activity['gross'];
+                $rows[$signature]['net'] += $activity['net'];
+                $rows[$signature]['tips'] += $activity['tips'];
+                continue;
+            }
+
+            $rows[$signature] = $activity;
+        }
+
+        if (empty($rows)) {
+            return redirect()->back()
+                ->withErrors(['csv_file' => 'O ficheiro nao tem linhas validas para importar.'])
+                ->withInput();
+        }
+
+        DB::transaction(function () use ($rows) {
+            foreach ($rows as $activity) {
+                $lookup = [
+                    'tvde_week_id' => $activity['tvde_week_id'],
+                    'tvde_operator_id' => $activity['tvde_operator_id'],
+                    'company_id' => $activity['company_id'],
+                    'driver_code' => $activity['driver_code'],
+                ];
+
+                $existing = TvdeActivity::withTrashed()->where($lookup)->first();
+
+                if ($existing) {
+                    if ($existing->trashed()) {
+                        $existing->restore();
+                    }
+
+                    $existing->fill([
+                        'gross' => $activity['gross'],
+                        'net' => $activity['net'],
+                        'tips' => $activity['tips'],
+                    ])->save();
+
+                    continue;
+                }
+
+                TvdeActivity::create($activity);
+            }
+        });
+
+        return redirect()->route('admin.tvde-activities.index')
+            ->with('message', sprintf('Importados %d registos de %s com sucesso.', count($rows), strtoupper($validated['platform'])));
+    }
+
+    protected function resolveCompanyId(): ?int
+    {
+        $companyId = session()->get('company_id');
+
+        if ($companyId && $companyId !== '0') {
+            return (int) $companyId;
+        }
+
+        $userCompany = optional(auth()->user()->company)->id;
+
+        return $userCompany ? (int) $userCompany : null;
+    }
+
+    protected function resolvePlatformOperator(string $platform): TvdeOperator
+    {
+        $name = $platform === 'uber' ? 'Uber' : 'Bolt';
+
+        return TvdeOperator::firstOrCreate(['name' => $name]);
+    }
+
+    protected function platformCsvMapping(string $platform): array
+    {
+        if ($platform === 'uber') {
+            return [
+                'driver_code' => 0,
+                'gross' => 3,
+                'net' => 6,
+                'tips' => 19,
+            ];
+        }
+
+        return [
+            'driver_code' => 27,
+            'gross' => 3,
+            'net' => 21,
+            'tips' => 9,
+        ];
+    }
+
+    protected function mapPlatformActivityRow(array $row, array $mapping, int $weekId, int $operatorId, int $companyId): ?array
+    {
+        $driverCode = trim((string) ($row[$mapping['driver_code']] ?? ''));
+        $gross = $this->normalizeImportedNumber($row[$mapping['gross']] ?? null);
+        $net = $this->normalizeImportedNumber($row[$mapping['net']] ?? null);
+        $tips = $this->normalizeImportedNumber($row[$mapping['tips']] ?? null);
+
+        if ($driverCode === '') {
+            return null;
+        }
+
+        if ($gross === null && $net === null && $tips === null) {
+            return null;
+        }
+
+        return [
+            'tvde_week_id' => $weekId,
+            'tvde_operator_id' => $operatorId,
+            'company_id' => $companyId,
+            'driver_code' => $driverCode,
+            'gross' => $gross ?? 0,
+            'net' => $net ?? 0,
+            'tips' => $tips ?? 0,
+        ];
+    }
+
+    protected function normalizeImportedNumber($value): ?float
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        $negative = false;
+        if (substr($value, 0, 1) === '(' && substr($value, -1) === ')') {
+            $negative = true;
+            $value = substr($value, 1, -1);
+        }
+
+        $value = preg_replace('/[^0-9,.\-]/', '', $value);
+
+        if ($value === '' || $value === '-' || $value === null) {
+            return null;
+        }
+
+        $lastComma = strrpos($value, ',');
+        $lastDot = strrpos($value, '.');
+
+        if ($lastComma !== false && $lastDot !== false) {
+            if ($lastComma > $lastDot) {
+                $value = str_replace('.', '', $value);
+                $value = str_replace(',', '.', $value);
+            } else {
+                $value = str_replace(',', '', $value);
+            }
+        } elseif ($lastComma !== false) {
+            $value = str_replace('.', '', $value);
+            $value = str_replace(',', '.', $value);
+        } else {
+            $value = str_replace(',', '', $value);
+        }
+
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        $number = (float) $value;
+
+        return $negative ? 0 - $number : $number;
     }
 }

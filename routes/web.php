@@ -388,6 +388,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('tvde-activities/destroy', 'TvdeActivityController@massDestroy')->name('tvde-activities.massDestroy');
     Route::post('tvde-activities/parse-csv-import', 'TvdeActivityController@parseCsvImport')->name('tvde-activities.parseCsvImport');
     Route::post('tvde-activities/process-csv-import', 'TvdeActivityController@processCsvImport')->name('tvde-activities.processCsvImport');
+    Route::post('tvde-activities/upload-platform-csv', 'TvdeActivityController@uploadPlatformCsv')->name('tvde-activities.uploadPlatformCsv');
     Route::resource('tvde-activities', 'TvdeActivityController');
     Route::post('tvde-activities/delete-filter', 'TvdeActivityController@deleteFilter');
 
