@@ -260,6 +260,107 @@ Envelope comum:
 }
 ```
 
+## 6) Integracao Conta Azul
+
+Os endpoints abaixo usam a ligacao OAuth 2.0 guardada por empresa no backend Laravel. A app mobile ou qualquer cliente interno nunca fala diretamente com a API externa da Conta Azul.
+
+### Pre-requisitos
+
+- Configurar no `.env`:
+  - `CONTA_AZUL_CLIENT_ID`
+  - `CONTA_AZUL_CLIENT_SECRET`
+  - `CONTA_AZUL_REDIRECT_URI`
+- Criar a ligacao via backoffice em:
+  - `/admin/companies/{company}/conta-azul`
+
+### 6.1 `GET /api/v1/conta-azul/status`
+
+Devolve o estado da ligacao da empresa autenticada com a Conta Azul.
+
+- Requer token (Sanctum)
+- Requer role `Admin` ou `Gestor`
+- Query params:
+  - `company_id` (opcional; apenas para `Admin`)
+
+### 6.2 `GET /api/v1/conta-azul/accounts`
+
+Lista contas financeiras da empresa ligada.
+
+- Requer token (Sanctum)
+- Requer role `Admin` ou `Gestor`
+- Query params:
+  - `company_id` (opcional; apenas para `Admin`)
+  - restantes params sao reenviados para a Conta Azul, por exemplo `pagina` e `tamanho_pagina`
+
+### 6.3 `GET /api/v1/conta-azul/balances`
+
+Lista contas financeiras e acrescenta `saldo_atual` por conta.
+
+- Requer token (Sanctum)
+- Requer role `Admin` ou `Gestor`
+
+### 6.4 `GET /api/v1/conta-azul/categories`
+
+Lista categorias financeiras da Conta Azul.
+
+### 6.5 `GET /api/v1/conta-azul/receivables`
+
+Consulta contas a receber via endpoint `contas-a-receber/buscar`.
+
+### 6.6 `GET /api/v1/conta-azul/payables`
+
+Consulta contas a pagar via endpoint `contas-a-pagar/buscar`.
+
+### 6.7 `GET /api/v1/conta-azul/manager/profit-loss`
+
+Camada canonica para a demonstracao de resultados do gestor.
+
+Devolve:
+- `summary`
+- `revenue_categories`
+- `expense_categories`
+- `totals`
+
+Nota:
+- nesta primeira versao, o resultado e agregado a partir de `receivables` e `payables`
+- o mapeamento fino por DRE/categoria podera ser afinado quando houver payload real da conta ligada
+
+### 6.8 `GET /api/v1/conta-azul/manager/movements`
+
+Camada canonica para extratos de movimentos.
+
+Devolve:
+- `accounts`
+- `summary`
+- `movements`
+
+Combina:
+- contas financeiras com saldo atual
+- movimentos de entrada (receivables)
+- movimentos de saida (payables)
+
+### 6.9 `GET /api/v1/conta-azul/manager/expenses`
+
+Camada canonica para leitura de despesas.
+
+Devolve:
+- `summary`
+- `categories`
+- `items`
+
+Inclui:
+- total de despesas
+- despesas abertas
+- despesas pagas
+- despesas vencidas
+
+### Erros esperados
+
+- `401 Unauthorized`: token Sanctum ausente ou invalido
+- `403 Forbidden`: utilizador sem role `Admin` ou `Gestor`
+- `404 Not Found`: empresa nao encontrada para o utilizador autenticado
+- `422 Unprocessable Entity`: ligacao Conta Azul ausente, OAuth mal configurado, ou erro devolvido pela API externa
+
 Notas sobre `data`:
 - `mode=week`: devolve `week`, `vehicles[]` e `totals` (aluguer, percentagem, total).
 - `mode=vehicle`: devolve `vehicle`, `week`, `revenues` e `meta.drivers[]` (inclui `usage_seconds` e flags de validacao).

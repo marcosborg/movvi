@@ -75,6 +75,14 @@
 
                         </a>
                     </li>
+                    @if(session()->get('company_id') && session()->get('company_id') != 0)
+                    <li class="{{ request()->is("admin/companies/*/conta-azul") || request()->is("admin/conta-azul/*") ? "active" : "" }}">
+                        <a href="{{ route("admin.conta-azul.index", session()->get('company_id')) }}">
+                            <i class="fa-fw fas fa-plug"></i>
+                            <span>Conta Azul</span>
+                        </a>
+                    </li>
+                    @endif
                     @endcan
                     @can('company_invoice_access')
                             <li class="{{ request()->is("admin/company-invoices") || request()->is("admin/company-invoices/*") ? "active" : "" }}">

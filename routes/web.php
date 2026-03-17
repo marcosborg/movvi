@@ -379,6 +379,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('companies/parse-csv-import', 'CompanyController@parseCsvImport')->name('companies.parseCsvImport');
     Route::post('companies/process-csv-import', 'CompanyController@processCsvImport')->name('companies.processCsvImport');
     Route::resource('companies', 'CompanyController');
+    Route::get('companies/{company}/conta-azul', 'ContaAzulConnectionController@index')->name('conta-azul.index');
+    Route::get('companies/{company}/conta-azul/connect', 'ContaAzulConnectionController@connect')->name('conta-azul.connect');
+    Route::post('companies/{company}/conta-azul/disconnect', 'ContaAzulConnectionController@disconnect')->name('conta-azul.disconnect');
+    Route::get('conta-azul/callback', 'ContaAzulConnectionController@callback')->name('conta-azul.callback');
 
     // Electric
     Route::delete('electrics/destroy', 'ElectricController@massDestroy')->name('electrics.massDestroy');
