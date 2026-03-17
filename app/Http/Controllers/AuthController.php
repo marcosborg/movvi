@@ -29,9 +29,17 @@ class AuthController extends BaseController
 
         $user = User::where('email', $request->email)->first();
         $authToken = $user->createToken('auth-token')->plainTextToken;
+        $user->load('roles');
 
         return response()->json([
             'access_token' => $authToken,
+            'token_type' => 'Bearer',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'roles' => $user->roles->pluck('title')->values(),
+            ],
         ]);
     }
 }

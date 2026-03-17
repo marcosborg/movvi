@@ -3,19 +3,27 @@
     <div class="swiper heroSwiper">
         <div class="swiper-wrapper">
             @forelse($heroBanners ?? [] as $banner)
+                @php
+                    $hasTitle = filled($banner->title);
+                    $hasSubtitle = filled($banner->subtitle);
+                    $hasButton = filled($banner->button);
+                    $hasCaption = $hasTitle || $hasSubtitle || $hasButton;
+                @endphp
                 <div class="swiper-slide">
                     <img src="{{ optional($banner->image)->getUrl() ?? 'https://picsum.photos/seed/movvi-default/1920/800' }}" class="d-block w-100" alt="{{ $banner->title ?? 'Hero banner' }}">
-                    <div class="swiper-caption text-center">
-                        @if($banner->title)
-                            <h2>{{ $banner->title }}</h2>
-                        @endif
-                        @if($banner->subtitle)
-                            <p>{{ $banner->subtitle }}</p>
-                        @endif
-                        @if($banner->button)
-                            <a class="btn btn-primary mt-3" href="{{ $banner->link ?? '#about-preview' }}">{{ $banner->button }}</a>
-                        @endif
-                    </div>
+                    @if($hasCaption)
+                        <div class="swiper-caption text-center">
+                            @if($hasTitle)
+                                <h2>{{ $banner->title }}</h2>
+                            @endif
+                            @if($hasSubtitle)
+                                <p>{{ $banner->subtitle }}</p>
+                            @endif
+                            @if($hasButton)
+                                <a class="btn btn-primary mt-3" href="{{ $banner->link ?? '#about-preview' }}">{{ $banner->button }}</a>
+                            @endif
+                        </div>
+                    @endif
                 </div>
             @empty
                 <div class="swiper-slide">

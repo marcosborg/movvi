@@ -1,27 +1,27 @@
-# Manual técnico da API (Movvi)
+# Manual tecnico da API (Movvi)
 
 Base URL (local): `http://127.0.0.1:8000`
 
-## Autenticação (Sanctum)
+## Autenticacao (Sanctum)
 
 Os endpoints em `/api/v1/*` usam `auth:sanctum`.
 
-- Header obrigatório:
+- Header obrigatorio:
   - `Authorization: Bearer <access_token>`
   - `Accept: application/json`
 
 ### Obter token
 
-1) Fazer login em `POST /api/login`.
-2) Usar o `access_token` retornado como Bearer token nos requests seguintes.
+1. Fazer login em `POST /api/login`.
+2. Usar o `access_token` retornado como Bearer token nos requests seguintes.
 
 Notas:
-- O token é um *personal access token* do Sanctum.
-- Se o token estiver ausente ou inválido, o servidor responde com `401 Unauthorized`.
+- O token e um personal access token do Sanctum.
+- Se o token estiver ausente ou invalido, o servidor responde com `401 Unauthorized`.
 
 ## 1) `POST /api/login`
 
-Cria um token de autenticação (Sanctum) para um utilizador.
+Cria um token de autenticacao (Sanctum) para um utilizador.
 
 ### Request
 
@@ -31,8 +31,8 @@ Cria um token de autenticação (Sanctum) para um utilizador.
   - `Accept: application/json`
   - `Content-Type: application/json`
 - Body (JSON):
-  - `email` (string, obrigatório; formato email)
-  - `password` (string, obrigatório)
+  - `email` (string, obrigatorio; formato email)
+  - `password` (string, obrigatorio)
 
 Exemplo:
 ```bash
@@ -46,28 +46,130 @@ curl -s -X POST "http://127.0.0.1:8000/api/login" \
 
 ```json
 {
-  "access_token": "..."
+  "access_token": "...",
+  "token_type": "Bearer",
+  "user": {
+    "id": 1,
+    "name": "Nome",
+    "email": "user@example.com",
+    "roles": ["Motoristas"]
+  }
 }
 ```
 
 ### Erros
 
-- `422 Unprocessable Entity`: validação falhou (email/password ausentes, email inválido, credenciais inválidas).
+- `422 Unprocessable Entity`: validacao falhou (email/password ausentes, email invalido, credenciais invalidas).
 
-## 2) `GET /api/v1/sales-by-week/{date}`
+## 2) `GET /api/v1/mobile/me`
 
-Devolve o relatório de vendas por semana TVDE (usa `Reports::getWeekReport`).
+Payload estavel para inicializar a app mobile apos login.
 
-### Segurança
+### Seguranca
 
 - Requer token (Sanctum).
-- Requer permissão `company_report_access` (Gate).
+
+### Request
+
+- Method: `GET`
+- Path: `/api/v1/mobile/me`
+- Headers:
+  - `Accept: application/json`
+  - `Authorization: Bearer <access_token>`
+
+### Response (200)
+
+```json
+{
+  "user": {
+    "id": 1,
+    "name": "Nome",
+    "email": "user@example.com",
+    "roles": ["Motoristas"]
+  },
+  "driver": {
+    "id": 10,
+    "code": "DRV001",
+    "name": "Nome",
+    "email": "user@example.com",
+    "phone": "910000000",
+    "company": {
+      "id": 1,
+      "name": "Movvi"
+    },
+    "state": null,
+    "contract_vat": null
+  }
+}
+```
+
+## 3) `GET /api/v1/mobile/dashboard`
+
+Resumo semanal do utilizador autenticado para uso no mobile.
+
+### Seguranca
+
+- Requer token (Sanctum).
+
+### Request
+
+- Method: `GET`
+- Path: `/api/v1/mobile/dashboard`
+- Headers:
+  - `Accept: application/json`
+  - `Authorization: Bearer <access_token>`
+- Query params:
+  - `date` (string `d-m-Y`) - opcional; quando ausente usa a semana TVDE mais recente
+
+### Response (200)
+
+```json
+{
+  "driver": {},
+  "week": {
+    "id": 123,
+    "number": 10,
+    "start_date": "2026-03-09",
+    "end_date": "2026-03-15",
+    "requested_date": "2026-03-09"
+  },
+  "account_summary": {},
+  "balance": {
+    "value": 0,
+    "last_balance": 0,
+    "new_balance": 0,
+    "vat": 0,
+    "rf": 0,
+    "final": 0
+  },
+  "vehicle": {
+    "id": 1,
+    "license_plate": "00-AA-00",
+    "model": "Model"
+  },
+  "vehicle_profitability": {}
+}
+```
+
+### Erros
+
+- `401 Unauthorized`: token ausente/invalido.
+- `404 Not Found`: utilizador sem motorista associado ou semana nao encontrada.
+
+## 4) `GET /api/v1/sales-by-week/{date}`
+
+Devolve o relatorio de vendas por semana TVDE (usa `Reports::getWeekReport`).
+
+### Seguranca
+
+- Requer token (Sanctum).
+- Requer permissao `company_report_access` (Gate).
 
 ### Request
 
 - Method: `GET`
 - Path: `/api/v1/sales-by-week/{date}`
-- `{date}`: obrigatório no formato `d-m-Y` (ex: `03-11-2025`)
+- `{date}`: obrigatorio no formato `d-m-Y` (ex: `03-11-2025`)
 - Headers:
   - `Accept: application/json`
   - `Authorization: Bearer <access_token>`
@@ -81,7 +183,7 @@ curl -s "http://127.0.0.1:8000/api/v1/sales-by-week/03-11-2025" \
 
 ### Response (200)
 
-Estrutura (alto nível):
+Estrutura (alto nivel):
 ```json
 {
   "requested_date": "03-11-2025",
@@ -93,25 +195,25 @@ Estrutura (alto nível):
 ```
 
 Notas:
-- No estado atual do código, o `company_id` usado é fixo (`1`).
+- No estado atual do codigo, o `company_id` usado e fixo (`1`).
 
 ### Erros
 
-- `401 Unauthorized`: token ausente/inválido.
-- `403 Forbidden`: permissão `company_report_access` em falta.
-- `404 Not Found`: semana TVDE não encontrada (por `start_date`).
-- `422 Unprocessable Entity`: formato de data inválido.
+- `401 Unauthorized`: token ausente/invalido.
+- `403 Forbidden`: permissao `company_report_access` em falta.
+- `404 Not Found`: semana TVDE nao encontrada (por `start_date`).
+- `422 Unprocessable Entity`: formato de data invalido.
 
-## 3) `GET /api/v1/vehicle-profitabilities`
+## 5) `GET /api/v1/vehicle-profitabilities`
 
-Expõe os mesmos cálculos usados na UI de `/admin/vehicle-profitabilities`, mas em JSON:
-- **Modo “week”** (default): totais por viatura para uma semana (`VehicleProfitabilityService::makeWeek`).
-- **Modo “vehicle”**: detalhe por motorista para uma viatura numa semana (`VehicleProfitabilityService::make`).
+Expoe os mesmos calculos usados na UI de `/admin/vehicle-profitabilities`, mas em JSON:
+- Modo `week` (default): totais por viatura para uma semana (`VehicleProfitabilityService::makeWeek`).
+- Modo `vehicle`: detalhe por motorista para uma viatura numa semana (`VehicleProfitabilityService::make`).
 
-### Segurança
+### Seguranca
 
 - Requer token (Sanctum).
-- Requer permissão `vehicle_profitability_access` (Gate).
+- Requer permissao `vehicle_profitability_access` (Gate).
 
 ### Request
 
@@ -121,8 +223,8 @@ Expõe os mesmos cálculos usados na UI de `/admin/vehicle-profitabilities`, mas
   - `Accept: application/json`
   - `Authorization: Bearer <access_token>`
 - Query params:
-  - `tvde_week_id` (int) **ou** `date` (string `d-m-Y`) — obrigatório
-  - `vehicle_id` (int) — opcional
+  - `tvde_week_id` (int) ou `date` (string `d-m-Y`) - obrigatorio
+  - `vehicle_id` (int) - opcional
 
 #### Exemplo (modo week)
 ```bash
@@ -160,12 +262,11 @@ Envelope comum:
 
 Notas sobre `data`:
 - `mode=week`: devolve `week`, `vehicles[]` e `totals` (aluguer, percentagem, total).
-- `mode=vehicle`: devolve `vehicle`, `week`, `revenues` e `meta.drivers[]` (inclui `usage_seconds` e flags de validação).
+- `mode=vehicle`: devolve `vehicle`, `week`, `revenues` e `meta.drivers[]` (inclui `usage_seconds` e flags de validacao).
 
 ### Erros
 
-- `401 Unauthorized`: token ausente/inválido.
-- `403 Forbidden`: permissão `vehicle_profitability_access` em falta.
-- `404 Not Found`: semana (`tvde_week_id` / `date`) ou viatura (`vehicle_id`) não encontrada.
-- `422 Unprocessable Entity`: parâmetros obrigatórios em falta ou `date` com formato inválido.
-
+- `401 Unauthorized`: token ausente/invalido.
+- `403 Forbidden`: permissao `vehicle_profitability_access` em falta.
+- `404 Not Found`: semana (`tvde_week_id` / `date`) ou viatura (`vehicle_id`) nao encontrada.
+- `422 Unprocessable Entity`: parametros obrigatorios em falta ou `date` com formato invalido.
