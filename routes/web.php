@@ -272,6 +272,14 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::get('receipts/paid', 'ReceiptController@index');
     Route::resource('receipts', 'ReceiptController');
 
+    // Inspections
+    Route::delete('inspections/destroy', 'InspectionController@massDestroy')->name('inspections.massDestroy');
+    Route::post('inspections/{inspection}/step', 'InspectionController@updateStep')->name('inspections.update-step');
+    Route::post('inspections/{inspection}/back-step', 'InspectionController@backStep')->name('inspections.back-step');
+    Route::post('inspections/{inspection}/damages/{damage}/resolve', 'InspectionController@resolveDamage')->name('inspections.resolve-damage');
+    Route::post('inspections/{inspection}/close', 'InspectionController@close')->name('inspections.close');
+    Route::resource('inspections', 'InspectionController')->except(['update']);
+
     // My Receipts
     Route::prefix('my-receipts')->group(function () {
         Route::get('/{paid?}', 'MyReceiptsController@index')->name('my-receipts.index');

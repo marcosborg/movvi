@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Api\V1\ContaAzulController;
 use App\Http\Controllers\Api\V1\DriverController;
 use App\Http\Controllers\Api\V1\MobileController;
+use App\Http\Controllers\Api\V1\MobileInspectionController;
 use App\Http\Controllers\Api\V1\PublicController;
 use App\Http\Controllers\Api\V1\SalesController;
 use App\Http\Controllers\Api\V1\VehicleProfitabilityController;
@@ -31,6 +32,16 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin', '
     Route::prefix('mobile')->name('mobile.')->group(function () {
         Route::get('me', [MobileController::class, 'me'])->name('me');
         Route::get('dashboard', [MobileController::class, 'dashboard'])->name('dashboard');
+        Route::prefix('inspections')->name('inspections.')->group(function () {
+            Route::get('/', [MobileInspectionController::class, 'index'])->name('index');
+            Route::get('create-options', [MobileInspectionController::class, 'createOptions'])->name('createOptions');
+            Route::post('/', [MobileInspectionController::class, 'store'])->name('store');
+            Route::get('{inspection}', [MobileInspectionController::class, 'show'])->name('show');
+            Route::post('{inspection}/step', [MobileInspectionController::class, 'updateStep'])->name('updateStep');
+            Route::post('{inspection}/back-step', [MobileInspectionController::class, 'backStep'])->name('backStep');
+            Route::post('{inspection}/damages/{damage}/resolve', [MobileInspectionController::class, 'resolveDamage'])->name('resolveDamage');
+            Route::post('{inspection}/close', [MobileInspectionController::class, 'close'])->name('close');
+        });
         Route::prefix('driver')->name('driver.')->group(function () {
             Route::get('weeks', [MobileController::class, 'driverWeeks'])->name('weeks');
             Route::get('receipts', [MobileController::class, 'driverReceipts'])->name('receipts');

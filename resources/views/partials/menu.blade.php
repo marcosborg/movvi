@@ -1471,6 +1471,17 @@
                                 </a>
                             </li>
                         @endcan
+                        @if(auth()->check() && (auth()->user()->hasRole('Admin') || auth()->user()->hasRole('Gestor') || auth()->user()->hasRole('Driver')))
+                            <li class="{{ request()->is("admin/inspections") || request()->is("admin/inspections/*") ? "active" : "" }}">
+                                <a href="{{ route("admin.inspections.index") }}">
+                                    <i class="fa-fw fas fa-clipboard">
+
+                                    </i>
+                                    <span>Inspeções</span>
+
+                                </a>
+                            </li>
+                        @endif
                     <li class="{{ request()->is("admin/system-calendar") || request()->is("admin/system-calendar/*") ?
                         "active"
                         : "" }}">
