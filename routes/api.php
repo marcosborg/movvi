@@ -17,5 +17,13 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin', '
     Route::prefix('mobile')->name('mobile.')->group(function () {
         Route::get('me', [MobileController::class, 'me'])->name('me');
         Route::get('dashboard', [MobileController::class, 'dashboard'])->name('dashboard');
+        Route::prefix('driver')->name('driver.')->group(function () {
+            Route::get('weeks', [MobileController::class, 'driverWeeks'])->name('weeks');
+            Route::get('receipts', [MobileController::class, 'driverReceipts'])->name('receipts');
+            Route::post('receipts', [MobileController::class, 'storeDriverReceipt'])->name('receipts.store');
+            Route::post('expense-receipts', [MobileController::class, 'storeDriverExpenseReceipt'])->name('expenseReceipts.store');
+            Route::post('reimbursements', [MobileController::class, 'storeDriverReimbursement'])->name('reimbursements.store');
+            Route::get('documents', [MobileController::class, 'driverDocuments'])->name('documents');
+        });
     });
 });
