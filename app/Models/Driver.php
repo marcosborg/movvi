@@ -48,6 +48,7 @@ class Driver extends Model
         'driver_vat',
         'uber_uuid',
         'bolt_name',
+        'bolt_individual_id',
         'license_plate',
         'brand',
         'model',
@@ -157,6 +158,30 @@ class Driver extends Model
     public function vehicleUsages()
     {
         return $this->hasMany(VehicleUsage::class, 'driver_id', 'id');
+    }
+
+    public function boltIdentifiers(): array
+    {
+        return collect([
+            $this->bolt_individual_id,
+            $this->bolt_name,
+        ])
+            ->filter(fn ($value) => filled($value))
+            ->map(fn ($value) => trim((string) $value))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function matchesBoltIdentifier(?string $driverCode): bool
+    {
+        $normalized = trim((string) $driverCode);
+
+        if ($normalized === '') {
+            return false;
+        }
+
+        return in_array($normalized, $this->boltIdentifiers(), true);
     }
 
 }

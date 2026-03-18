@@ -95,6 +95,10 @@ class StoreDriverRequest extends FormRequest
                 'string',
                 'nullable',
             ],
+            'bolt_individual_id' => [
+                'string',
+                'nullable',
+            ],
             'license_plate' => [
                 'string',
                 'nullable',

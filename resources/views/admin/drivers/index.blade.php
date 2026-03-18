@@ -52,6 +52,9 @@
                                     {{ trans('cruds.driver.fields.bolt_name') }}
                                 </th>
                                 <th>
+                                    {{ trans('cruds.driver.fields.bolt_individual_id') }}
+                                </th>
+                                <th>
                                     {{ trans('cruds.driver.fields.company') }}
                                 </th>
                                 <th>
@@ -121,6 +124,7 @@
 { data: 'state_name', name: 'state.name' },
 { data: 'uber_uuid', name: 'uber_uuid' },
 { data: 'bolt_name', name: 'bolt_name' },
+{ data: 'bolt_individual_id', name: 'bolt_individual_id' },
 { data: 'company_name', name: 'company.name' },
 { data: 'actions', name: '{{ trans('global.actions') }}' }
     ],

@@ -121,8 +121,7 @@ trait Reports
                 'company_id' => $company_id,
                 'tvde_operator_id' => 2,
                 'tvde_week_id' => $tvde_week_id,
-                'driver_code' => $driver->bolt_name
-            ])->get();
+            ])->whereIn('driver_code', $driver->boltIdentifiers())->get();
 
             $bolt_gross = (float) $bolt_activities->sum('gross');
             $bolt_net = (float) $bolt_activities->sum('net');
@@ -513,9 +512,9 @@ trait Reports
         $bolt_activities = TvdeActivity::where([
             'tvde_week_id' => $tvde_week_id,
             'tvde_operator_id' => 2,
-            'driver_code' => $driver->bolt_name,
             'company_id' => $company_id,
         ])
+            ->whereIn('driver_code', $driver->boltIdentifiers())
             ->get();
 
         $uber_activities = TvdeActivity::where([

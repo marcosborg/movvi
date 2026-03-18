@@ -283,6 +283,15 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.driver.fields.bolt_name_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('bolt_individual_id') ? 'has-error' : '' }}">
+                            <label for="bolt_individual_id">{{ trans('cruds.driver.fields.bolt_individual_id') }}</label>
+                            <input class="form-control" type="text" name="bolt_individual_id" id="bolt_individual_id"
+                                value="{{ old('bolt_individual_id', $driver->bolt_individual_id) }}">
+                            @if($errors->has('bolt_individual_id'))
+                            <span class="help-block" role="alert">{{ $errors->first('bolt_individual_id') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.driver.fields.bolt_individual_id_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('license_plate') ? 'has-error' : '' }}">
                             <label for="license_plate">{{ trans('cruds.driver.fields.license_plate') }}</label>
                             <input class="form-control" type="text" name="license_plate" id="license_plate"

@@ -150,9 +150,9 @@ class FinancialStatementController extends Controller
         $bolt_activities = TvdeActivity::where([
             'tvde_week_id' => $tvde_week_id,
             'tvde_operator_id' => 2,
-            'driver_code' => $driver->bolt_name,
             'company_id' => $company_id,
         ])
+            ->whereIn('driver_code', $driver->boltIdentifiers())
             ->get();
 
         $uber_activities = TvdeActivity::where([
@@ -306,8 +306,8 @@ class FinancialStatementController extends Controller
             $team_driver_bolt_earnings = TvdeActivity::where([
                 'tvde_week_id' => $tvde_week_id,
                 'tvde_operator_id' => 2,
-                'driver_code' => $d->bolt_name
             ])
+                ->whereIn('driver_code', $d->boltIdentifiers())
                 ->get()->sum('net');
 
             $team_driver_uber_earnings = TvdeActivity::where([
@@ -320,9 +320,9 @@ class FinancialStatementController extends Controller
             $team_driver_earnings = $team_driver_bolt_earnings + $team_driver_uber_earnings;
             if ($driver) {
                 $entry = collect([
-                    'driver' => $driver->uber_uuid == $d->uber_uuid || $driver->bolt_name == $d->bolt_name ? $driver->name : 'Motorista ' . $key + 1,
+                    'driver' => $driver->uber_uuid == $d->uber_uuid || !empty(array_intersect($driver->boltIdentifiers(), $d->boltIdentifiers())) ? $driver->name : 'Motorista ' . $key + 1,
                     'earnings' => sprintf("%.2f", $team_driver_earnings),
-                    'own' => $driver->uber_uuid == $d->uber_uuid || $driver->bolt_name == $d->bolt_name
+                    'own' => $driver->uber_uuid == $d->uber_uuid || !empty(array_intersect($driver->boltIdentifiers(), $d->boltIdentifiers()))
                 ]);
                 $team_earnings->add($entry);
             }

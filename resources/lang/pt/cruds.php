@@ -1003,6 +1003,8 @@ return [
             'company_helper'        => ' ',
             'bolt_name'             => 'Nome Bolt',
             'bolt_name_helper'      => ' ',
+            'bolt_individual_id'    => 'Identificador individual Bolt',
+            'bolt_individual_id_helper' => 'Coluna AC da exportacao Bolt. Usado primeiro no matching; o Nome Bolt fica como fallback historico.',
             'bolt'                  => 'Bolt id',
             'bolt_helper'           => ' ',
             'electric'              => 'Electric',
@@ -2530,7 +2532,6 @@ return [
         ],
     ],
 ];
-
 
 
 

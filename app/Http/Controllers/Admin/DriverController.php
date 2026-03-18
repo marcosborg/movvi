@@ -127,6 +127,9 @@ class DriverController extends Controller
             $table->editColumn('bolt_name', function ($row) {
                 return $row->bolt_name ? $row->bolt_name : '';
             });
+            $table->editColumn('bolt_individual_id', function ($row) {
+                return $row->bolt_individual_id ? $row->bolt_individual_id : '';
+            });
             $table->editColumn('license_plate', function ($row) {
                 return $row->license_plate ? $row->license_plate : '';
             });

@@ -316,6 +316,7 @@ class TvdeActivityController extends Controller
 
         return [
             'driver_code' => 27,
+            'driver_code_stable' => 28,
             'gross' => 3,
             'net' => 21,
             'tips' => 9,
@@ -324,7 +325,9 @@ class TvdeActivityController extends Controller
 
     protected function mapPlatformActivityRow(array $row, array $mapping, int $weekId, int $operatorId, int $companyId): ?array
     {
-        $driverCode = trim((string) ($row[$mapping['driver_code']] ?? ''));
+        $stableDriverCode = trim((string) ($row[$mapping['driver_code_stable']] ?? ''));
+        $legacyDriverCode = trim((string) ($row[$mapping['driver_code']] ?? ''));
+        $driverCode = $stableDriverCode !== '' ? $stableDriverCode : $legacyDriverCode;
         $gross = $this->normalizeImportedNumber($row[$mapping['gross']] ?? null);
         $net = $this->normalizeImportedNumber($row[$mapping['net']] ?? null);
         $tips = $this->normalizeImportedNumber($row[$mapping['tips']] ?? null);

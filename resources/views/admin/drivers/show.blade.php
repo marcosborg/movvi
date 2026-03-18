@@ -227,6 +227,14 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        {{ trans('cruds.driver.fields.bolt_individual_id') }}
+                                    </th>
+                                    <td>
+                                        {{ $driver->bolt_individual_id }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.driver.fields.license_plate') }}
                                     </th>
                                     <td>
