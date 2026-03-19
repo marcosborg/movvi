@@ -13,6 +13,7 @@ use App\Services\Inspections\InspectionWorkflowService;
 use App\Support\InspectionRoutineConfig;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
@@ -153,6 +154,7 @@ class MobileInspectionController extends Controller
                 'transfer_context' => $transferContext,
             ],
             'driver_options' => Driver::query()
+                ->where('state_id', '!=', 2)
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->map(fn (Driver $driver) => [
@@ -236,6 +238,9 @@ class MobileInspectionController extends Controller
                 ->map(fn ($key) => ['key' => (string) $key, 'label' => (string) config('inspections.type_labels.' . $key, $key)])
                 ->values(),
             'vehicles' => VehicleItem::query()
+                ->where(function ($query) {
+                    $query->whereNull('suspended')->orWhere('suspended', false)->orWhere('suspended', 0);
+                })
                 ->orderBy('license_plate')
                 ->get(['id', 'license_plate', 'driver_id'])
                 ->map(function (VehicleItem $vehicle) use ($activeUsages) {
@@ -250,6 +255,7 @@ class MobileInspectionController extends Controller
                 })
                 ->values(),
             'drivers' => Driver::query()
+                ->where('state_id', '!=', 2)
                 ->when($activeDriverIds->isNotEmpty(), function ($query) use ($activeDriverIds) {
                     $query->whereNotIn('id', $activeDriverIds->all());
                 })
@@ -271,8 +277,8 @@ class MobileInspectionController extends Controller
         $validated = Validator::make($request->all(), [
             'type' => ['required', 'in:handover,return'],
             'vehicle_id' => ['required', 'integer', 'exists:vehicle_items,id'],
-            'driver_id' => ['nullable', 'integer', 'exists:drivers,id'],
-            'source_driver_id' => ['nullable', 'integer', 'exists:drivers,id'],
+            'driver_id' => ['nullable', 'integer', Rule::exists('drivers', 'id')->where(fn ($query) => $query->where('state_id', '!=', 2))],
+            'source_driver_id' => ['nullable', 'integer', Rule::exists('drivers', 'id')->where(fn ($query) => $query->where('state_id', '!=', 2))],
             'transfer_mode' => ['nullable', 'in:entrega,recolha,passagem'],
             'location_lat' => ['nullable', 'numeric'],
             'location_lng' => ['nullable', 'numeric'],
@@ -297,7 +303,7 @@ class MobileInspectionController extends Controller
         $validated = Validator::make($request->all(), [
             'step' => ['required', 'integer', 'min:1', 'max:12'],
             'action' => ['nullable', 'in:save,complete'],
-            'driver_id' => ['nullable', 'integer', 'exists:drivers,id'],
+            'driver_id' => ['nullable', 'integer', Rule::exists('drivers', 'id')->where(fn ($query) => $query->where('state_id', '!=', 2))],
             'location' => ['nullable', 'string', 'max:30'],
             'part' => ['nullable', 'string', 'max:120'],
             'part_section' => ['nullable', 'string', 'max:120'],

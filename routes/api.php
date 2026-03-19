@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Api\V1\CompanyReportApiController;
 use App\Http\Controllers\Api\V1\ContaAzulController;
 use App\Http\Controllers\Api\V1\DriverController;
 use App\Http\Controllers\Api\V1\MobileController;
@@ -18,6 +19,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin', '
     Route::get('vehicle-profitabilities', [VehicleProfitabilityController::class, 'index'])->name('vehicleProfitabilities');
     Route::get('drivers', [DriverController::class, 'index'])->name('drivers');
     Route::get('vehicle-usages', [MobileController::class, 'vehicleUsages'])->name('vehicleUsages');
+    Route::get('weeks', [MobileController::class, 'weeks'])->name('weeks');
+    Route::get('company-reports/weekly', [CompanyReportApiController::class, 'weekly'])->name('companyReports.weekly');
     Route::prefix('conta-azul')->name('contaAzul.')->group(function () {
         Route::get('status', [ContaAzulController::class, 'status'])->name('status');
         Route::get('accounts', [ContaAzulController::class, 'accounts'])->name('accounts');

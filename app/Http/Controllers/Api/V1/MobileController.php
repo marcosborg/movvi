@@ -339,9 +339,11 @@ class MobileController extends Controller
 
     public function driverWeeks(Request $request)
     {
+        $user = $request->user();
+        $canBrowseWeeks = $user && ($user->hasRole('Admin') || $user->hasRole('Gestor'));
         $driver = $this->resolveAuthenticatedDriver($request);
 
-        if (! $driver) {
+        if (! $driver && ! $canBrowseWeeks) {
             return response()->json([
                 'error' => 'Motorista nao encontrado para o utilizador autenticado.',
             ], 404);
@@ -369,6 +371,33 @@ class MobileController extends Controller
 
         return response()->json([
             'driver' => $this->serializeDriver($driver),
+            'weeks' => $weeks,
+        ]);
+    }
+
+    public function weeks(Request $request)
+    {
+        $weeks = TvdeWeek::orderByDesc('start_date')
+            ->limit(24)
+            ->get()
+            ->map(function (TvdeWeek $week) {
+                return [
+                    'id' => $week->id,
+                    'number' => $week->number,
+                    'start_date' => $week->start_date,
+                    'end_date' => $week->end_date,
+                    'date_key' => Carbon::parse($week->getRawOriginal('start_date'))->format('d-m-Y'),
+                    'label' => sprintf(
+                        'Semana %s · %s a %s',
+                        $week->number ?? '-',
+                        Carbon::parse($week->getRawOriginal('start_date'))->format('d/m'),
+                        Carbon::parse($week->getRawOriginal('end_date'))->format('d/m')
+                    ),
+                ];
+            })
+            ->values();
+
+        return response()->json([
             'weeks' => $weeks,
         ]);
     }
