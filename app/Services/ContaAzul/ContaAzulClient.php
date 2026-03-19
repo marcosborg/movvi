@@ -133,7 +133,21 @@ class ContaAzulClient
 
         $driver = $user->driver()->with('company')->first();
 
-        return $driver?->company;
+        if ($driver?->company) {
+            return $driver->company;
+        }
+
+        if ($user->hasRole('Admin') || $user->hasRole('Gestor')) {
+            return Company::query()
+                ->whereHas('conta_azul_connection', function ($query) {
+                    $query->whereNotNull('access_token');
+                })
+                ->orderByDesc('main')
+                ->orderBy('id')
+                ->first();
+        }
+
+        return null;
     }
 
     protected function request(Company $company, string $method, string $path, array $query = []): Response

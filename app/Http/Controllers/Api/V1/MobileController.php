@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Models\VehicleUsage;
 use App\Services\VehicleProfitabilityService;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -424,6 +425,102 @@ class MobileController extends Controller
                     'title' => 'Comprovativo de morada',
                     'files' => $this->serializeMediaCollection($document->address),
                 ],
+            ],
+        ]);
+    }
+
+    public function vehicleUsages(Request $request): JsonResponse
+    {
+        $user = $request->user()->load('roles');
+        $roles = $user->roles->pluck('title')->values();
+        $isAdmin = $this->hasRole($roles, 'Admin');
+        $isManager = $this->hasRole($roles, 'Gestor');
+        $isDriver = $this->hasRole($roles, 'Driver');
+
+        if (! $isAdmin && ! $isManager && ! $isDriver) {
+            return response()->json([
+                'error' => '403 Forbidden',
+            ], 403);
+        }
+
+        $driver = null;
+        if ($isDriver) {
+            $driver = $this->resolveAuthenticatedDriver($request);
+
+            if (! $driver) {
+                return response()->json([
+                    'error' => 'Motorista nao encontrado para o utilizador autenticado.',
+                ], 404);
+            }
+        }
+
+        $searchDriver = trim((string) $request->query('driver'));
+        $searchPlate = trim((string) $request->query('license_plate'));
+        $perPage = min(max((int) $request->query('per_page', 25), 1), 100);
+
+        $query = VehicleUsage::with(['driver.company', 'vehicle_item.vehicle_model', 'vehicle_item.company'])
+            ->when($isDriver && $driver, function (Builder $builder) use ($driver) {
+                $builder->where('driver_id', $driver->id);
+            })
+            ->when($searchDriver !== '', function (Builder $builder) use ($searchDriver) {
+                $builder->whereHas('driver', function (Builder $driverQuery) use ($searchDriver) {
+                    $driverQuery->where('name', 'like', '%' . $searchDriver . '%');
+                });
+            })
+            ->when($searchPlate !== '', function (Builder $builder) use ($searchPlate) {
+                $builder->whereHas('vehicle_item', function (Builder $vehicleQuery) use ($searchPlate) {
+                    $vehicleQuery->where('license_plate', 'like', '%' . $searchPlate . '%');
+                });
+            })
+            ->orderByDesc('start_date')
+            ->orderByDesc('id');
+
+        $paginator = $query->paginate($perPage);
+
+        return response()->json([
+            'filters' => [
+                'driver' => $searchDriver !== '' ? $searchDriver : null,
+                'license_plate' => $searchPlate !== '' ? $searchPlate : null,
+                'per_page' => $perPage,
+            ],
+            'viewer' => [
+                'roles' => $roles,
+                'is_admin' => $isAdmin,
+                'is_manager' => $isManager,
+                'is_driver' => $isDriver,
+            ],
+            'items' => collect($paginator->items())->map(function (VehicleUsage $usage) {
+                return [
+                    'id' => $usage->id,
+                    'start_date' => $usage->start_date,
+                    'end_date' => $usage->end_date,
+                    'usage_exception' => $usage->usage_exceptions,
+                    'usage_exception_label' => VehicleUsage::USAGE_EXCEPTIONS_RADIO[$usage->usage_exceptions] ?? $usage->usage_exceptions,
+                    'driver' => $usage->driver ? [
+                        'id' => $usage->driver->id,
+                        'name' => $usage->driver->name,
+                        'company' => $usage->driver->company ? [
+                            'id' => $usage->driver->company->id,
+                            'name' => $usage->driver->company->name,
+                        ] : null,
+                    ] : null,
+                    'vehicle' => $usage->vehicle_item ? [
+                        'id' => $usage->vehicle_item->id,
+                        'license_plate' => $usage->vehicle_item->license_plate,
+                        'brand' => $usage->vehicle_item->brand,
+                        'model' => $usage->vehicle_item->vehicle_model?->name,
+                        'company' => $usage->vehicle_item->company ? [
+                            'id' => $usage->vehicle_item->company->id,
+                            'name' => $usage->vehicle_item->company->name,
+                        ] : null,
+                    ] : null,
+                ];
+            })->values(),
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
             ],
         ]);
     }

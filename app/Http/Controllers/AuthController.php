@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
 use App\Models\User;
+use Illuminate\Support\Facades\Password;
 
 class AuthController extends BaseController
 {
@@ -40,6 +41,21 @@ class AuthController extends BaseController
                 'email' => $user->email,
                 'roles' => $user->roles->pluck('title')->values(),
             ],
+        ]);
+    }
+
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        Password::sendResetLink([
+            'email' => $request->email,
+        ]);
+
+        return response()->json([
+            'message' => 'Se existir uma conta com esse email, enviamos um link para recuperar a password.',
         ]);
     }
 }

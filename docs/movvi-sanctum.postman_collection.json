@@ -1,0 +1,554 @@
+{
+  "info": {
+    "_postman_id": "3db8ce06-5f31-4fdc-8577-7c3f5b2fc98b",
+    "name": "Movvi Sanctum API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Colecao Postman para a API Sanctum da Movvi."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://movvi.com.pt/api"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "email",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "week_date",
+      "value": "18-03-2026"
+    },
+    {
+      "key": "driver_search",
+      "value": "adelmo"
+    },
+    {
+      "key": "license_plate",
+      "value": "62-XQ-20"
+    },
+    {
+      "key": "per_page",
+      "value": "25"
+    },
+    {
+      "key": "company_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "  pm.collectionVariables.set('access_token', json.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/forgot-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "forgot-password"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Core Sanctum",
+      "item": [
+        {
+          "name": "Drivers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/drivers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "drivers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sales By Week",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/sales-by-week/{{week_date}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "sales-by-week",
+                "{{week_date}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Vehicle Profitabilities",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/vehicle-profitabilities",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "vehicle-profitabilities"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Vehicle Usages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/vehicle-usages?driver={{driver_search}}&license_plate={{license_plate}}&per_page={{per_page}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "vehicle-usages"
+              ],
+              "query": [
+                {
+                  "key": "driver",
+                  "value": "{{driver_search}}"
+                },
+                {
+                  "key": "license_plate",
+                  "value": "{{license_plate}}"
+                },
+                {
+                  "key": "per_page",
+                  "value": "{{per_page}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Conta Azul",
+      "item": [
+        {
+          "name": "Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/conta-azul/status?company_id={{company_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "conta-azul",
+                "status"
+              ],
+              "query": [
+                {
+                  "key": "company_id",
+                  "value": "{{company_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Accounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/conta-azul/accounts?company_id={{company_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "conta-azul",
+                "accounts"
+              ],
+              "query": [
+                {
+                  "key": "company_id",
+                  "value": "{{company_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Balances",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/conta-azul/balances?company_id={{company_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "conta-azul",
+                "balances"
+              ],
+              "query": [
+                {
+                  "key": "company_id",
+                  "value": "{{company_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/conta-azul/categories?company_id={{company_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "conta-azul",
+                "categories"
+              ],
+              "query": [
+                {
+                  "key": "company_id",
+                  "value": "{{company_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Receivables",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/conta-azul/receivables?company_id={{company_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "conta-azul",
+                "receivables"
+              ],
+              "query": [
+                {
+                  "key": "company_id",
+                  "value": "{{company_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Payables",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/conta-azul/payables?company_id={{company_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "conta-azul",
+                "payables"
+              ],
+              "query": [
+                {
+                  "key": "company_id",
+                  "value": "{{company_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Manager Profit Loss",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/conta-azul/manager/profit-loss?company_id={{company_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "conta-azul",
+                "manager",
+                "profit-loss"
+              ],
+              "query": [
+                {
+                  "key": "company_id",
+                  "value": "{{company_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Manager Movements",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/conta-azul/manager/movements?company_id={{company_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "conta-azul",
+                "manager",
+                "movements"
+              ],
+              "query": [
+                {
+                  "key": "company_id",
+                  "value": "{{company_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Manager Expenses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/conta-azul/manager/expenses?company_id={{company_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "conta-azul",
+                "manager",
+                "expenses"
+              ],
+              "query": [
+                {
+                  "key": "company_id",
+                  "value": "{{company_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

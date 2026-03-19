@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Services\ContaAzul\ContaAzulClient;
 use App\Services\ContaAzul\ContaAzulManagerDashboardService;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
 
 class ContaAzulController extends Controller
@@ -62,35 +63,35 @@ class ContaAzulController extends Controller
     public function receivables(Request $request)
     {
         return $this->respondWithContaAzulData($request, function ($company) use ($request) {
-            return $this->client->listReceivables($company, $this->forwardedQuery($request));
+            return $this->client->listReceivables($company, $this->financialQuery($request));
         });
     }
 
     public function payables(Request $request)
     {
         return $this->respondWithContaAzulData($request, function ($company) use ($request) {
-            return $this->client->listPayables($company, $this->forwardedQuery($request));
+            return $this->client->listPayables($company, $this->financialQuery($request));
         });
     }
 
     public function managerProfitLoss(Request $request)
     {
         return $this->respondWithContaAzulData($request, function ($company) use ($request) {
-            return $this->managerDashboard->profitLoss($company, $this->forwardedQuery($request));
+            return $this->managerDashboard->profitLoss($company, $this->financialQuery($request));
         });
     }
 
     public function managerMovements(Request $request)
     {
         return $this->respondWithContaAzulData($request, function ($company) use ($request) {
-            return $this->managerDashboard->movements($company, $this->forwardedQuery($request));
+            return $this->managerDashboard->movements($company, $this->financialQuery($request));
         });
     }
 
     public function managerExpenses(Request $request)
     {
         return $this->respondWithContaAzulData($request, function ($company) use ($request) {
-            return $this->managerDashboard->expenses($company, $this->forwardedQuery($request));
+            return $this->managerDashboard->expenses($company, $this->financialQuery($request));
         });
     }
 
@@ -138,6 +139,21 @@ class ContaAzulController extends Controller
         return collect($request->query())
             ->except(['company_id'])
             ->toArray();
+    }
+
+    protected function financialQuery(Request $request): array
+    {
+        $query = $this->forwardedQuery($request);
+
+        if (!isset($query['data_vencimento_de']) || !isset($query['data_vencimento_ate'])) {
+            $start = Carbon::now()->startOfMonth()->toDateString();
+            $end = Carbon::now()->endOfMonth()->toDateString();
+
+            $query['data_vencimento_de'] = $query['data_vencimento_de'] ?? $start;
+            $query['data_vencimento_ate'] = $query['data_vencimento_ate'] ?? $end;
+        }
+
+        return $query;
     }
 
     protected function canViewFinancialData(Request $request): bool
