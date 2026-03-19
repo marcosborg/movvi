@@ -9,17 +9,6 @@
                     {{ trans('global.dashboard') }}
                 </a>
             </li>
-            @can('website_access')
-            <li class="{{ request()->is('admin/cartrack-dashboard') ? 'active' : '' }}">
-                <a href="{{ route('admin.cartrack.dashboard') }}">
-                    <i class="fa-fw fas fa-tachometer-alt">
-
-                    </i>
-                    <span>Cartrack</span>
-
-                </a>
-            </li>
-            @endcan
             @can('user_management_access')
             <li class="treeview">
                 <a href="#">

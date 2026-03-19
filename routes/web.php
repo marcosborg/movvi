@@ -29,8 +29,6 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::get('company-dashboard', 'HomeController@companyDashboard');
     Route::get('company-invoice-dashboard', 'HomeController@companyInvoiceDashboard');
     Route::post('company-invoice-upload-media', 'HomeController@companyInvoiceUploadMedia')->name('company-invoice-upload-media');
-    Route::get('cartrack-dashboard', 'CartrackDashboardController@index')->name('cartrack.dashboard');
-    Route::get('cartrack-dashboard/fetch', 'CartrackDashboardController@fetch')->name('cartrack.fetch');
 
     Route::get('/select-company/{company_id}', 'HomeController@selectCompany');
 
