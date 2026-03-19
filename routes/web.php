@@ -451,6 +451,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::prefix('company-reports')->group(function () {
         Route::get('/', 'CompanyReportController@index')->name('company-reports.index');
         Route::get('/pdf/{download?}', 'CompanyReportController@pdf')->name('company-reports.pdf');
+        Route::post('upload-mileage', 'CompanyReportController@uploadMileage')->name('company-reports.upload-mileage');
+        Route::post('delete-mileage', 'CompanyReportController@deleteMileage')->name('company-reports.delete-mileage');
         Route::post('validate-data', 'CompanyReportController@validateData');
         Route::post('revalidate-data', 'CompanyReportController@revalidateData');
         Route::get('delete-data/{tvde_week_id}/{driver_id}', 'CompanyReportController@deleteData')->name('company-reports.delete-data');

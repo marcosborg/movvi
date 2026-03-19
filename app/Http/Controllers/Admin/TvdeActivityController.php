@@ -172,7 +172,8 @@ class TvdeActivityController extends Controller
     {
 
         $request->validate([
-            'week_filter' => 'required'
+            'week_filter' => 'required',
+            'platform' => ['nullable', 'in:uber,bolt'],
         ]);
 
         if($request->company_filter){
@@ -184,6 +185,11 @@ class TvdeActivityController extends Controller
             $tvde_activities = TvdeActivity::where([
                 'tvde_week_id' => $request->week_filter
             ]);
+        }
+
+        if ($request->filled('platform')) {
+            $operator = $this->resolvePlatformOperator($request->platform);
+            $tvde_activities->where('tvde_operator_id', $operator->id);
         }
 
         $tvde_activities->delete();
@@ -199,9 +205,10 @@ class TvdeActivityController extends Controller
             'tvde_week_id' => ['required', 'integer', 'exists:tvde_weeks,id'],
             'platform' => ['required', 'in:uber,bolt'],
             'csv_file' => ['required', 'file', 'mimes:csv,txt'],
+            'company_id' => ['nullable', 'integer', 'exists:companies,id'],
         ]);
 
-        $companyId = $this->resolveCompanyId();
+        $companyId = $this->resolveCompanyId($validated['company_id'] ?? null);
 
         if (!$companyId) {
             return redirect()->back()
@@ -279,12 +286,16 @@ class TvdeActivityController extends Controller
             }
         });
 
-        return redirect()->route('admin.tvde-activities.index')
+        return redirect()->back()
             ->with('message', sprintf('Importados %d registos de %s com sucesso.', count($rows), strtoupper($validated['platform'])));
     }
 
-    protected function resolveCompanyId(): ?int
+    protected function resolveCompanyId(?int $requestCompanyId = null): ?int
     {
+        if ($requestCompanyId) {
+            return $requestCompanyId;
+        }
+
         $companyId = session()->get('company_id');
 
         if ($companyId && $companyId !== '0') {

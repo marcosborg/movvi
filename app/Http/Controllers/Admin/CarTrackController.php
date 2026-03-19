@@ -208,7 +208,7 @@ class CarTrackController extends Controller
             CarTrack::create($row);
         }
 
-        return redirect()->route('admin.car-tracks.index')
+        return redirect()->back()
             ->with('message', sprintf('Importados %d registos Via Verde com sucesso.', count($rows)));
     }
 

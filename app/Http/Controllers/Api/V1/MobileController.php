@@ -743,6 +743,8 @@ class MobileController extends Controller
             'uber_net' => (float) ($accountSummary['uber_net'] ?? data_get($accountSummary, 'uber.uber_net', 0)),
             'bolt_net' => (float) ($accountSummary['bolt_net'] ?? data_get($accountSummary, 'bolt.bolt_net', 0)),
             'total' => (float) ($accountSummary['total'] ?? $accountSummary['driver_total'] ?? 0),
+            'weekly_km' => (float) ($accountSummary['weekly_km'] ?? 0),
+            'earnings_per_km' => (float) ($accountSummary['earnings_per_km'] ?? 0),
         ];
     }
 

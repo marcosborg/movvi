@@ -26,6 +26,7 @@ use App\Models\CompanyData;
 use App\Models\CarTrack;
 use App\Models\TeslaCharging;
 use App\Models\VehicleUsage;
+use App\Models\WeeklyVehicleMileage;
 use Carbon\Carbon;
 
 trait Reports
@@ -46,6 +47,26 @@ trait Reports
                 'cards'
             ]);
 
+        $weekStart = Carbon::parse($tvde_week->getRawOriginal('start_date'))->startOfDay();
+        $weekEnd = Carbon::parse($tvde_week->getRawOriginal('end_date'))->endOfDay();
+        $driverIds = $drivers->pluck('id')->all();
+
+        $weekUsages = VehicleUsage::with('vehicle_item')
+            ->whereIn('driver_id', $driverIds)
+            ->where('start_date', '<=', $weekEnd)
+            ->where(function ($query) use ($weekStart) {
+                $query->whereNull('end_date')
+                    ->orWhere('end_date', '>=', $weekStart);
+            })
+            ->where(function ($query) {
+                $query->whereNull('usage_exceptions')
+                    ->orWhere('usage_exceptions', 'usage');
+            })
+            ->get();
+
+        $mileages = WeeklyVehicleMileage::where('tvde_week_id', $tvde_week_id)->get();
+        $mileageAllocation = $this->buildWeeklyMileageAllocation($weekUsages, $mileages, $weekStart, $weekEnd);
+
         // Totais (mantendo compatibilidade)
         $total_operators = [];
         $total_earnings_after_discount = []; // legado
@@ -59,6 +80,7 @@ trait Reports
         $total_car_track = [];
         $total_car_hire = [];
         $total_net_operators = [];
+        $total_weekly_km = [];
 
         // Novos agregados úteis
         $gross_uber = [];
@@ -79,28 +101,17 @@ trait Reports
         $total_percent_value = [];
 
         foreach ($drivers as $driver) {
-            // ---------- Vehicle usage (license plate) ----------
-            // Resolve a single active vehicle for the week (latest start_date wins).
-            $resolved_usage = VehicleUsage::with('vehicle_item')
-                ->where('driver_id', $driver->id)
-                ->where('start_date', '<=', $tvde_week->end_date)
-                ->where(function ($query) use ($tvde_week) {
-                    $query->whereNull('end_date')
-                        ->orWhere('end_date', '>=', $tvde_week->start_date);
-                })
-                ->where(function ($query) {
-                    $query->whereNull('usage_exceptions')
-                        ->orWhere('usage_exceptions', 'usage');
-                })
-                ->orderBy('start_date', 'desc')
-                ->first();
-
-            $resolved_plate = $resolved_usage?->vehicle_item?->license_plate;
-            $resolved_plate_normalized = $resolved_plate
-                ? strtoupper(str_replace(['-', ' '], '', $resolved_plate))
+            $driverPlates = $mileageAllocation['plates'][$driver->id] ?? [];
+            $driver->license_plates = array_values($driverPlates);
+            $driver->license_plate = !empty($driver->license_plates)
+                ? implode(', ', $driver->license_plates)
                 : null;
-
-            $driver->license_plate = $resolved_plate;
+            $driver->weekly_km = (float) ($mileageAllocation['kilometers'][$driver->id] ?? 0);
+            $driverNormalizedPlates = collect($driver->license_plates)
+                ->map(fn ($plate) => $this->normalizeReportPlate($plate))
+                ->filter()
+                ->values()
+                ->all();
 
             // ---------- Atividades UBER ----------
             $uber_activities = TvdeActivity::where([
@@ -183,9 +194,9 @@ trait Reports
             $tesla_chargings = TeslaCharging::whereBetween('datetime', [$tvde_week->start_date, $tvde_week->end_date])->get();
 
             foreach ($tesla_chargings as $charging) {
-                if ($resolved_plate_normalized) {
-                    $charging_plate = strtoupper(str_replace(['-', ' '], '', (string) $charging->license));
-                    if ($charging_plate !== $resolved_plate_normalized) {
+                if (!empty($driverNormalizedPlates)) {
+                    $charging_plate = $this->normalizeReportPlate((string) $charging->license);
+                    if (!$charging_plate || !in_array($charging_plate, $driverNormalizedPlates, true)) {
                         continue;
                     }
                 }
@@ -335,6 +346,9 @@ trait Reports
             // Final driver total: base after taxes/percent - expenses + adjustments + tips.
             $subtotal_after_tips = $base_after_company - $expenses_total;
             $final_total = $subtotal_after_tips + $adjustments + $tips_total;
+            $earnings_per_km = $driver->weekly_km > 0
+                ? round($net_total / $driver->weekly_km, 6)
+                : 0.0;
 
             // Legacy IVA/percent fields are kept for older reports.
             $iva_percent = $iva_rate * 100.0;
@@ -376,6 +390,8 @@ trait Reports
                 'total_after_vat' => $total_after_vat_alias, // alias compat
                 'subtotal_after_tips' => $subtotal_after_tips,
                 'driver_total' => $final_total,
+                'weekly_km' => $driver->weekly_km,
+                'earnings_per_km' => $earnings_per_km,
 
                 // Custos e ajustes
                 'car_track' => $car_track,
@@ -413,6 +429,7 @@ trait Reports
             $driver->total = $final_total;
             $driver->final_total = $driver->total;
             $driver->final_total_balance = $driver->final_total + $driver->new_balance;
+            $driver->earnings_per_km = $earnings_per_km;
 
             // ---------- Alimentar arrays de totais ----------
             $gross_uber[] = $uber_gross;
@@ -431,6 +448,7 @@ trait Reports
             $total_car_track[] = $car_track;
             $total_car_hire[] = $rent_value;
             $total_drivers[] = $driver->total;
+            $total_weekly_km[] = $driver->weekly_km;
 
             // Novos totais
             $uber_tips_total[] = $uber_tips;
@@ -481,6 +499,7 @@ trait Reports
             'total_fleet_management' => array_sum($total_fleet_management),
             'total_car_track' => array_sum($total_car_track),
             'total_car_hire' => array_sum($total_car_hire),
+            'total_weekly_km' => array_sum($total_weekly_km),
 
             // Total final (após tudo)
             'total_drivers' => array_sum($total_drivers),
@@ -492,12 +511,104 @@ trait Reports
             // Novos (transparência)
             'total_iva_value' => array_sum($total_iva_value),
             'total_percent_value' => array_sum($total_percent_value),
+            'total_earnings_per_km' => array_sum($total_weekly_km) > 0
+                ? (array_sum($total_net_operators) / array_sum($total_weekly_km))
+                : 0,
         ]);
 
         return [
             'drivers' => $drivers,
             'totals' => $totals,
         ];
+    }
+
+    protected function buildWeeklyMileageAllocation($weekUsages, $mileages, Carbon $weekStart, Carbon $weekEnd): array
+    {
+        $platesByDriver = [];
+        $kilometersByDriver = [];
+
+        foreach ($weekUsages as $usage) {
+            $plate = optional($usage->vehicle_item)->license_plate;
+            if (!$plate) {
+                continue;
+            }
+
+            $platesByDriver[$usage->driver_id][$this->normalizeReportPlate($plate)] = $plate;
+        }
+
+        foreach ($mileages as $mileage) {
+            $normalizedPlate = $this->normalizeReportPlate($mileage->license_plate);
+            if (!$normalizedPlate) {
+                continue;
+            }
+
+            $plateUsages = $weekUsages->filter(function ($usage) use ($normalizedPlate) {
+                $plate = optional($usage->vehicle_item)->license_plate;
+
+                return $this->normalizeReportPlate($plate) === $normalizedPlate;
+            });
+
+            if ($plateUsages->isEmpty()) {
+                continue;
+            }
+
+            $secondsByDriver = [];
+
+            foreach ($plateUsages as $usage) {
+                $overlapSeconds = $this->calculateUsageOverlapSeconds($usage, $weekStart, $weekEnd);
+
+                if ($overlapSeconds <= 0) {
+                    continue;
+                }
+
+                $secondsByDriver[$usage->driver_id] = ($secondsByDriver[$usage->driver_id] ?? 0) + $overlapSeconds;
+            }
+
+            $totalSeconds = array_sum($secondsByDriver);
+            if ($totalSeconds <= 0) {
+                continue;
+            }
+
+            foreach ($secondsByDriver as $driverId => $seconds) {
+                $kilometersByDriver[$driverId] = ($kilometersByDriver[$driverId] ?? 0)
+                    + ((float) $mileage->distance_km * ($seconds / $totalSeconds));
+            }
+        }
+
+        return [
+            'plates' => $platesByDriver,
+            'kilometers' => $kilometersByDriver,
+        ];
+    }
+
+    protected function calculateUsageOverlapSeconds(VehicleUsage $usage, Carbon $weekStart, Carbon $weekEnd): int
+    {
+        $usageStart = $usage->getRawOriginal('start_date')
+            ? Carbon::parse($usage->getRawOriginal('start_date'))
+            : $weekStart->copy();
+        $usageEnd = $usage->getRawOriginal('end_date')
+            ? Carbon::parse($usage->getRawOriginal('end_date'))
+            : $weekEnd->copy();
+
+        if ($usageEnd->lessThan($usageStart)) {
+            return 0;
+        }
+
+        $effectiveStart = $usageStart->greaterThan($weekStart) ? $usageStart : $weekStart->copy();
+        $effectiveEnd = $usageEnd->lessThan($weekEnd) ? $usageEnd : $weekEnd->copy();
+
+        if ($effectiveEnd->lessThan($effectiveStart)) {
+            return 0;
+        }
+
+        return max(1, $effectiveStart->diffInSeconds($effectiveEnd));
+    }
+
+    protected function normalizeReportPlate(?string $plate): ?string
+    {
+        $normalized = strtoupper(str_replace(['-', ' '], '', trim((string) $plate)));
+
+        return $normalized !== '' ? $normalized : null;
     }
 
     public function getDriverWeekReport($driver_id, $company_id, $tvde_week_id)

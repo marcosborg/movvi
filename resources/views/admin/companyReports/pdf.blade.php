@@ -24,9 +24,11 @@
     <table>
         <colgroup>
             <col style="width: 13%;">
-            <col style="width: 9%;">
+            <col style="width: 10%;">
             <col style="width: 8%;">
             <col style="width: 8%;">
+            <col style="width: 7%;">
+            <col style="width: 7%;">
             <col style="width: 7%;">
             <col style="width: 7%;">
             <col style="width: 7%;">
@@ -41,9 +43,11 @@
         <thead>
             <tr>
                 <th class="wrap">Condutor</th>
-                <th class="wrap" style="text-align: left;">Matrícula</th>
+                <th class="wrap" style="text-align: left;">Viatura(s)</th>
                 <th>Líquido Uber</th>
                 <th>Líquido Bolt</th>
+                <th>KM</th>
+                <th>€/km</th>
                 <th>Gorjetas</th>
                 <th>Taxa 6%</th>
                 <th>Combustível</th>
@@ -63,6 +67,8 @@
                     <td class="wrap" style="text-align: left;">{{ $driver->license_plate ?? '-' }}</td>
                     <td class="nowrap">{{ number_format($driver->earnings['uber']['uber_net'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['bolt']['bolt_net'] ?? 0, 2) }} &euro;</td>
+                    <td class="nowrap">{{ number_format($driver->weekly_km ?? 0, 1) }} km</td>
+                    <td class="nowrap">{{ number_format($driver->earnings_per_km ?? 0, 3) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['tips_total'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['iva_value'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->fuel ?? 0, 2) }} &euro;</td>
@@ -82,6 +88,8 @@
                 <th></th>
                 <th>{{ number_format($totals['net_uber'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['net_bolt'] ?? 0, 2) }} &euro;</th>
+                <th>{{ number_format($totals['total_weekly_km'] ?? 0, 1) }} km</th>
+                <th>{{ number_format($totals['total_earnings_per_km'] ?? 0, 3) }} &euro;</th>
                 <th>{{ number_format($totals['tips_total'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_iva_value'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_fuel_transactions'] ?? 0, 2) }} &euro;</th>

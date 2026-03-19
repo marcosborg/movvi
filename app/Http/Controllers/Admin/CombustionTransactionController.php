@@ -182,17 +182,24 @@ class CombustionTransactionController extends Controller
 
         $validated = $request->validate([
             'tvde_week_id' => ['required', 'integer', 'exists:tvde_weeks,id'],
-            'supplier' => ['required', 'in:repsol,prio'],
+            'supplier' => ['nullable', 'in:repsol,prio'],
             'supplier_file' => ['required', 'file', 'mimes:csv,txt,xlsx'],
         ]);
 
         $uploadedFile = $request->file('supplier_file');
         $extension = strtolower($uploadedFile->getClientOriginalExtension() ?: $uploadedFile->extension() ?: '');
         $rows = $this->readImportRows($uploadedFile->getRealPath(), $extension);
+        $supplier = $validated['supplier'] ?? $this->detectSupplierFromRows($rows);
         $transactions = [];
 
+        if (!$supplier) {
+            return redirect()->back()
+                ->withErrors(['supplier_file' => 'Nao foi possivel identificar o fornecedor do ficheiro de abastecimentos.'])
+                ->withInput();
+        }
+
         foreach ($rows as $index => $row) {
-            $transaction = $validated['supplier'] === 'repsol'
+            $transaction = $supplier === 'repsol'
                 ? $this->mapRepsolRow($row, $index, (int) $validated['tvde_week_id'])
                 : $this->mapPrioRow($row, $index, (int) $validated['tvde_week_id']);
 
@@ -243,8 +250,30 @@ class CombustionTransactionController extends Controller
             CombustionTransaction::create($transaction);
         }
 
-        return redirect()->route('admin.combustion-transactions.index')
-            ->with('message', sprintf('Importadas %d transacoes de %s com sucesso.', count($transactions), strtoupper($validated['supplier'])));
+        return redirect()->back()
+            ->with('message', sprintf('Importadas %d transacoes de %s com sucesso.', count($transactions), strtoupper($supplier)));
+    }
+
+    protected function detectSupplierFromRows(array $rows): ?string
+    {
+        $repsolMatches = 0;
+        $prioMatches = 0;
+
+        foreach ($rows as $index => $row) {
+            if ($this->mapRepsolRow($row, $index, 1)) {
+                $repsolMatches++;
+            }
+
+            if ($this->mapPrioRow($row, $index, 1)) {
+                $prioMatches++;
+            }
+        }
+
+        if ($repsolMatches === 0 && $prioMatches === 0) {
+            return null;
+        }
+
+        return $repsolMatches >= $prioMatches ? 'repsol' : 'prio';
     }
 
     protected function mapRepsolRow(array $row, int $index, int $weekId): ?array
