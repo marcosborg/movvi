@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -294,6 +295,49 @@ class MobileInspectionController extends Controller
             'inspection_id' => (int) $inspection->id,
             'current_step' => (int) $inspection->current_step,
         ], Response::HTTP_CREATED);
+    }
+
+    public function destroy(Request $request, Inspection $inspection)
+    {
+        $this->ensureUserIsAdmin($request);
+
+        if ($inspection->locked_at || in_array((string) $inspection->status, ['closed', 'completed'], true)) {
+            throw ValidationException::withMessages([
+                'inspection' => 'So pode eliminar inspecoes ainda em curso.',
+            ]);
+        }
+
+        $inspection->load(['photos', 'damages.photos', 'signatures', 'report']);
+
+        foreach ($inspection->photos as $photo) {
+            if ($photo->path) {
+                Storage::disk('public')->delete($photo->path);
+            }
+        }
+
+        foreach ($inspection->damages as $damage) {
+            foreach ($damage->photos as $photo) {
+                if ($photo->path) {
+                    Storage::disk('public')->delete($photo->path);
+                }
+            }
+        }
+
+        foreach ($inspection->signatures as $signature) {
+            if ($signature->signature_path) {
+                Storage::disk('public')->delete($signature->signature_path);
+            }
+        }
+
+        if ($inspection->report?->pdf_path) {
+            Storage::disk('public')->delete($inspection->report->pdf_path);
+        }
+
+        $inspection->forceDelete();
+
+        return response()->json([
+            'message' => 'Inspecao eliminada com sucesso.',
+        ]);
     }
 
     public function updateStep(Request $request, Inspection $inspection)
