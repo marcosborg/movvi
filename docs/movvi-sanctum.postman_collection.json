@@ -35,6 +35,18 @@
       "value": "62-XQ-20"
     },
     {
+      "key": "date_from",
+      "value": "2026-03-01"
+    },
+    {
+      "key": "date_to",
+      "value": "2026-03-31"
+    },
+    {
+      "key": "active_on",
+      "value": "2026-03-15"
+    },
+    {
       "key": "per_page",
       "value": "25"
     },
@@ -139,13 +151,27 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/drivers",
+              "raw": "{{base_url}}/v1/drivers?q={{driver_search}}&created_from={{date_from}}&created_to={{date_to}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
                 "drivers"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "{{driver_search}}"
+                },
+                {
+                  "key": "created_from",
+                  "value": "{{date_from}}"
+                },
+                {
+                  "key": "created_to",
+                  "value": "{{date_to}}"
+                }
               ]
             }
           }
@@ -218,7 +244,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/vehicle-usages?driver={{driver_search}}&license_plate={{license_plate}}&per_page={{per_page}}",
+              "raw": "{{base_url}}/v1/vehicle-usages?driver={{driver_search}}&license_plate={{license_plate}}&start_date_from={{date_from}}&start_date_to={{date_to}}&active_on={{active_on}}&per_page={{per_page}}",
               "host": [
                 "{{base_url}}"
               ],
@@ -236,8 +262,56 @@
                   "value": "{{license_plate}}"
                 },
                 {
+                  "key": "start_date_from",
+                  "value": "{{date_from}}"
+                },
+                {
+                  "key": "start_date_to",
+                  "value": "{{date_to}}"
+                },
+                {
+                  "key": "active_on",
+                  "value": "{{active_on}}"
+                },
+                {
                   "key": "per_page",
                   "value": "{{per_page}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Weeks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/weeks?date_from={{date_from}}&date_to={{date_to}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "weeks"
+              ],
+              "query": [
+                {
+                  "key": "date_from",
+                  "value": "{{date_from}}"
+                },
+                {
+                  "key": "date_to",
+                  "value": "{{date_to}}"
                 }
               ]
             }

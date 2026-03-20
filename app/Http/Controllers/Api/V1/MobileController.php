@@ -377,7 +377,15 @@ class MobileController extends Controller
 
     public function weeks(Request $request)
     {
-        $weeks = TvdeWeek::orderByDesc('start_date')
+        $validated = $request->validate([
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date'],
+        ]);
+
+        $weeks = TvdeWeek::query()
+            ->when($validated['date_from'] ?? null, fn ($query, $dateFrom) => $query->whereDate('start_date', '>=', $dateFrom))
+            ->when($validated['date_to'] ?? null, fn ($query, $dateTo) => $query->whereDate('start_date', '<=', $dateTo))
+            ->orderByDesc('start_date')
             ->limit(24)
             ->get()
             ->map(function (TvdeWeek $week) {
@@ -398,6 +406,10 @@ class MobileController extends Controller
             ->values();
 
         return response()->json([
+            'filters' => [
+                'date_from' => $validated['date_from'] ?? null,
+                'date_to' => $validated['date_to'] ?? null,
+            ],
             'weeks' => $weeks,
         ]);
     }
@@ -483,9 +495,25 @@ class MobileController extends Controller
             }
         }
 
-        $searchDriver = trim((string) $request->query('driver'));
-        $searchPlate = trim((string) $request->query('license_plate'));
-        $perPage = min(max((int) $request->query('per_page', 25), 1), 100);
+        $validated = $request->validate([
+            'driver' => ['nullable', 'string', 'max:255'],
+            'license_plate' => ['nullable', 'string', 'max:255'],
+            'start_date_from' => ['nullable', 'date'],
+            'start_date_to' => ['nullable', 'date'],
+            'end_date_from' => ['nullable', 'date'],
+            'end_date_to' => ['nullable', 'date'],
+            'active_on' => ['nullable', 'date'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $searchDriver = trim((string) ($validated['driver'] ?? ''));
+        $searchPlate = trim((string) ($validated['license_plate'] ?? ''));
+        $perPage = min(max((int) ($validated['per_page'] ?? 25), 1), 100);
+        $startDateFrom = $validated['start_date_from'] ?? null;
+        $startDateTo = $validated['start_date_to'] ?? null;
+        $endDateFrom = $validated['end_date_from'] ?? null;
+        $endDateTo = $validated['end_date_to'] ?? null;
+        $activeOn = $validated['active_on'] ?? null;
 
         $query = VehicleUsage::with(['driver.company', 'vehicle_item.vehicle_model', 'vehicle_item.company'])
             ->when($isDriver && $driver, function (Builder $builder) use ($driver) {
@@ -501,6 +529,16 @@ class MobileController extends Controller
                     $vehicleQuery->where('license_plate', 'like', '%' . $searchPlate . '%');
                 });
             })
+            ->when($startDateFrom, fn (Builder $builder, $value) => $builder->whereDate('start_date', '>=', $value))
+            ->when($startDateTo, fn (Builder $builder, $value) => $builder->whereDate('start_date', '<=', $value))
+            ->when($endDateFrom, fn (Builder $builder, $value) => $builder->whereDate('end_date', '>=', $value))
+            ->when($endDateTo, fn (Builder $builder, $value) => $builder->whereDate('end_date', '<=', $value))
+            ->when($activeOn, function (Builder $builder, $value) {
+                $builder->whereDate('start_date', '<=', $value)
+                    ->where(function (Builder $nested) use ($value) {
+                        $nested->whereNull('end_date')->orWhereDate('end_date', '>=', $value);
+                    });
+            })
             ->orderByDesc('start_date')
             ->orderByDesc('id');
 
@@ -510,6 +548,11 @@ class MobileController extends Controller
             'filters' => [
                 'driver' => $searchDriver !== '' ? $searchDriver : null,
                 'license_plate' => $searchPlate !== '' ? $searchPlate : null,
+                'start_date_from' => $startDateFrom,
+                'start_date_to' => $startDateTo,
+                'end_date_from' => $endDateFrom,
+                'end_date_to' => $endDateTo,
+                'active_on' => $activeOn,
                 'per_page' => $perPage,
             ],
             'viewer' => [

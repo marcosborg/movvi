@@ -83,6 +83,14 @@ GET /api/v1/drivers
 
 Lista motoristas.
 
+Query params suportados:
+
+- `driver_id`: devolve apenas um motorista especifico
+- `q`: pesquisa por nome, email ou codigo
+- `state_id`: filtra por estado
+- `created_from`: data inicial de criacao (`YYYY-MM-DD`)
+- `created_to`: data final de criacao (`YYYY-MM-DD`)
+
 ### 2. Sales by week
 
 ```http
@@ -105,6 +113,12 @@ GET /api/v1/vehicle-profitabilities
 
 Devolve rentabilidade de viaturas.
 
+Query params suportados:
+
+- `tvde_week_id`
+- `date` (`d-m-Y`)
+- `vehicle_id`
+
 ### 4. Vehicle usages
 
 ```http
@@ -117,12 +131,17 @@ Query params suportados:
 
 - `driver`: pesquisa por nome do motorista
 - `license_plate`: pesquisa por matricula
-- `per_page`: paginação, default `25`, max `100`
+- `start_date_from`: inicio minimo da utilizacao (`YYYY-MM-DD`)
+- `start_date_to`: inicio maximo da utilizacao (`YYYY-MM-DD`)
+- `end_date_from`: fim minimo da utilizacao (`YYYY-MM-DD`)
+- `end_date_to`: fim maximo da utilizacao (`YYYY-MM-DD`)
+- `active_on`: devolve apenas utilizacoes ativas numa data (`YYYY-MM-DD`)
+- `per_page`: paginacao, default `25`, max `100`
 
 Exemplo:
 
 ```http
-GET /api/v1/vehicle-usages?driver=adelmo&license_plate=62-XQ-20&per_page=25
+GET /api/v1/vehicle-usages?driver=adelmo&license_plate=62-XQ-20&start_date_from=2026-03-01&start_date_to=2026-03-31&per_page=25
 ```
 
 Resposta tipica:
@@ -132,6 +151,11 @@ Resposta tipica:
   "filters": {
     "driver": "adelmo",
     "license_plate": "62-XQ-20",
+    "start_date_from": "2026-03-01",
+    "start_date_to": "2026-03-31",
+    "end_date_from": null,
+    "end_date_to": null,
+    "active_on": null,
     "per_page": 25
   },
   "viewer": {
@@ -181,59 +205,85 @@ Regras:
 - `Admin` e `Gestor`: veem todas as utilizacoes
 - `Driver`: ve apenas as suas
 
+### 5. Weeks
+
+```http
+GET /api/v1/weeks
+```
+
+Lista semanas TVDE.
+
+Query params suportados:
+
+- `date_from`: semana com `start_date` igual ou superior (`YYYY-MM-DD`)
+- `date_to`: semana com `start_date` igual ou inferior (`YYYY-MM-DD`)
+
+### 6. Company reports weekly
+
+```http
+GET /api/v1/company-reports/weekly
+```
+
+Leitura semanal consolidada do company report.
+
+Query params suportados:
+
+- `date` (`d-m-Y`)
+- `company_id`
+
 ## Conta Azul `auth:sanctum`
 
 Estas rotas exigem utilizador com role `Admin` ou `Gestor`.
 
-### 5. Status da ligacao
+### 7. Status da ligacao
 
 ```http
 GET /api/v1/conta-azul/status
 ```
 
-### 6. Accounts
+### 8. Accounts
 
 ```http
 GET /api/v1/conta-azul/accounts
 ```
 
-### 7. Balances
+### 9. Balances
 
 ```http
 GET /api/v1/conta-azul/balances
 ```
 
-### 8. Categories
+### 10. Categories
 
 ```http
 GET /api/v1/conta-azul/categories
 ```
 
-### 9. Receivables
+### 11. Receivables
 
 ```http
 GET /api/v1/conta-azul/receivables
 ```
 
-### 10. Payables
+### 12. Payables
 
 ```http
 GET /api/v1/conta-azul/payables
 ```
 
-### 11. Profit and loss
+### 13. Profit and loss
 
 ```http
 GET /api/v1/conta-azul/manager/profit-loss
 ```
 
-### 12. Movements
+### 14. Movements
 
 ```http
 GET /api/v1/conta-azul/manager/movements
 ```
 
-### 13. Expenses
+### 15. Expenses
 
 ```http
 GET /api/v1/conta-azul/manager/expenses
@@ -242,6 +292,7 @@ GET /api/v1/conta-azul/manager/expenses
 Notas:
 
 - estas rotas aceitam `company_id` opcional
+- sempre que oportuno, pode usar `data_vencimento_de` e `data_vencimento_ate` (`YYYY-MM-DD`)
 - quando nao sao passadas datas, o backend usa por defeito o mes atual para os endpoints financeiros do gestor
 
 ## Mobile authenticated
@@ -253,6 +304,7 @@ Tambem existem rotas especificas da app reservada:
 - `GET /api/v1/mobile/inspections`
 - `GET /api/v1/mobile/inspections/create-options`
 - `POST /api/v1/mobile/inspections`
+- `DELETE /api/v1/mobile/inspections/{inspection}`
 - `GET /api/v1/mobile/inspections/{inspection}`
 - `POST /api/v1/mobile/inspections/{inspection}/step`
 - `POST /api/v1/mobile/inspections/{inspection}/back-step`
