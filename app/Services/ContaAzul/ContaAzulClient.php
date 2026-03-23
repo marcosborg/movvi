@@ -21,8 +21,20 @@ class ContaAzulClient
         return $company->conta_azul_connection;
     }
 
+    public function isEnabled(): bool
+    {
+        return (bool) config('conta_azul.enabled', true);
+    }
+
+    public function disabledMessage(): string
+    {
+        return (string) config('conta_azul.disabled_message', 'Integracao Conta Azul desativada neste ambiente.');
+    }
+
     public function requireConnectionForCompany(Company $company): ContaAzulConnection
     {
+        $this->ensureEnabled();
+
         $connection = $this->connectionForCompany($company);
 
         if (! $connection || ! $connection->access_token) {
@@ -41,6 +53,7 @@ class ContaAzulClient
         $connection = $this->connectionForCompany($company);
 
         return [
+            'enabled' => $this->isEnabled(),
             'configured' => $this->oauthService->isConfigured(),
             'connected' => (bool) ($connection && $connection->status === ContaAzulConnection::STATUS_CONNECTED && $connection->access_token),
             'status' => $connection?->status ?? ContaAzulConnection::STATUS_PENDING,
@@ -50,6 +63,7 @@ class ContaAzulClient
             'last_synced_at' => optional($connection?->last_synced_at)->toIso8601String(),
             'scope' => $connection?->scope,
             'last_error' => $connection?->last_error,
+            'disabled_message' => $this->isEnabled() ? null : $this->disabledMessage(),
         ];
     }
 
@@ -152,6 +166,8 @@ class ContaAzulClient
 
     protected function request(Company $company, string $method, string $path, array $query = []): Response
     {
+        $this->ensureEnabled();
+
         $connection = $this->requireConnectionForCompany($company);
         $url = rtrim(config('conta_azul.api_base_url'), '/') . $path;
 
@@ -185,6 +201,13 @@ class ContaAzulClient
         }
 
         return $response;
+    }
+
+    protected function ensureEnabled(): void
+    {
+        if (! $this->isEnabled()) {
+            throw new \RuntimeException($this->disabledMessage());
+        }
     }
 
     protected function shouldRefresh(ContaAzulConnection $connection): bool

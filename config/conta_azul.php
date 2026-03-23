@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'enabled' => filter_var(env('CONTA_AZUL_ENABLED', true), FILTER_VALIDATE_BOOL),
+    'disabled_message' => env('CONTA_AZUL_DISABLED_MESSAGE', 'Integracao Conta Azul desativada neste ambiente.'),
     'api_base_url' => env('CONTA_AZUL_API_BASE_URL', 'https://api-v2.contaazul.com'),
     'auth_base_url' => env('CONTA_AZUL_AUTH_BASE_URL', 'https://auth.contaazul.com'),
     'client_id' => env('CONTA_AZUL_CLIENT_ID'),

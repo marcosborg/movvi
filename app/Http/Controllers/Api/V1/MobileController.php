@@ -13,7 +13,9 @@ use App\Models\Receipt;
 use App\Models\Reimbursement;
 use App\Models\TvdeWeek;
 use App\Models\User;
+use App\Models\VehicleItem;
 use App\Models\VehicleUsage;
+use App\Models\WeeklyVehicleEvaluation;
 use App\Services\VehicleProfitabilityService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -470,6 +472,121 @@ class MobileController extends Controller
         ]);
     }
 
+    public function driverWeeklyEvaluation(Request $request): JsonResponse
+    {
+        $driver = $this->resolveAuthenticatedDriver($request);
+
+        if (! $driver) {
+            return response()->json([
+                'error' => 'Motorista nao encontrado para o utilizador autenticado.',
+            ], 404);
+        }
+
+        [$week, $requestedDate] = $this->resolveWeek($request->query('date'));
+
+        if (! $week) {
+            return response()->json([
+                'error' => 'Semana TVDE nao encontrada.',
+                'received' => $requestedDate,
+            ], 404);
+        }
+
+        $vehicles = $this->resolveVehiclesForWeek($driver->id, $week);
+        $vehicleId = $request->integer('vehicle_id') ?: ($vehicles[0]['id'] ?? null);
+
+        $evaluation = null;
+        if ($vehicleId) {
+            $evaluation = WeeklyVehicleEvaluation::where([
+                'tvde_week_id' => $week->id,
+                'driver_id' => $driver->id,
+                'vehicle_item_id' => $vehicleId,
+            ])->first();
+        }
+
+        return response()->json([
+            'driver' => $this->serializeDriver($driver),
+            'week' => $this->serializeWeek($week, $requestedDate),
+            'vehicles' => $vehicles,
+            'options' => [
+                'fuel_levels' => WeeklyVehicleEvaluation::FUEL_LEVELS,
+                'tire_statuses' => WeeklyVehicleEvaluation::TIRE_STATUSES,
+                'oil_levels' => WeeklyVehicleEvaluation::OIL_LEVELS,
+            ],
+            'evaluation' => $this->serializeWeeklyEvaluation($evaluation),
+        ]);
+    }
+
+    public function storeDriverWeeklyEvaluation(Request $request): JsonResponse
+    {
+        $driver = $this->resolveAuthenticatedDriver($request);
+
+        if (! $driver) {
+            return response()->json([
+                'error' => 'Motorista nao encontrado para o utilizador autenticado.',
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'date' => ['required', 'date_format:d-m-Y'],
+            'vehicle_id' => ['required', 'integer', 'exists:vehicle_items,id'],
+            'final_mileage' => ['required', 'integer', 'min:1'],
+            'fuel_level' => ['required', 'in:' . implode(',', array_keys(WeeklyVehicleEvaluation::FUEL_LEVELS))],
+            'front_tire_status' => ['required', 'in:' . implode(',', array_keys(WeeklyVehicleEvaluation::TIRE_STATUSES))],
+            'rear_tire_status' => ['required', 'in:' . implode(',', array_keys(WeeklyVehicleEvaluation::TIRE_STATUSES))],
+            'oil_level' => ['required', 'in:' . implode(',', array_keys(WeeklyVehicleEvaluation::OIL_LEVELS))],
+            'has_vehicle_issue' => ['required', 'boolean'],
+            'issue_notes' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        [$week] = $this->resolveWeek($validated['date']);
+
+        if (! $week) {
+            return response()->json([
+                'error' => 'Semana TVDE nao encontrada.',
+            ], 404);
+        }
+
+        $allowedVehicleIds = collect($this->resolveVehiclesForWeek($driver->id, $week))->pluck('id')->all();
+        if (! in_array((int) $validated['vehicle_id'], $allowedVehicleIds, true)) {
+            return response()->json([
+                'error' => 'A viatura selecionada nao esta disponivel para este motorista na semana escolhida.',
+            ], 422);
+        }
+
+        $issueNotes = trim((string) ($validated['issue_notes'] ?? ''));
+        $hasIssue = (bool) $validated['has_vehicle_issue'];
+
+        if ($hasIssue && $issueNotes === '') {
+            return response()->json([
+                'error' => 'Descreva o problema assinalado na viatura.',
+            ], 422);
+        }
+
+        $evaluation = WeeklyVehicleEvaluation::updateOrCreate(
+            [
+                'tvde_week_id' => $week->id,
+                'driver_id' => $driver->id,
+                'vehicle_item_id' => (int) $validated['vehicle_id'],
+            ],
+            [
+                'submitted_by_user_id' => $request->user()->id,
+                'final_mileage' => (int) $validated['final_mileage'],
+                'fuel_level' => $validated['fuel_level'],
+                'front_tire_status' => $validated['front_tire_status'],
+                'rear_tire_status' => $validated['rear_tire_status'],
+                'oil_level' => $validated['oil_level'],
+                'has_vehicle_issue' => $hasIssue,
+                'issue_notes' => $hasIssue ? ($issueNotes !== '' ? $issueNotes : null) : null,
+                'submitted_at' => now(),
+            ]
+        );
+
+        return response()->json([
+            'message' => 'Avaliacao semanal submetida com sucesso.',
+            'evaluation' => $this->serializeWeeklyEvaluation($evaluation->fresh(['vehicle', 'tvdeWeek'])),
+        ], 201);
+    }
+
     public function vehicleUsages(Request $request): JsonResponse
     {
         $user = $request->user()->load('roles');
@@ -635,6 +752,34 @@ class MobileController extends Controller
             ->first();
 
         return $usage?->vehicle_item;
+    }
+
+    private function resolveVehiclesForWeek(int $driverId, TvdeWeek $week): array
+    {
+        $weekStart = Carbon::parse($week->getRawOriginal('start_date'))->startOfDay();
+        $weekEnd = Carbon::parse($week->getRawOriginal('end_date'))->endOfDay();
+
+        return VehicleUsage::with('vehicle_item.vehicle_model')
+            ->where('driver_id', $driverId)
+            ->where('start_date', '<=', $weekEnd)
+            ->where(function ($query) use ($weekStart) {
+                $query->whereNull('end_date')->orWhere('end_date', '>=', $weekStart);
+            })
+            ->orderByDesc('start_date')
+            ->get()
+            ->pluck('vehicle_item')
+            ->filter(fn ($vehicle) => $vehicle instanceof VehicleItem && ! (bool) $vehicle->suspended)
+            ->unique('id')
+            ->values()
+            ->map(function (VehicleItem $vehicle) {
+                return [
+                    'id' => $vehicle->id,
+                    'license_plate' => $vehicle->license_plate,
+                    'model' => $vehicle->vehicle_model?->name,
+                    'label' => trim($vehicle->license_plate . ' · ' . ($vehicle->vehicle_model?->name ?? 'Viatura')),
+                ];
+            })
+            ->all();
     }
 
     private function resolveAuthenticatedDriver(Request $request): ?Driver
@@ -930,6 +1075,26 @@ class MobileController extends Controller
             'vat' => $vat,
             'rf' => $rf,
             'final' => round(((float) $balance->new_balance) + $vat + $rf, 2),
+        ];
+    }
+
+    private function serializeWeeklyEvaluation(?WeeklyVehicleEvaluation $evaluation): ?array
+    {
+        if (! $evaluation) {
+            return null;
+        }
+
+        return [
+            'id' => $evaluation->id,
+            'vehicle_id' => $evaluation->vehicle_item_id,
+            'final_mileage' => $evaluation->final_mileage,
+            'fuel_level' => $evaluation->fuel_level,
+            'front_tire_status' => $evaluation->front_tire_status,
+            'rear_tire_status' => $evaluation->rear_tire_status,
+            'oil_level' => $evaluation->oil_level,
+            'has_vehicle_issue' => (bool) $evaluation->has_vehicle_issue,
+            'issue_notes' => $evaluation->issue_notes,
+            'submitted_at' => $evaluation->submitted_at,
         ];
     }
 }

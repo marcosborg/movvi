@@ -41,6 +41,7 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin', '
             Route::get('/', [MobileInspectionController::class, 'index'])->name('index');
             Route::get('create-options', [MobileInspectionController::class, 'createOptions'])->name('createOptions');
             Route::post('/', [MobileInspectionController::class, 'store'])->name('store');
+            Route::post('transfers', [MobileInspectionController::class, 'storeTransfer'])->name('storeTransfer');
             Route::delete('{inspection}', [MobileInspectionController::class, 'destroy'])->name('destroy');
             Route::get('{inspection}', [MobileInspectionController::class, 'show'])->name('show');
             Route::post('{inspection}/step', [MobileInspectionController::class, 'updateStep'])->name('updateStep');
@@ -55,6 +56,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin', '
             Route::post('expense-receipts', [MobileController::class, 'storeDriverExpenseReceipt'])->name('expenseReceipts.store');
             Route::post('reimbursements', [MobileController::class, 'storeDriverReimbursement'])->name('reimbursements.store');
             Route::get('documents', [MobileController::class, 'driverDocuments'])->name('documents');
+            Route::get('weekly-evaluation', [MobileController::class, 'driverWeeklyEvaluation'])->name('weeklyEvaluation');
+            Route::post('weekly-evaluation', [MobileController::class, 'storeDriverWeeklyEvaluation'])->name('weeklyEvaluation.store');
         });
     });
 });

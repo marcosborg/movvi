@@ -277,6 +277,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('inspections/{inspection}/damages/{damage}/resolve', 'InspectionController@resolveDamage')->name('inspections.resolve-damage');
     Route::post('inspections/{inspection}/close', 'InspectionController@close')->name('inspections.close');
     Route::resource('inspections', 'InspectionController')->except(['update']);
+    Route::resource('weekly-vehicle-evaluations', 'WeeklyVehicleEvaluationController')->only(['index', 'show']);
 
     // My Receipts
     Route::prefix('my-receipts')->group(function () {

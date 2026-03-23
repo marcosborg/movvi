@@ -3,6 +3,7 @@
 namespace App\Services\Inspections;
 
 use App\Models\Inspection;
+use App\Models\VehicleItem;
 use App\Models\VehicleUsage;
 use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
@@ -35,42 +36,23 @@ class InspectionVehicleUsageService
             return;
         }
 
-        $appliedAt = Carbon::now();
         $vehicle = $inspection->vehicle()->firstOrFail();
-        $activeUsages = VehicleUsage::query()
-            ->where('vehicle_item_id', $inspection->vehicle_id)
-            ->where('end_date', '>=', $appliedAt->format('Y-m-d H:i:s'))
-            ->get();
+        $this->applyPlanToVehicle($vehicle, $plan);
+    }
 
-        $targetDriverId = isset($plan['target_driver_id']) ? (int) $plan['target_driver_id'] : null;
+    public function applyDirectTransfer(VehicleItem $vehicle, array $plan): array
+    {
+        $normalizedPlan = $this->normalizeDirectPlan($vehicle, $plan);
 
-        if (in_array($plan['mode'], ['entrega', 'recolha', 'passagem'], true)) {
-            foreach ($activeUsages as $usage) {
-                $usage->update([
-                    'end_date' => $appliedAt->format('Y-m-d H:i:s'),
-                ]);
-            }
-        }
-
-        if (in_array($plan['mode'], ['entrega', 'passagem'], true)) {
-            if (!$targetDriverId) {
-                throw ValidationException::withMessages([
-                    'driver_id' => 'Selecione o motorista destino antes de fechar a inspecao.',
-                ]);
-            }
-
-            VehicleUsage::create([
-                'driver_id' => $targetDriverId,
-                'vehicle_item_id' => $inspection->vehicle_id,
-                'start_date' => $appliedAt->format('Y-m-d H:i:s'),
-                'end_date' => $appliedAt->copy()->addYear()->format('Y-m-d H:i:s'),
-                'usage_exceptions' => 'usage',
+        if (!$normalizedPlan) {
+            throw ValidationException::withMessages([
+                'transfer_mode' => 'Plano de utilizacao invalido.',
             ]);
         }
 
-        $vehicle->update([
-            'driver_id' => in_array($plan['mode'], ['entrega', 'passagem'], true) ? $targetDriverId : null,
-        ]);
+        $this->applyPlanToVehicle($vehicle, $normalizedPlan);
+
+        return $normalizedPlan;
     }
 
     public function loadPlan(Inspection $inspection): ?array
@@ -130,5 +112,70 @@ class InspectionVehicleUsageService
             'source_driver_id' => $sourceDriverId,
             'target_driver_id' => $targetDriverId,
         ];
+    }
+
+    private function normalizeDirectPlan(VehicleItem $vehicle, array $plan): ?array
+    {
+        $mode = (string) ($plan['mode'] ?? '');
+        if (!in_array($mode, ['entrega', 'recolha', 'passagem'], true)) {
+            return null;
+        }
+
+        $sourceDriverId = isset($plan['source_driver_id']) && $plan['source_driver_id'] !== null
+            ? (int) $plan['source_driver_id']
+            : ($vehicle->driver_id ? (int) $vehicle->driver_id : null);
+
+        $targetDriverId = isset($plan['target_driver_id']) && $plan['target_driver_id'] !== null
+            ? (int) $plan['target_driver_id']
+            : null;
+
+        if ($mode === 'recolha') {
+            $targetDriverId = null;
+        }
+
+        return [
+            'mode' => $mode,
+            'source_driver_id' => $sourceDriverId,
+            'target_driver_id' => $targetDriverId,
+        ];
+    }
+
+    private function applyPlanToVehicle(VehicleItem $vehicle, array $plan): void
+    {
+        $appliedAt = Carbon::now();
+        $activeUsages = VehicleUsage::query()
+            ->where('vehicle_item_id', $vehicle->id)
+            ->where(function ($query) use ($appliedAt) {
+                $query->whereNull('end_date')->orWhere('end_date', '>=', $appliedAt->format('Y-m-d H:i:s'));
+            })
+            ->get();
+
+        $targetDriverId = isset($plan['target_driver_id']) ? (int) $plan['target_driver_id'] : null;
+
+        foreach ($activeUsages as $usage) {
+            $usage->update([
+                'end_date' => $appliedAt->format('Y-m-d H:i:s'),
+            ]);
+        }
+
+        if (in_array($plan['mode'], ['entrega', 'passagem'], true)) {
+            if (!$targetDriverId) {
+                throw ValidationException::withMessages([
+                    'driver_id' => 'Selecione o motorista destino antes de concluir a operacao.',
+                ]);
+            }
+
+            VehicleUsage::create([
+                'driver_id' => $targetDriverId,
+                'vehicle_item_id' => $vehicle->id,
+                'start_date' => $appliedAt->format('Y-m-d H:i:s'),
+                'end_date' => $appliedAt->copy()->addYear()->format('Y-m-d H:i:s'),
+                'usage_exceptions' => 'usage',
+            ]);
+        }
+
+        $vehicle->update([
+            'driver_id' => in_array($plan['mode'], ['entrega', 'passagem'], true) ? $targetDriverId : null,
+        ]);
     }
 }

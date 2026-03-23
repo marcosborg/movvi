@@ -10,6 +10,7 @@ use App\Models\InspectionDamage;
 use App\Models\VehicleItem;
 use App\Models\VehicleUsage;
 use App\Services\Inspections\InspectionWorkflowService;
+use App\Services\Inspections\InspectionVehicleUsageService;
 use App\Support\InspectionRoutineConfig;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -32,7 +33,10 @@ class MobileInspectionController extends Controller
         'reflective_vest' => 'Colete refletor',
     ];
 
-    public function __construct(private InspectionWorkflowService $workflow)
+    public function __construct(
+        private InspectionWorkflowService $workflow,
+        private InspectionVehicleUsageService $vehicleUsage
+    )
     {
     }
 
@@ -294,6 +298,34 @@ class MobileInspectionController extends Controller
             'message' => 'Inspecao iniciada com sucesso.',
             'inspection_id' => (int) $inspection->id,
             'current_step' => (int) $inspection->current_step,
+        ], Response::HTTP_CREATED);
+    }
+
+    public function storeTransfer(Request $request)
+    {
+        $this->ensureUserIsAdmin($request);
+
+        $validated = Validator::make($request->all(), [
+            'vehicle_id' => ['required', 'integer', 'exists:vehicle_items,id'],
+            'driver_id' => ['nullable', 'integer', Rule::exists('drivers', 'id')->where(fn ($query) => $query->where('state_id', '!=', 2))],
+            'source_driver_id' => ['nullable', 'integer', Rule::exists('drivers', 'id')->where(fn ($query) => $query->where('state_id', '!=', 2))],
+            'transfer_mode' => ['required', 'in:entrega,recolha,passagem'],
+        ])->validate();
+
+        $vehicle = VehicleItem::query()->findOrFail((int) $validated['vehicle_id']);
+        $plan = $this->vehicleUsage->applyDirectTransfer($vehicle, [
+            'mode' => $validated['transfer_mode'],
+            'source_driver_id' => $validated['source_driver_id'] ?? null,
+            'target_driver_id' => $validated['driver_id'] ?? null,
+        ]);
+
+        return response()->json([
+            'message' => 'Operacao registada com sucesso sem inspecao.',
+            'transfer' => [
+                'vehicle_id' => (int) $vehicle->id,
+                'driver_id' => $vehicle->driver_id ? (int) $vehicle->driver_id : null,
+                'mode' => $plan['mode'],
+            ],
         ], Response::HTTP_CREATED);
     }
 

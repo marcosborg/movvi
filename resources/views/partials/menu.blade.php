@@ -1471,6 +1471,14 @@
                                 </a>
                             </li>
                         @endif
+                        @if(auth()->check() && (auth()->user()->hasRole('Admin') || auth()->user()->hasRole('Gestor')))
+                            <li class="{{ request()->is("admin/weekly-vehicle-evaluations") || request()->is("admin/weekly-vehicle-evaluations/*") ? "active" : "" }}">
+                                <a href="{{ route("admin.weekly-vehicle-evaluations.index") }}">
+                                    <i class="fa-fw fas fa-clipboard-list"></i>
+                                    <span>Avaliações semanais</span>
+                                </a>
+                            </li>
+                        @endif
                     <li class="{{ request()->is("admin/system-calendar") || request()->is("admin/system-calendar/*") ?
                         "active"
                         : "" }}">
