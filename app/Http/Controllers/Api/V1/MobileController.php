@@ -496,6 +496,7 @@ class MobileController extends Controller
         }
 
         $validated = $request->validate([
+            'driver_id' => ['nullable', 'integer'],
             'driver' => ['nullable', 'string', 'max:255'],
             'license_plate' => ['nullable', 'string', 'max:255'],
             'start_date_from' => ['nullable', 'date'],
@@ -507,6 +508,7 @@ class MobileController extends Controller
         ]);
 
         $searchDriver = trim((string) ($validated['driver'] ?? ''));
+        $searchDriverId = isset($validated['driver_id']) ? (int) $validated['driver_id'] : null;
         $searchPlate = trim((string) ($validated['license_plate'] ?? ''));
         $perPage = min(max((int) ($validated['per_page'] ?? 25), 1), 100);
         $startDateFrom = $validated['start_date_from'] ?? null;
@@ -519,6 +521,7 @@ class MobileController extends Controller
             ->when($isDriver && $driver, function (Builder $builder) use ($driver) {
                 $builder->where('driver_id', $driver->id);
             })
+            ->when($searchDriverId, fn (Builder $builder, $value) => $builder->where('driver_id', $value))
             ->when($searchDriver !== '', function (Builder $builder) use ($searchDriver) {
                 $builder->whereHas('driver', function (Builder $driverQuery) use ($searchDriver) {
                     $driverQuery->where('name', 'like', '%' . $searchDriver . '%');
@@ -546,6 +549,7 @@ class MobileController extends Controller
 
         return response()->json([
             'filters' => [
+                'driver_id' => $searchDriverId,
                 'driver' => $searchDriver !== '' ? $searchDriver : null,
                 'license_plate' => $searchPlate !== '' ? $searchPlate : null,
                 'start_date_from' => $startDateFrom,

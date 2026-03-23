@@ -31,6 +31,10 @@
       "value": "adelmo"
     },
     {
+      "key": "driver_id",
+      "value": "3"
+    },
+    {
       "key": "license_plate",
       "value": "62-XQ-20"
     },
@@ -244,7 +248,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/vehicle-usages?driver={{driver_search}}&license_plate={{license_plate}}&start_date_from={{date_from}}&start_date_to={{date_to}}&active_on={{active_on}}&per_page={{per_page}}",
+              "raw": "{{base_url}}/v1/vehicle-usages?driver_id={{driver_id}}&driver={{driver_search}}&license_plate={{license_plate}}&start_date_from={{date_from}}&start_date_to={{date_to}}&active_on={{active_on}}&per_page={{per_page}}",
               "host": [
                 "{{base_url}}"
               ],
@@ -253,6 +257,10 @@
                 "vehicle-usages"
               ],
               "query": [
+                {
+                  "key": "driver_id",
+                  "value": "{{driver_id}}"
+                },
                 {
                   "key": "driver",
                   "value": "{{driver_search}}"

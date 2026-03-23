@@ -129,6 +129,7 @@ Consulta utilizacoes de viaturas.
 
 Query params suportados:
 
+- `driver_id`: filtra por id do motorista
 - `driver`: pesquisa por nome do motorista
 - `license_plate`: pesquisa por matricula
 - `start_date_from`: inicio minimo da utilizacao (`YYYY-MM-DD`)
@@ -141,7 +142,7 @@ Query params suportados:
 Exemplo:
 
 ```http
-GET /api/v1/vehicle-usages?driver=adelmo&license_plate=62-XQ-20&start_date_from=2026-03-01&start_date_to=2026-03-31&per_page=25
+GET /api/v1/vehicle-usages?driver_id=3&driver=adelmo&license_plate=62-XQ-20&start_date_from=2026-03-01&start_date_to=2026-03-31&per_page=25
 ```
 
 Resposta tipica:
@@ -149,6 +150,7 @@ Resposta tipica:
 ```json
 {
   "filters": {
+    "driver_id": 3,
     "driver": "adelmo",
     "license_plate": "62-XQ-20",
     "start_date_from": "2026-03-01",
