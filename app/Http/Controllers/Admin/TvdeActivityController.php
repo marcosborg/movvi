@@ -218,7 +218,7 @@ class TvdeActivityController extends Controller
 
         $operator = $this->resolvePlatformOperator($validated['platform']);
         $mapping = $this->platformCsvMapping($validated['platform']);
-        $reader = new SpreadsheetReader($request->file('csv_file')->getRealPath());
+        $reader = $this->platformCsvRows($request->file('csv_file')->getRealPath(), $validated['platform']);
         $rows = [];
 
         foreach ($reader as $row) {
@@ -319,6 +319,7 @@ class TvdeActivityController extends Controller
         if ($platform === 'uber') {
             return [
                 'driver_code' => 0,
+                'driver_code_stable' => 0,
                 'gross' => 6,
                 'net' => 3,
                 'tips' => 19,
@@ -336,8 +337,15 @@ class TvdeActivityController extends Controller
 
     protected function mapPlatformActivityRow(array $row, array $mapping, int $weekId, int $operatorId, int $companyId): ?array
     {
-        $stableDriverCode = trim((string) ($row[$mapping['driver_code_stable']] ?? ''));
-        $legacyDriverCode = trim((string) ($row[$mapping['driver_code']] ?? ''));
+        $stableDriverCodeIndex = $mapping['driver_code_stable'] ?? null;
+        $legacyDriverCodeIndex = $mapping['driver_code'] ?? null;
+
+        $stableDriverCode = $stableDriverCodeIndex !== null
+            ? trim((string) ($row[$stableDriverCodeIndex] ?? ''))
+            : '';
+        $legacyDriverCode = $legacyDriverCodeIndex !== null
+            ? trim((string) ($row[$legacyDriverCodeIndex] ?? ''))
+            : '';
         $driverCode = $stableDriverCode !== '' ? $stableDriverCode : $legacyDriverCode;
         $gross = $this->normalizeImportedNumber($row[$mapping['gross']] ?? null);
         $net = $this->normalizeImportedNumber($row[$mapping['net']] ?? null);
@@ -410,5 +418,59 @@ class TvdeActivityController extends Controller
         $number = (float) $value;
 
         return $negative ? 0 - $number : $number;
+    }
+
+    protected function platformCsvRows(string $path, string $platform): iterable
+    {
+        if ($platform === 'bolt') {
+            return $this->readBoltCsvRows($path);
+        }
+
+        return new SpreadsheetReader($path);
+    }
+
+    protected function readBoltCsvRows(string $path): array
+    {
+        $lines = file($path, FILE_IGNORE_NEW_LINES);
+
+        if ($lines === false) {
+            return [];
+        }
+
+        return collect($lines)
+            ->map(fn (string $line) => $this->parseBoltCsvLine($line))
+            ->filter(fn (array $row) => !empty($row))
+            ->values()
+            ->all();
+    }
+
+    protected function parseBoltCsvLine(string $line): array
+    {
+        $line = preg_replace('/^\xEF\xBB\xBF/', '', $line) ?? $line;
+        $line = trim($line);
+
+        if ($line === '') {
+            return [];
+        }
+
+        $line = rtrim($line, ';');
+        $line = ltrim($line, '"');
+
+        if ($line === '') {
+            return [];
+        }
+
+        $parts = preg_split('/,""/', $line) ?: [];
+
+        return collect($parts)
+            ->map(function (string $value, int $index) {
+                if ($index > 0 && str_ends_with($value, '""')) {
+                    $value = substr($value, 0, -2);
+                }
+
+                return trim($value, '"');
+            })
+            ->values()
+            ->all();
     }
 }
