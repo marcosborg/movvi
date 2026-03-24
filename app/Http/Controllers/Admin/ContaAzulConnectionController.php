@@ -28,14 +28,8 @@ class ContaAzulConnectionController extends Controller
 
         if ($company->conta_azul_connection?->access_token) {
             try {
-                $contacts = $this->client->listPeople($company, [
-                    'pagina' => 1,
-                    'tamanho_pagina' => 200,
-                ]);
-                $accounts = $this->client->listFinancialAccounts($company, [
-                    'pagina' => 1,
-                    'tamanho_pagina' => 200,
-                ]);
+                $contacts = $this->fetchAllContaAzulPeople($company);
+                $accounts = $this->fetchAllContaAzulFinancialAccounts($company);
 
                 $contactOptions = collect($contacts['items'] ?? [])
                     ->map(function (array $item) {
@@ -162,5 +156,55 @@ class ContaAzulConnectionController extends Controller
         return redirect()
             ->route('admin.conta-azul.index', $company)
             ->with('message', 'Configuracao de recebimentos atualizada.');
+    }
+
+    protected function fetchAllContaAzulPeople(Company $company): array
+    {
+        $page = 1;
+        $perPage = 200;
+        $items = collect();
+        $total = null;
+
+        do {
+            $response = $this->client->listPeople($company, [
+                'pagina' => $page,
+                'tamanho_pagina' => $perPage,
+            ]);
+
+            $batch = collect($response['items'] ?? []);
+            $items = $items->concat($batch);
+            $total = is_numeric($response['total'] ?? null) ? (int) $response['total'] : null;
+            $page++;
+        } while ($batch->isNotEmpty() && ($total === null ? $batch->count() === $perPage : $items->count() < $total));
+
+        return [
+            'items' => $items->values()->all(),
+            'total' => $total ?? $items->count(),
+        ];
+    }
+
+    protected function fetchAllContaAzulFinancialAccounts(Company $company): array
+    {
+        $page = 1;
+        $perPage = 200;
+        $items = collect();
+        $total = null;
+
+        do {
+            $response = $this->client->listFinancialAccounts($company, [
+                'pagina' => $page,
+                'tamanho_pagina' => $perPage,
+            ]);
+
+            $batch = collect($response['items'] ?? []);
+            $items = $items->concat($batch);
+            $total = is_numeric($response['items_totais'] ?? null) ? (int) $response['items_totais'] : null;
+            $page++;
+        } while ($batch->isNotEmpty() && ($total === null ? $batch->count() === $perPage : $items->count() < $total));
+
+        return [
+            'items' => $items->values()->all(),
+            'items_totais' => $total ?? $items->count(),
+        ];
     }
 }
