@@ -70,10 +70,9 @@ class AdjustmentController extends Controller
         });
 
         $table->addColumn('company_name', fn($row) => $row->company->name ?? '');
-        $table->editColumn('company_expense', fn($row) => '<input type="checkbox" disabled ' . ($row->company_expense ? 'checked' : null) . '>');
-        $table->editColumn('fleet_management', fn($row) => '<input type="checkbox" disabled ' . ($row->fleet_management ? 'checked' : null) . '>');
+        $table->editColumn('affects_vehicle_profitability', fn($row) => '<input type="checkbox" disabled ' . ($row->affects_vehicle_profitability ? 'checked' : null) . '>');
 
-        $table->rawColumns(['actions', 'placeholder', 'drivers', 'company', 'company_expense', 'fleet_management']);
+        $table->rawColumns(['actions', 'placeholder', 'drivers', 'company', 'affects_vehicle_profitability']);
         return $table->make(true);
     }
 
@@ -95,7 +94,12 @@ class AdjustmentController extends Controller
 
     public function store(StoreAdjustmentRequest $request)
     {
-        $adjustment = Adjustment::create($request->all());
+        $payload = $request->validated();
+        $payload['affects_vehicle_profitability'] = $request->boolean('affects_vehicle_profitability');
+        $payload['company_expense'] = false;
+        $payload['fleet_management'] = false;
+
+        $adjustment = Adjustment::create($payload);
         $adjustment->drivers()->sync($request->input('drivers', []));
 
         return redirect()->route('admin.adjustments.index');
@@ -120,7 +124,12 @@ class AdjustmentController extends Controller
 
     public function update(UpdateAdjustmentRequest $request, Adjustment $adjustment)
     {
-        $adjustment->update($request->all());
+        $payload = $request->validated();
+        $payload['affects_vehicle_profitability'] = $request->boolean('affects_vehicle_profitability');
+        $payload['company_expense'] = false;
+        $payload['fleet_management'] = false;
+
+        $adjustment->update($payload);
         $adjustment->drivers()->sync($request->input('drivers', []));
 
         return redirect()->route('admin.adjustments.index');

@@ -46,6 +46,10 @@ class UpdateAdjustmentRequest extends FormRequest
                 'required',
                 'integer',
             ],
+            'affects_vehicle_profitability' => [
+                'nullable',
+                'boolean',
+            ],
         ];
     }
 }

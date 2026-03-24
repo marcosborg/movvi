@@ -36,6 +36,7 @@
             <tbody>
                 <tr><th>Aluguer (€)</th><td>{{ number_format($result['revenues']['rental_total'] ?? 0, 2, ',', '.') }}</td></tr>
                 <tr><th>Percentagem (€)</th><td>{{ number_format($result['revenues']['commission_total'] ?? 0, 2, ',', '.') }}</td></tr>
+                <tr><th>Ajustes (€)</th><td>{{ number_format($result['revenues']['adjustments_total'] ?? 0, 2, ',', '.') }}</td></tr>
                 <tr><th>Total (€)</th><td class="kpi">{{ number_format($result['revenues']['total_revenue'] ?? 0, 2, ',', '.') }}</td></tr>
             </tbody>
         </table>
@@ -52,6 +53,7 @@
                     <th>Tipo</th>
                     <th style="text-align:right;">Aluguer</th>
                     <th style="text-align:right;">Percentagem</th>
+                    <th style="text-align:right;">Ajustes</th>
                     <th style="text-align:right;">Uso (segundos)</th>
                 </tr>
             </thead>
@@ -62,6 +64,7 @@
                         <td>{{ $d['type'] }}</td>
                         <td style="text-align:right;">{{ number_format($d['rental'] ?? 0, 2, ',', '.') }}</td>
                         <td style="text-align:right;">{{ number_format($d['commission'] ?? 0, 2, ',', '.') }}</td>
+                        <td style="text-align:right;">{{ number_format($d['adjustments'] ?? 0, 2, ',', '.') }}</td>
                         <td style="text-align:right;">{{ number_format($d['usage_seconds'] ?? 0, 0, ',', '.') }}</td>
                     </tr>
                 @endforeach

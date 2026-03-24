@@ -1663,10 +1663,8 @@ return [
             'type_helper'       => ' ',
             'company'           => 'Company',
             'company_helper'    => ' ',
-            'company_expense'        => 'Company Expense',
-            'company_expense_helper' => ' ',
-            'fleet_management'        => 'Fleet Management',
-            'fleet_management_helper' => ' ',
+            'affects_vehicle_profitability'        => 'Afeta rentabilidade da viatura',
+            'affects_vehicle_profitability_helper' => 'Inclui este ajuste no cálculo semanal da rentabilidade da viatura.',
         ],
     ],
     'companyExpensesMenu' => [
@@ -2532,7 +2530,6 @@ return [
         ],
     ],
 ];
-
 
 
 

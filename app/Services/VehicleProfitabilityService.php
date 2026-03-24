@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Adjustment;
 use App\Models\CurrentAccount;
 use App\Models\TvdeWeek;
 use App\Models\VehicleItem;
@@ -47,6 +48,7 @@ class VehicleProfitabilityService
         }
 
         $driverUsageSeconds = [];
+        $driverNames = [];
 
         foreach ($usages as $usage) {
             $usageStart = Carbon::parse($usage->start_date);
@@ -65,6 +67,7 @@ class VehicleProfitabilityService
             $driverId = $usage->driver->id;
 
             $driverUsageSeconds[$driverId] = ($driverUsageSeconds[$driverId] ?? 0) + $seconds;
+            $driverNames[$driverId] = $usage->driver->name ?? null;
         }
 
         // If all intervals are invalid after clipping, return a safe empty payload.
@@ -84,21 +87,31 @@ class VehicleProfitabilityService
         $drivers = [];
         $totalRental = 0.0;
         $totalCommission = 0.0;
+        $totalAdjustments = 0.0;
         $missingAccounts = [];
 
         foreach ($driverIds as $driverId) {
             $usageSeconds = (int) ($driverUsageSeconds[$driverId] ?? 0);
             $account = $accounts->get($driverId);
+            $adjustments = self::calculateDriverAdjustmentsForWeek(
+                $driverId,
+                $week,
+                (int) $vehicle->company_id,
+                true
+            );
+
+            $totalAdjustments += $adjustments;
 
             if (!$account) {
                 $missingAccounts[] = $driverId;
                 $drivers[] = [
                     'id' => $driverId,
-                    'name' => null,
+                    'name' => $driverNames[$driverId] ?? null,
                     'usage_seconds' => $usageSeconds,
                     'type' => 'unknown',
                     'rental' => 0.0,
                     'commission' => 0.0,
+                    'adjustments' => $adjustments,
                     'has_current_account' => false,
                 ];
                 continue;
@@ -129,11 +142,12 @@ class VehicleProfitabilityService
                 'type' => $type,
                 'rental' => $rental,
                 'commission' => $commission,
+                'adjustments' => $adjustments,
                 'has_current_account' => true,
             ];
         }
 
-        $totalRevenue = $totalRental + $totalCommission;
+        $totalRevenue = $totalRental + $totalCommission + $totalAdjustments;
 
         return [
             'vehicle' => [
@@ -149,6 +163,7 @@ class VehicleProfitabilityService
             'revenues' => [
                 'rental_total' => $totalRental,
                 'commission_total' => $totalCommission,
+                'adjustments_total' => $totalAdjustments,
                 'total_revenue' => $totalRevenue,
             ],
             'meta' => [
@@ -231,6 +246,7 @@ class VehicleProfitabilityService
         $rows = [];
         $totRental = 0.0;
         $totCommission = 0.0;
+        $totAdjustments = 0.0;
 
         foreach ($vehicles as $vehicle) {
             $vehicleId = (int) $vehicle->id;
@@ -238,10 +254,18 @@ class VehicleProfitabilityService
 
             $rentalTotal = 0.0;
             $commissionTotal = 0.0;
+            $adjustmentsTotal = 0.0;
             $missingAccountsCount = 0;
 
             foreach ($drivers as $driverId => $seconds) {
                 $earnings = $decoded[(int) $driverId] ?? null;
+                $adjustmentsTotal += self::calculateDriverAdjustmentsForWeek(
+                    (int) $driverId,
+                    $week,
+                    (int) $vehicle->company_id,
+                    true
+                );
+
                 if ($earnings === null) {
                     $missingAccountsCount++;
                     continue;
@@ -253,6 +277,7 @@ class VehicleProfitabilityService
 
             $totRental += $rentalTotal;
             $totCommission += $commissionTotal;
+            $totAdjustments += $adjustmentsTotal;
 
             $rows[] = [
                 'id' => $vehicleId,
@@ -260,7 +285,8 @@ class VehicleProfitabilityService
                 'model' => optional($vehicle->vehicle_model)->name,
                 'rental_total' => $rentalTotal,
                 'commission_total' => $commissionTotal,
-                'total_revenue' => $rentalTotal + $commissionTotal,
+                'adjustments_total' => $adjustmentsTotal,
+                'total_revenue' => $rentalTotal + $commissionTotal + $adjustmentsTotal,
                 'drivers_count' => count($drivers),
                 'missing_accounts_count' => $missingAccountsCount,
             ];
@@ -276,9 +302,44 @@ class VehicleProfitabilityService
             'totals' => [
                 'rental_total' => $totRental,
                 'commission_total' => $totCommission,
-                'total_revenue' => $totRental + $totCommission,
+                'adjustments_total' => $totAdjustments,
+                'total_revenue' => $totRental + $totCommission + $totAdjustments,
             ],
         ];
+    }
+
+    private static function calculateDriverAdjustmentsForWeek(
+        int $driverId,
+        TvdeWeek $week,
+        ?int $companyId = null,
+        bool $onlyVehicleProfitability = false
+    ): float {
+        $query = Adjustment::query()
+            ->whereHas('drivers', function ($query) use ($driverId) {
+                $query->where('id', $driverId);
+            })
+            ->where(function ($query) use ($week) {
+                $query->where('start_date', '<=', $week->start_date)
+                    ->orWhereNull('start_date');
+            })
+            ->where(function ($query) use ($week) {
+                $query->where('end_date', '>=', $week->end_date)
+                    ->orWhereNull('end_date');
+            });
+
+        if ($companyId) {
+            $query->where('company_id', $companyId);
+        }
+
+        if ($onlyVehicleProfitability) {
+            $query->where('affects_vehicle_profitability', true);
+        }
+
+        return (float) $query->get()->sum(function (Adjustment $adjustment) {
+            $amount = (float) ($adjustment->amount ?? 0);
+
+            return $adjustment->type === 'deduct' ? $amount : -$amount;
+        });
     }
 
     private static function emptyResult(
@@ -301,6 +362,7 @@ class VehicleProfitabilityService
             'revenues' => [
                 'rental_total' => 0.0,
                 'commission_total' => 0.0,
+                'adjustments_total' => 0.0,
                 'total_revenue' => 0.0,
             ],
             'meta' => [
@@ -322,6 +384,7 @@ class VehicleProfitabilityService
             'totals' => [
                 'rental_total' => 0.0,
                 'commission_total' => 0.0,
+                'adjustments_total' => 0.0,
                 'total_revenue' => 0.0,
             ],
         ];

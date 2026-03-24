@@ -47,6 +47,7 @@
                                     <th>Modelo</th>
                                     <th style="text-align:right;">Aluguer (€)</th>
                                     <th style="text-align:right;">Percentagem (€)</th>
+                                    <th style="text-align:right;">Ajustes (€)</th>
                                     <th style="text-align:right;">Total (€)</th>
                                     <th style="text-align:right;">Motoristas</th>
                                     <th style="text-align:right;">Sem validação</th>
@@ -60,6 +61,7 @@
                                         <td>{{ $v['model'] }}</td>
                                         <td style="text-align:right;">{{ number_format($v['rental_total'] ?? 0, 2, ',', '.') }}</td>
                                         <td style="text-align:right;">{{ number_format($v['commission_total'] ?? 0, 2, ',', '.') }}</td>
+                                        <td style="text-align:right;">{{ number_format($v['adjustments_total'] ?? 0, 2, ',', '.') }}</td>
                                         <td style="text-align:right;"><strong>{{ number_format($v['total_revenue'] ?? 0, 2, ',', '.') }}</strong></td>
                                         <td style="text-align:right;">{{ $v['drivers_count'] ?? 0 }}</td>
                                         <td style="text-align:right;">{{ $v['missing_accounts_count'] ?? 0 }}</td>
@@ -77,6 +79,7 @@
                                     <th colspan="2" style="text-align:right;">Totais:</th>
                                     <th style="text-align:right;">{{ number_format($result['totals']['rental_total'] ?? 0, 2, ',', '.') }}</th>
                                     <th style="text-align:right;">{{ number_format($result['totals']['commission_total'] ?? 0, 2, ',', '.') }}</th>
+                                    <th style="text-align:right;">{{ number_format($result['totals']['adjustments_total'] ?? 0, 2, ',', '.') }}</th>
                                     <th style="text-align:right;"><strong>{{ number_format($result['totals']['total_revenue'] ?? 0, 2, ',', '.') }}</strong></th>
                                     <th colspan="3"></th>
                                 </tr>
@@ -89,4 +92,3 @@
     @endif
 </div>
 @endsection
-

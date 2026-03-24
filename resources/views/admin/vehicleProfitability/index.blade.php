@@ -91,18 +91,18 @@
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="box box-success">
+                <div class="box box-danger">
                     <div class="box-body">
-                        <h4>Total (€)</h4>
-                        <p>{{ number_format($result['revenues']['total_revenue'] ?? 0, 2, ',', '.') }}</p>
+                        <h4>Ajustes (€)</h4>
+                        <p>{{ number_format($result['revenues']['adjustments_total'] ?? 0, 2, ',', '.') }}</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="box box-default">
+                <div class="box box-success">
                     <div class="box-body">
-                        <h4>N.º motoristas</h4>
-                        <p>{{ count($result['meta']['drivers'] ?? []) }}</p>
+                        <h4>Total (€)</h4>
+                        <p>{{ number_format($result['revenues']['total_revenue'] ?? 0, 2, ',', '.') }}</p>
                     </div>
                 </div>
             </div>
@@ -122,6 +122,7 @@
                                     <th>Tipo</th>
                                     <th style="text-align:right;">Aluguer</th>
                                     <th style="text-align:right;">Percentagem</th>
+                                    <th style="text-align:right;">Ajustes</th>
                                     <th style="text-align:right;">Uso (segundos)</th>
                                 </tr>
                             </thead>
@@ -132,6 +133,7 @@
                                         <td>{{ $d['type'] }}</td>
                                         <td style="text-align:right;">{{ number_format($d['rental'] ?? 0, 2, ',', '.') }}</td>
                                         <td style="text-align:right;">{{ number_format($d['commission'] ?? 0, 2, ',', '.') }}</td>
+                                        <td style="text-align:right;">{{ number_format($d['adjustments'] ?? 0, 2, ',', '.') }}</td>
                                         <td style="text-align:right;">{{ number_format($d['usage_seconds'] ?? 0, 0, ',', '.') }}</td>
                                     </tr>
                                 @endforeach

@@ -93,18 +93,10 @@
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.adjustment.fields.company_expense') }}
+                                        {{ trans('cruds.adjustment.fields.affects_vehicle_profitability') }}
                                     </th>
                                     <td>
-                                        <input type="checkbox" disabled="disabled" {{ $adjustment->company_expense ? 'checked' : '' }}>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>
-                                        {{ trans('cruds.adjustment.fields.fleet_management') }}
-                                    </th>
-                                    <td>
-                                        <input type="checkbox" disabled="disabled" {{ $adjustment->fleet_management ? 'checked' : '' }}>
+                                        <input type="checkbox" disabled="disabled" {{ $adjustment->affects_vehicle_profitability ? 'checked' : '' }}>
                                     </td>
                                 </tr>
                             </tbody>

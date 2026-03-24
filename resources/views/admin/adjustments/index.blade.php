@@ -71,10 +71,7 @@
                                     {{ trans('cruds.adjustment.fields.company') }}
                                 </th>
                                 <th>
-                                    {{ trans('cruds.adjustment.fields.company_expense') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.adjustment.fields.fleet_management') }}
+                                    {{ trans('cruds.adjustment.fields.affects_vehicle_profitability') }}
                                 </th>
                                 <th>
                                     &nbsp;
@@ -149,8 +146,7 @@
         { data: 'end_date', name: 'end_date' },
         { data: 'drivers', name: 'drivers.code' },
         { data: 'company_name', name: 'company.name' },
-        { data: 'company_expense', name: 'company_expense' },
-        { data: 'fleet_management', name: 'fleet_management' },
+        { data: 'affects_vehicle_profitability', name: 'affects_vehicle_profitability' },
         { data: 'actions', name: '{{ trans('global.actions') }}' }
     ],
     orderCellsTop: true,
