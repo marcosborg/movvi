@@ -8,9 +8,12 @@ use App\Models\TvdeWeek;
 use App\Models\VehicleItem;
 use App\Models\VehicleUsage;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class VehicleProfitabilityService
 {
+    private static ?bool $hasVehicleProfitabilityAdjustmentsColumn = null;
+
     /**
      * Build a revenue snapshot for a vehicle in a given TVDE week.
      * Revenue is based on what is saved/validated in Company Reports (CurrentAccount->data).
@@ -328,6 +331,10 @@ class VehicleProfitabilityService
         ?int $companyId = null,
         bool $onlyVehicleProfitability = false
     ): float {
+        if ($onlyVehicleProfitability && ! self::hasVehicleProfitabilityAdjustmentsColumn()) {
+            return 0.0;
+        }
+
         $query = Adjustment::query()
             ->whereHas('drivers', function ($query) use ($driverId) {
                 $query->where('id', $driverId);
@@ -354,6 +361,15 @@ class VehicleProfitabilityService
 
             return $adjustment->type === 'deduct' ? $amount : -$amount;
         });
+    }
+
+    private static function hasVehicleProfitabilityAdjustmentsColumn(): bool
+    {
+        if (self::$hasVehicleProfitabilityAdjustmentsColumn === null) {
+            self::$hasVehicleProfitabilityAdjustmentsColumn = Schema::hasColumn('adjustments', 'affects_vehicle_profitability');
+        }
+
+        return self::$hasVehicleProfitabilityAdjustmentsColumn;
     }
 
     private static function emptyResult(

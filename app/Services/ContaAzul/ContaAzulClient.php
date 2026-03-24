@@ -119,6 +119,19 @@ class ContaAzulClient
         return $response->json();
     }
 
+    public function listPeople(Company $company, array $query = []): array
+    {
+        $response = $this->request($company, 'GET', '/v1/pessoas', $query);
+        $payload = $response->json();
+        $this->touchSync($company);
+
+        return [
+            'raw' => $payload,
+            'items' => $payload['items'] ?? $payload['itens'] ?? [],
+            'total' => $payload['items_totais'] ?? $payload['itens_totais'] ?? null,
+        ];
+    }
+
     public function listReceivables(Company $company, array $query = []): array
     {
         $response = $this->request($company, 'GET', '/v1/financeiro/eventos-financeiros/contas-a-receber/buscar', $query);

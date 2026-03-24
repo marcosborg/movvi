@@ -73,32 +73,60 @@
                     <h4>Configuracao para receitas por matricula</h4>
                     <form action="{{ route('admin.conta-azul.receivable-settings', $company) }}" method="POST" style="max-width: 760px;">
                         @csrf
+                        @if($optionsError)
+                            <div class="alert alert-warning">
+                                Nao foi possivel carregar automaticamente contactos e contas financeiras: {{ $optionsError }}
+                            </div>
+                        @endif
                         <div class="form-group">
                             <label for="receivable_contact_id">Contacto Conta Azul</label>
-                            <input type="text"
-                                   class="form-control"
-                                   id="receivable_contact_id"
-                                   name="receivable_contact_id"
-                                   value="{{ old('receivable_contact_id', $company->conta_azul_connection->receivable_contact_id ?? '') }}"
-                                   placeholder="UUID do contacto no Conta Azul">
+                            <select
+                                class="form-control"
+                                id="receivable_contact_id"
+                                name="receivable_contact_id"
+                            >
+                                <option value="">Selecionar contacto</option>
+                                @foreach($contactOptions as $option)
+                                    <option value="{{ $option['id'] }}" {{ old('receivable_contact_id', $company->conta_azul_connection->receivable_contact_id ?? '') == $option['id'] ? 'selected' : '' }}>
+                                        {{ $option['label'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @if(empty($contactOptions))
+                                <p class="help-block">Liga a empresa e carrega contactos validos a partir da API do Conta Azul.</p>
+                            @endif
                         </div>
                         <div class="form-group">
                             <label for="receivable_financial_account_id">Conta financeira</label>
-                            <input type="text"
-                                   class="form-control"
-                                   id="receivable_financial_account_id"
-                                   name="receivable_financial_account_id"
-                                   value="{{ old('receivable_financial_account_id', $company->conta_azul_connection->receivable_financial_account_id ?? '') }}"
-                                   placeholder="UUID da conta financeira no Conta Azul">
+                            <select
+                                class="form-control"
+                                id="receivable_financial_account_id"
+                                name="receivable_financial_account_id"
+                            >
+                                <option value="">Selecionar conta financeira</option>
+                                @foreach($accountOptions as $option)
+                                    <option value="{{ $option['id'] }}" {{ old('receivable_financial_account_id', $company->conta_azul_connection->receivable_financial_account_id ?? '') == $option['id'] ? 'selected' : '' }}>
+                                        {{ $option['label'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @if(empty($accountOptions))
+                                <p class="help-block">As contas financeiras serao carregadas automaticamente quando a ligacao estiver operacional.</p>
+                            @endif
                         </div>
                         <div class="form-group">
                             <label for="receivable_payment_method">Metodo de pagamento</label>
-                            <input type="text"
-                                   class="form-control"
-                                   id="receivable_payment_method"
-                                   name="receivable_payment_method"
-                                   value="{{ old('receivable_payment_method', $company->conta_azul_connection->receivable_payment_method ?? 'TRANSFERENCIA_BANCARIA') }}"
-                                   placeholder="TRANSFERENCIA_BANCARIA">
+                            <select
+                                class="form-control"
+                                id="receivable_payment_method"
+                                name="receivable_payment_method"
+                            >
+                                @foreach(['TRANSFERENCIA_BANCARIA', 'DINHEIRO', 'BOLETO_BANCARIO', 'CARTAO_DEBITO', 'CARTAO_CREDITO', 'PIX'] as $method)
+                                    <option value="{{ $method }}" {{ old('receivable_payment_method', $company->conta_azul_connection->receivable_payment_method ?? 'TRANSFERENCIA_BANCARIA') == $method ? 'selected' : '' }}>
+                                        {{ $method }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                         <button class="btn btn-success" type="submit">Guardar configuracao</button>
                     </form>

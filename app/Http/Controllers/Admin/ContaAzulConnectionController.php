@@ -22,11 +22,63 @@ class ContaAzulConnectionController extends Controller
 
         $company->load('conta_azul_connection');
 
+        $contactOptions = [];
+        $accountOptions = [];
+        $optionsError = null;
+
+        if ($company->conta_azul_connection?->access_token) {
+            try {
+                $contacts = $this->client->listPeople($company, [
+                    'pagina' => 1,
+                    'tamanho_pagina' => 200,
+                ]);
+                $accounts = $this->client->listFinancialAccounts($company, [
+                    'pagina' => 1,
+                    'tamanho_pagina' => 200,
+                ]);
+
+                $contactOptions = collect($contacts['items'] ?? [])
+                    ->map(function (array $item) {
+                        $name = $item['nome'] ?? $item['name'] ?? $item['razao_social'] ?? $item['fantasia'] ?? null;
+                        $document = $item['cpf_cnpj'] ?? $item['documento'] ?? null;
+
+                        return [
+                            'id' => $item['id'] ?? null,
+                            'label' => trim(implode(' · ', array_filter([$name, $document]))),
+                        ];
+                    })
+                    ->filter(fn (array $item) => filled($item['id']) && filled($item['label']))
+                    ->sortBy('label', SORT_NATURAL | SORT_FLAG_CASE)
+                    ->values()
+                    ->all();
+
+                $accountOptions = collect($accounts['items'] ?? [])
+                    ->map(function (array $item) {
+                        $name = $item['nome'] ?? $item['name'] ?? 'Conta';
+                        $type = $item['tipo'] ?? $item['type'] ?? null;
+
+                        return [
+                            'id' => $item['id'] ?? null,
+                            'label' => trim(implode(' · ', array_filter([$name, $type]))),
+                        ];
+                    })
+                    ->filter(fn (array $item) => filled($item['id']) && filled($item['label']))
+                    ->sortBy('label', SORT_NATURAL | SORT_FLAG_CASE)
+                    ->values()
+                    ->all();
+            } catch (\Throwable $exception) {
+                $optionsError = $exception->getMessage();
+            }
+        }
+
         return view('admin.contaAzul.index', [
             'company' => $company,
             'status' => $this->client->statusForCompany($company),
             'isConfigured' => $this->oauthService->isConfigured(),
             'redirectUri' => $this->oauthService->resolveRedirectUri(),
+            'contactOptions' => $contactOptions,
+            'accountOptions' => $accountOptions,
+            'optionsError' => $optionsError,
         ]);
     }
 
