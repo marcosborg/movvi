@@ -141,11 +141,15 @@ class VehicleProfitabilityController extends Controller
 
         return redirect()
             ->route('admin.vehicle-profitabilities.week', ['tvde_week_id' => $weekId])
-            ->with('message', sprintf(
-                'Conta Azul: %d viaturas exportadas e %d ignoradas.',
-                $result['exported'],
-                $result['skipped']
-            ));
+            ->with(
+                ($result['errors'] ?? 0) > 0 && ($result['exported'] ?? 0) === 0 ? 'error_message' : 'message',
+                sprintf(
+                    'Conta Azul: %d viaturas exportadas, %d ignoradas e %d falharam.',
+                    $result['exported'] ?? 0,
+                    $result['skipped'] ?? 0,
+                    $result['errors'] ?? 0
+                )
+            );
     }
 
     public function setVehicleItemId($vehicleItemId)

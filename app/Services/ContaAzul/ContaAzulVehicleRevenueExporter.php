@@ -39,12 +39,14 @@ class ContaAzulVehicleRevenueExporter
             return [
                 'exported' => 0,
                 'skipped' => 0,
+                'errors' => 0,
                 'items' => [],
             ];
         }
 
         $exported = 0;
         $skipped = 0;
+        $errors = 0;
         $items = [];
 
         foreach ($rows as $row) {
@@ -145,12 +147,14 @@ class ContaAzulVehicleRevenueExporter
                     'status' => 'error',
                     'message' => $exception->getMessage(),
                 ];
+                $errors++;
             }
         }
 
         return [
             'exported' => $exported,
             'skipped' => $skipped,
+            'errors' => $errors,
             'items' => $items,
         ];
     }
