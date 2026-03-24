@@ -16,7 +16,7 @@ class ContaAzulVehicleRevenueExporter
     ) {
     }
 
-    public function exportWeek(Company $company, TvdeWeek $week, int $userId): array
+    public function exportWeek(Company $company, TvdeWeek $week, int $userId, ?array $selectedVehicleIds = null): array
     {
         $connection = $this->client->requireConnectionForCompany($company);
 
@@ -28,6 +28,11 @@ class ContaAzulVehicleRevenueExporter
 
         $rows = collect($snapshot['vehicles'] ?? [])
             ->filter(fn (array $vehicle) => (float) ($vehicle['total_revenue'] ?? 0) > 0)
+            ->when(is_array($selectedVehicleIds) && ! empty($selectedVehicleIds), function (Collection $collection) use ($selectedVehicleIds) {
+                $selectedIds = collect($selectedVehicleIds)->map(fn ($id) => (int) $id)->filter()->values()->all();
+
+                return $collection->whereIn('id', $selectedIds);
+            })
             ->values();
 
         if ($rows->isEmpty()) {
