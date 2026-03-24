@@ -180,7 +180,7 @@ class VehicleProfitabilityService
      * - Vehicle → drivers via VehicleUsage overlap for the week (assignment by plate)
      * - Driver revenues via validated Company Reports (CurrentAccount->data)
      */
-    public static function makeWeek(int $tvdeWeekId): array
+    public static function makeWeek(int $tvdeWeekId, ?int $companyId = null): array
     {
         $week = TvdeWeek::find($tvdeWeekId);
         if (!$week) {
@@ -191,6 +191,20 @@ class VehicleProfitabilityService
         $weekEnd = Carbon::parse($week->getRawOriginal('end_date'))->endOfDay();
 
         $vehicles = VehicleItem::with('vehicle_model')
+            ->when($companyId, function ($query) use ($companyId) {
+                $query->where('company_id', $companyId);
+            })
+            ->where(function ($query) {
+                $query->where('suspended', false)->orWhereNull('suspended');
+            })
+            ->where(function ($query) use ($weekEnd) {
+                $query->whereNull('acquisition_date')
+                    ->orWhere('acquisition_date', '<=', $weekEnd->toDateString());
+            })
+            ->where(function ($query) use ($weekStart) {
+                $query->whereNull('sale_date')
+                    ->orWhere('sale_date', '>=', $weekStart->toDateString());
+            })
             ->orderBy('license_plate')
             ->get();
 

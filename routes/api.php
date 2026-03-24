@@ -32,6 +32,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin', '
             Route::get('profit-loss', [ContaAzulController::class, 'managerProfitLoss'])->name('profitLoss');
             Route::get('movements', [ContaAzulController::class, 'managerMovements'])->name('movements');
             Route::get('expenses', [ContaAzulController::class, 'managerExpenses'])->name('expenses');
+            Route::get('vehicle-revenue-exports', [ContaAzulController::class, 'vehicleRevenueExports'])->name('vehicleRevenueExports');
+            Route::post('export-vehicle-revenues', [ContaAzulController::class, 'exportVehicleRevenues'])->name('exportVehicleRevenues');
         });
     });
     Route::prefix('mobile')->name('mobile.')->group(function () {

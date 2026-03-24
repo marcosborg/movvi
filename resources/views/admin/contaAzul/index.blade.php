@@ -70,6 +70,41 @@
 
                     <hr>
 
+                    <h4>Configuracao para receitas por matricula</h4>
+                    <form action="{{ route('admin.conta-azul.receivable-settings', $company) }}" method="POST" style="max-width: 760px;">
+                        @csrf
+                        <div class="form-group">
+                            <label for="receivable_contact_id">Contacto Conta Azul</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="receivable_contact_id"
+                                   name="receivable_contact_id"
+                                   value="{{ old('receivable_contact_id', $company->conta_azul_connection->receivable_contact_id ?? '') }}"
+                                   placeholder="UUID do contacto no Conta Azul">
+                        </div>
+                        <div class="form-group">
+                            <label for="receivable_financial_account_id">Conta financeira</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="receivable_financial_account_id"
+                                   name="receivable_financial_account_id"
+                                   value="{{ old('receivable_financial_account_id', $company->conta_azul_connection->receivable_financial_account_id ?? '') }}"
+                                   placeholder="UUID da conta financeira no Conta Azul">
+                        </div>
+                        <div class="form-group">
+                            <label for="receivable_payment_method">Metodo de pagamento</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="receivable_payment_method"
+                                   name="receivable_payment_method"
+                                   value="{{ old('receivable_payment_method', $company->conta_azul_connection->receivable_payment_method ?? 'TRANSFERENCIA_BANCARIA') }}"
+                                   placeholder="TRANSFERENCIA_BANCARIA">
+                        </div>
+                        <button class="btn btn-success" type="submit">Guardar configuracao</button>
+                    </form>
+
+                    <hr>
+
                     <p><strong>Endpoints internos prontos</strong></p>
                     <ul>
                         <li><code>/api/v1/conta-azul/status?company_id={{ $company->id }}</code></li>

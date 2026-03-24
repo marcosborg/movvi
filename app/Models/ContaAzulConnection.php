@@ -42,6 +42,9 @@ class ContaAzulConnection extends Model
         'token_payload',
         'oauth_meta',
         'last_error',
+        'receivable_contact_id',
+        'receivable_financial_account_id',
+        'receivable_payment_method',
     ];
 
     protected function serializeDate(DateTimeInterface $date): string

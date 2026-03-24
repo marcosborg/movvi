@@ -21,6 +21,20 @@
                     Voltar
                 </a>
             </form>
+            @if($weekId)
+                <form action="{{ route('admin.vehicle-profitabilities.export-conta-azul') }}" method="POST" style="display:inline-block; margin-bottom: 20px;">
+                    @csrf
+                    <input type="hidden" name="tvde_week_id" value="{{ $weekId }}">
+                    <button class="btn btn-success" type="submit" {{ $companyId ? '' : 'disabled' }}>
+                        Lançar recebimentos na Conta Azul
+                    </button>
+                </form>
+            @endif
+            @if(!$companyId)
+                <div class="alert alert-warning" role="alert">
+                    Selecione uma empresa para lançar as receitas da semana na Conta Azul.
+                </div>
+            @endif
         </div>
     </div>
 

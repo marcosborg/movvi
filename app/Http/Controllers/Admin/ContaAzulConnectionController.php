@@ -82,4 +82,33 @@ class ContaAzulConnectionController extends Controller
             ->route('admin.conta-azul.index', $company)
             ->with('message', 'Ligacao Conta Azul removida.');
     }
+
+    public function updateReceivableSettings(Request $request, Company $company)
+    {
+        abort_if(! auth()->user()->hasRole('Admin'), 403, '403 Forbidden');
+
+        $request->validate([
+            'receivable_contact_id' => ['required', 'string', 'max:255'],
+            'receivable_financial_account_id' => ['required', 'string', 'max:255'],
+            'receivable_payment_method' => ['required', 'string', 'max:255'],
+        ]);
+
+        $connection = $company->conta_azul_connection;
+
+        if (! $connection) {
+            return redirect()
+                ->route('admin.conta-azul.index', $company)
+                ->with('error_message', 'Ligue primeiro a empresa à Conta Azul.');
+        }
+
+        $connection->update($request->only([
+            'receivable_contact_id',
+            'receivable_financial_account_id',
+            'receivable_payment_method',
+        ]));
+
+        return redirect()
+            ->route('admin.conta-azul.index', $company)
+            ->with('message', 'Configuracao de recebimentos atualizada.');
+    }
 }

@@ -135,6 +135,30 @@ class ContaAzulClient
         return $response->json();
     }
 
+    public function createReceivableEvent(Company $company, array $payload): array
+    {
+        $response = $this->requestJson($company, 'POST', '/v1/financeiro/eventos-financeiros/contas-a-receber', $payload);
+        $this->touchSync($company);
+
+        return $response->json();
+    }
+
+    public function listEventInstallments(Company $company, string $eventId): array
+    {
+        $response = $this->request($company, 'GET', "/v1/financeiro/eventos-financeiros/{$eventId}/parcelas");
+        $this->touchSync($company);
+
+        return $response->json();
+    }
+
+    public function createAcquittance(Company $company, string $installmentId, array $payload): array
+    {
+        $response = $this->requestJson($company, 'POST', "/v1/financeiro/eventos-financeiros/parcelas/{$installmentId}/baixa", $payload);
+        $this->touchSync($company);
+
+        return $response->json();
+    }
+
     public function resolveCompanyForUser(User $user, ?int $requestedCompanyId = null): ?Company
     {
         if ($requestedCompanyId && $user->hasRole('Admin')) {
@@ -197,6 +221,45 @@ class ContaAzulClient
 
             throw new \RuntimeException(
                 'Falha ao ler dados da Conta Azul: ' . $response->status() . ' ' . $response->body()
+            );
+        }
+
+        return $response;
+    }
+
+    protected function requestJson(Company $company, string $method, string $path, array $payload = []): Response
+    {
+        $this->ensureEnabled();
+
+        $connection = $this->requireConnectionForCompany($company);
+        $url = rtrim(config('conta_azul.api_base_url'), '/') . $path;
+
+        $response = Http::acceptJson()
+            ->withToken((string) $connection->access_token)
+            ->send($method, $url, [
+                'json' => $payload,
+            ]);
+
+        if ($response->status() === 401) {
+            $connection = $this->oauthService->refresh($connection);
+
+            $response = Http::acceptJson()
+                ->withToken((string) $connection->access_token)
+                ->send($method, $url, [
+                    'json' => $payload,
+                ]);
+        }
+
+        if ($response->failed()) {
+            $connection->update([
+                'last_error' => 'Conta Azul API: ' . $response->status() . ' ' . $response->body(),
+                'status' => $response->status() === 401
+                    ? ContaAzulConnection::STATUS_ERROR
+                    : $connection->status,
+            ]);
+
+            throw new \RuntimeException(
+                'Falha ao enviar dados para a Conta Azul: ' . $response->status() . ' ' . $response->body()
             );
         }
 

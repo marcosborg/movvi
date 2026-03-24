@@ -389,6 +389,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::get('companies/{company}/conta-azul', 'ContaAzulConnectionController@index')->name('conta-azul.index');
     Route::get('companies/{company}/conta-azul/connect', 'ContaAzulConnectionController@connect')->name('conta-azul.connect');
     Route::post('companies/{company}/conta-azul/disconnect', 'ContaAzulConnectionController@disconnect')->name('conta-azul.disconnect');
+    Route::post('companies/{company}/conta-azul/receivable-settings', 'ContaAzulConnectionController@updateReceivableSettings')->name('conta-azul.receivable-settings');
     Route::get('conta-azul/callback', 'ContaAzulConnectionController@callback')->name('conta-azul.callback');
 
     // Electric
@@ -592,6 +593,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
             ->name('vehicle-profitabilities.index');
         Route::get('week', [App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'week'])
             ->name('vehicle-profitabilities.week');
+        Route::post('export-conta-azul', [App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'exportContaAzul'])
+            ->name('vehicle-profitabilities.export-conta-azul');
         Route::get('set-vehicle-item-id/{vehicle_item_id}', [\App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'setVehicleItemId']);
     });
 
