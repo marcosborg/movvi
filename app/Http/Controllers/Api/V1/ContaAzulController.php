@@ -101,9 +101,7 @@ class ContaAzulController extends Controller
 
     public function vehicleRevenueExports(Request $request)
     {
-        $user = $request->user();
-
-        if (! $user || ! $user->hasRole('Admin')) {
+        if (! $this->canViewFinancialData($request)) {
             return response()->json(['error' => '403 Forbidden'], 403);
         }
 
