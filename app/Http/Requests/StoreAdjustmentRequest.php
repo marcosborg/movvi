@@ -24,6 +24,10 @@ class StoreAdjustmentRequest extends FormRequest
             'type' => [
                 'required',
             ],
+            'amount' => [
+                'numeric',
+                'nullable',
+            ],
             'percent' => [
                 'string',
                 'nullable',
