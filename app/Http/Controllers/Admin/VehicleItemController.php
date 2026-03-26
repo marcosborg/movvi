@@ -165,7 +165,7 @@ class VehicleItemController extends Controller
                 }
             })
             ->where(function ($query) {
-                $query->where('type', 'like', '%Frota%')
+                $query->whereIn('type', ['Cartão Prio Frota', 'Cartão Prio Eletric'])
                     ->orWhereNull('type');
             })
             ->orderBy('code')
