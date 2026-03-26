@@ -365,6 +365,52 @@ form .form-control:focus {
     text-decoration: none;
 }
 
+.footer-support-list {
+    --bs-gutter-y: 0;
+}
+
+.footer-support-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    height: 100%;
+}
+
+.footer-support-card strong,
+.footer-support-card span {
+    display: block;
+}
+
+.footer-support-card strong {
+    color: var(--movvi-white);
+}
+
+.footer-support-card span {
+    color: #d7dddf;
+}
+
+.footer-support-action {
+    color: #4dd46a;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.footer-support-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
 .movvi-footer small {
     color: #cfd4d6;
+}
+
+@media (max-width: 767.98px) {
+    .footer-support-card {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 }

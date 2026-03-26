@@ -9,6 +9,7 @@ use App\Http\Requests\StoreCombustionTransactionRequest;
 use App\Http\Requests\UpdateCombustionTransactionRequest;
 use App\Models\CombustionTransaction;
 use App\Models\TvdeWeek;
+use App\Services\CombustionTransactionAssignmentService;
 use Carbon\Carbon;
 use Gate;
 use Illuminate\Http\Request;
@@ -111,9 +112,10 @@ class CombustionTransactionController extends Controller
         return view('admin.combustionTransactions.create', compact('tvde_weeks'));
     }
 
-    public function store(StoreCombustionTransactionRequest $request)
+    public function store(StoreCombustionTransactionRequest $request, CombustionTransactionAssignmentService $assignmentService)
     {
         $combustionTransaction = CombustionTransaction::create($request->all());
+        $assignmentService->assign($combustionTransaction);
 
         return redirect()->route('admin.combustion-transactions.index');
     }
@@ -129,9 +131,10 @@ class CombustionTransactionController extends Controller
         return view('admin.combustionTransactions.edit', compact('combustionTransaction', 'tvde_weeks'));
     }
 
-    public function update(UpdateCombustionTransactionRequest $request, CombustionTransaction $combustionTransaction)
+    public function update(UpdateCombustionTransactionRequest $request, CombustionTransaction $combustionTransaction, CombustionTransactionAssignmentService $assignmentService)
     {
         $combustionTransaction->update($request->all());
+        $assignmentService->assign($combustionTransaction);
 
         return redirect()->route('admin.combustion-transactions.index');
     }
@@ -176,7 +179,7 @@ class CombustionTransactionController extends Controller
         return redirect()->back()->with('message', 'Eliminado com sucesso');
     }
 
-    public function uploadSupplierFile(Request $request)
+    public function uploadSupplierFile(Request $request, CombustionTransactionAssignmentService $assignmentService)
     {
         abort_if(Gate::denies('combustion_transaction_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
@@ -244,10 +247,13 @@ class CombustionTransactionController extends Controller
                     $existing->restore();
                 }
 
+                $assignmentService->assign($existing);
+
                 continue;
             }
 
-            CombustionTransaction::create($transaction);
+            $created = CombustionTransaction::create($transaction);
+            $assignmentService->assign($created);
         }
 
         return redirect()->back()

@@ -7,6 +7,7 @@ use App\Http\Controllers\Traits\MediaUploadingTrait;
 use App\Http\Requests\MassDestroyVehicleItemRequest;
 use App\Http\Requests\StoreVehicleItemRequest;
 use App\Http\Requests\UpdateVehicleItemRequest;
+use App\Models\Card;
 use App\Models\Company;
 use App\Models\VehicleBrand;
 use App\Models\VehicleItem;
@@ -25,7 +26,7 @@ class VehicleItemController extends Controller
     {
         abort_if(Gate::denies('vehicle_item_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $vehicleItems = VehicleItem::with(['company', 'vehicle_brand', 'vehicle_model', 'media', 'driver'])->get();
+        $vehicleItems = VehicleItem::with(['company', 'vehicle_brand', 'vehicle_model', 'media', 'driver', 'fuel_card'])->get();
 
         return view('admin.vehicleItems.index', compact('vehicleItems'));
     }
@@ -42,12 +43,19 @@ class VehicleItemController extends Controller
 
         $drivers = Driver::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.vehicleItems.create', compact('companies', 'vehicle_brands', 'vehicle_models', 'drivers'));
+        $fuel_cards = $this->fuelCardOptions();
+
+        return view('admin.vehicleItems.create', compact('companies', 'vehicle_brands', 'vehicle_models', 'drivers', 'fuel_cards'));
     }
 
     public function store(StoreVehicleItemRequest $request)
     {
-        $vehicleItem = VehicleItem::create($request->all());
+        $data = $request->validated();
+        $fuelCardId = $data['fuel_card_id'] ?? null;
+        unset($data['fuel_card_id']);
+
+        $vehicleItem = VehicleItem::create($data);
+        $this->syncFuelCard($vehicleItem, $fuelCardId);
 
         foreach ($request->input('documents', []) as $file) {
             $vehicleItem->addMedia(storage_path('tmp/uploads/' . basename($file)))->toMediaCollection('documents');
@@ -70,16 +78,23 @@ class VehicleItemController extends Controller
 
         $vehicle_models = VehicleModel::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        $vehicleItem->load('company', 'vehicle_brand', 'vehicle_model', 'driver');
+        $vehicleItem->load('company', 'vehicle_brand', 'vehicle_model', 'driver', 'fuel_card');
 
         $drivers = Driver::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.vehicleItems.edit', compact('companies', 'vehicleItem', 'vehicle_brands', 'vehicle_models', 'drivers'));
+        $fuel_cards = $this->fuelCardOptions($vehicleItem->id);
+
+        return view('admin.vehicleItems.edit', compact('companies', 'vehicleItem', 'vehicle_brands', 'vehicle_models', 'drivers', 'fuel_cards'));
     }
 
     public function update(UpdateVehicleItemRequest $request, VehicleItem $vehicleItem)
     {
-        $vehicleItem->update($request->all());
+        $data = $request->validated();
+        $fuelCardId = $data['fuel_card_id'] ?? null;
+        unset($data['fuel_card_id']);
+
+        $vehicleItem->update($data);
+        $this->syncFuelCard($vehicleItem, $fuelCardId);
 
         if (count($vehicleItem->documents) > 0) {
             foreach ($vehicleItem->documents as $media) {
@@ -102,7 +117,7 @@ class VehicleItemController extends Controller
     {
         abort_if(Gate::denies('vehicle_item_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $vehicleItem->load('company', 'vehicle_brand', 'vehicle_model', 'vehicleItemVehicleEvents');
+        $vehicleItem->load('company', 'vehicle_brand', 'vehicle_model', 'vehicleItemVehicleEvents', 'fuel_card');
 
         return view('admin.vehicleItems.show', compact('vehicleItem'));
     }
@@ -137,5 +152,44 @@ class VehicleItemController extends Controller
         $media         = $model->addMediaFromRequest('upload')->toMediaCollection('ck-media');
 
         return response()->json(['id' => $media->id, 'url' => $media->getUrl()], Response::HTTP_CREATED);
+    }
+
+    protected function fuelCardOptions(?int $vehicleItemId = null)
+    {
+        return Card::query()
+            ->where(function ($query) use ($vehicleItemId) {
+                $query->whereNull('vehicle_item_id');
+
+                if ($vehicleItemId) {
+                    $query->orWhere('vehicle_item_id', $vehicleItemId);
+                }
+            })
+            ->where(function ($query) {
+                $query->where('type', 'like', '%Frota%')
+                    ->orWhereNull('type');
+            })
+            ->orderBy('code')
+            ->get()
+            ->mapWithKeys(function (Card $card) {
+                $label = trim(implode(' - ', array_filter([$card->code, $card->type])));
+
+                return [$card->id => $label];
+            })
+            ->prepend(trans('global.pleaseSelect'), '');
+    }
+
+    protected function syncFuelCard(VehicleItem $vehicleItem, ?int $fuelCardId): void
+    {
+        Card::query()
+            ->where('vehicle_item_id', $vehicleItem->id)
+            ->update(['vehicle_item_id' => null]);
+
+        if (!$fuelCardId) {
+            return;
+        }
+
+        Card::query()
+            ->where('id', $fuelCardId)
+            ->update(['vehicle_item_id' => $vehicleItem->id]);
     }
 }

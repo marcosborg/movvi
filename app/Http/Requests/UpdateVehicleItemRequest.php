@@ -54,6 +54,11 @@ class UpdateVehicleItemRequest extends FormRequest
                 'nullable',
                 'date_format:' . config('panel.date_format'),
             ],
+            'fuel_card_id' => [
+                'nullable',
+                'integer',
+                'exists:cards,id',
+            ],
         ];
     }
 }

@@ -47,6 +47,43 @@
                     </ul>
                 </div>
             </div>
+            <div class="row mt-2">
+                <div class="col-12 mb-3">
+                    <h5>Apoio ao motorista</h5>
+                    <div class="row footer-support-list">
+                        <div class="col-md-4 mb-3">
+                            <a href="https://wa.me/351926008575" target="_blank" rel="noopener noreferrer" class="footer-support-card">
+                                <div>
+                                    <strong>Richard</strong>
+                                    <span>Gestao de Frota &amp; Manutencao</span>
+                                    <span>926 008 575</span>
+                                </div>
+                                <span class="footer-support-action">WhatsApp</span>
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="https://wa.me/351913606801" target="_blank" rel="noopener noreferrer" class="footer-support-card">
+                                <div>
+                                    <strong>Karla</strong>
+                                    <span>Apoio ao Sistema Movvi</span>
+                                    <span>913 606 801</span>
+                                </div>
+                                <span class="footer-support-action">WhatsApp</span>
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="https://wa.me/351913606800" target="_blank" rel="noopener noreferrer" class="footer-support-card">
+                                <div>
+                                    <strong>Adelmo</strong>
+                                    <span>Outros Assuntos</span>
+                                    <span>913 606 800</span>
+                                </div>
+                                <span class="footer-support-action">WhatsApp</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="text-center mt-3">
                 <small>2025 Movvi.pt - Todos os direitos reservados.</small>
             </div>

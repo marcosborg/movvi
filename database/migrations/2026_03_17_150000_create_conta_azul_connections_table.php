@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('conta_azul_connections')) {
+            return;
+        }
+
         Schema::create('conta_azul_connections', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('company_id')->unique();

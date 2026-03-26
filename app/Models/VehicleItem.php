@@ -95,4 +95,14 @@ class VehicleItem extends Model implements HasMedia
     {
         return $this->hasMany(VehicleUsage::class, 'vehicle_item_id');
     }
+
+    public function cards()
+    {
+        return $this->hasMany(Card::class, 'vehicle_item_id');
+    }
+
+    public function fuel_card()
+    {
+        return $this->hasOne(Card::class, 'vehicle_item_id');
+    }
 }

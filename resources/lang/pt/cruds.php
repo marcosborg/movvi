@@ -1443,6 +1443,8 @@ return [
             'company_helper'       => ' ',
             'driver'               => 'Driver',
             'driver_helper'        => ' ',
+            'fuel_card'            => 'Cartão de combustível',
+            'fuel_card_helper'     => 'Cartão Prio Frota associado a esta viatura.',
         ],
     ],
     'company' => [
@@ -2530,7 +2532,6 @@ return [
         ],
     ],
 ];
-
 
 
 

@@ -23,6 +23,7 @@ class Card extends Model
         'type',
         'code',
         'company_id',
+        'vehicle_item_id',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -42,6 +43,11 @@ class Card extends Model
     public function company()
     {
         return $this->belongsTo(Company::class, 'company_id');
+    }
+
+    public function vehicle_item()
+    {
+        return $this->belongsTo(VehicleItem::class, 'vehicle_item_id');
     }
 
     // App\Models\Card.php

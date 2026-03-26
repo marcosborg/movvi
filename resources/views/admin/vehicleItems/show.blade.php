@@ -75,6 +75,14 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        {{ trans('cruds.vehicleItem.fields.fuel_card') }}
+                                    </th>
+                                    <td>
+                                        {{ $vehicleItem->fuel_card->code ?? '' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.vehicleItem.fields.acquisition_date') }}
                                     </th>
                                     <td>

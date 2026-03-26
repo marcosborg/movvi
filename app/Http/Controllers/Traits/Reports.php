@@ -173,8 +173,9 @@ trait Reports
                 $cardCodes = [$driver->card->code];
             }
 
-            if (!empty($cardCodes)) {
-                $combustionTransactions = $this->uniqueCombustionTransactions($tvde_week_id, $cardCodes);
+            $combustionTransactions = $this->uniqueCombustionTransactionsForDriver($tvde_week_id, $driver, $cardCodes);
+
+            if ($combustionTransactions->isNotEmpty()) {
                 $combustion_total = (float) $combustionTransactions->sum(function ($t) {
                     return (float) $t->total;
                 });
@@ -886,6 +887,33 @@ trait Reports
         }
 
         return $query->get()
+            ->unique(function ($transaction) {
+                $timestamp = $transaction->date ?? $transaction->created_at;
+                return sprintf(
+                    '%s|%s|%s|%s',
+                    $transaction->card,
+                    $transaction->amount,
+                    $transaction->total,
+                    (string) $timestamp
+                );
+            })
+            ->values();
+    }
+
+    protected function uniqueCombustionTransactionsForDriver(int $tvde_week_id, Driver $driver, array $cardCodes = [])
+    {
+        return CombustionTransaction::where('tvde_week_id', $tvde_week_id)
+            ->where(function ($query) use ($driver, $cardCodes) {
+                $query->where('driver_id', $driver->id);
+
+                if (!empty($cardCodes)) {
+                    $query->orWhere(function ($legacyQuery) use ($cardCodes) {
+                        $legacyQuery->whereNull('driver_id')
+                            ->whereIn('card', $cardCodes);
+                    });
+                }
+            })
+            ->get()
             ->unique(function ($transaction) {
                 $timestamp = $transaction->date ?? $transaction->created_at;
                 return sprintf(

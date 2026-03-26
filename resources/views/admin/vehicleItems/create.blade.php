@@ -63,6 +63,18 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.vehicleItem.fields.license_plate_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('fuel_card_id') ? 'has-error' : '' }}">
+                            <label for="fuel_card_id">{{ trans('cruds.vehicleItem.fields.fuel_card') }}</label>
+                            <select class="form-control select2" name="fuel_card_id" id="fuel_card_id">
+                                @foreach($fuel_cards as $id => $entry)
+                                    <option value="{{ $id }}" {{ old('fuel_card_id') == $id ? 'selected' : '' }}>{{ $entry }}</option>
+                                @endforeach
+                            </select>
+                            @if($errors->has('fuel_card_id'))
+                                <span class="help-block" role="alert">{{ $errors->first('fuel_card_id') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.vehicleItem.fields.fuel_card_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('acquisition_date') ? 'has-error' : '' }}">
                             <label for="acquisition_date">{{ trans('cruds.vehicleItem.fields.acquisition_date') }}</label>
                             <input class="form-control" type="date" name="acquisition_date" id="acquisition_date" value="{{ old('acquisition_date') }}">
