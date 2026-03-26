@@ -148,6 +148,8 @@ class HomeController
             ->filter(fn ($t) => ($cardUnits[$t->card] ?? 'L') === 'kWh')
             ->sum('amount');
 
+        $car_track_details = $this->driverCarTrackDetails((int) $driver_id, (int) $tvde_week_id);
+
         return view('home')->with([
             'company_id'                => $company_id,
             'tvde_year_id'              => $tvde_year_id,
@@ -171,6 +173,7 @@ class HomeController
             'car_track'                 => isset($results) ? $results->car_track : 0,
             'car_hire'                  => isset($results) ? $results->car_hire : 0,
             'fuel_transactions'         => isset($results) ? $results->fuel_transactions : 0,
+            'car_track_details'         => $car_track_details,
             'driver_balance'            => $driver_balance ?? null,
             'expenseReceipt'            => $expenseReceipt ?? null,
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Traits\Reports;
 use App\Notifications\NewReceipt;
 use App\Models\CurrentAccount;
 use App\Models\Document;
@@ -24,6 +25,8 @@ use Illuminate\Http\Request;
 
 class MobileController extends Controller
 {
+    use Reports;
+
     public function me(Request $request)
     {
         $user = $request->user()->load('roles');
@@ -896,6 +899,8 @@ class MobileController extends Controller
                 'balance' => null,
                 'vehicle' => null,
                 'vehicle_profitability' => null,
+                'combustion_transactions' => [],
+                'car_track_details' => [],
                 'recent_receipts' => [],
                 'actions' => [],
             ];
@@ -913,6 +918,8 @@ class MobileController extends Controller
                 'balance' => null,
                 'vehicle' => null,
                 'vehicle_profitability' => null,
+                'combustion_transactions' => [],
+                'car_track_details' => [],
                 'recent_receipts' => [],
                 'actions' => $this->driverActions(),
             ];
@@ -934,6 +941,17 @@ class MobileController extends Controller
             : null;
 
         $accountSummary = $currentAccount ? (json_decode($currentAccount->data, true) ?? []) : null;
+        $driver->loadMissing(['cards:id,code,type', 'card:id,code,type']);
+        $fuelDetails = $this->serializeDriverFuelTransactions($driver, $week);
+        $carTrackDetails = $this->driverCarTrackDetails($driver->id, $week->id)
+            ->map(function (array $item) {
+                return [
+                    'date' => $item['date'],
+                    'value' => (float) ($item['value'] ?? 0),
+                ];
+            })
+            ->values()
+            ->all();
 
         return [
             'enabled' => true,
@@ -949,9 +967,55 @@ class MobileController extends Controller
                 'model' => optional($vehicle->vehicle_model)->name,
             ] : null,
             'vehicle_profitability' => $profitability,
+            'combustion_transactions' => $fuelDetails,
+            'car_track_details' => $carTrackDetails,
             'recent_receipts' => $this->serializeRecentReceipts($driver),
             'actions' => $this->driverActions(),
         ];
+    }
+
+    private function serializeDriverFuelTransactions(Driver $driver, TvdeWeek $week): array
+    {
+        $cards = $driver->cards;
+
+        if ($cards->isEmpty() && $driver->card) {
+            $cards = collect([$driver->card]);
+        }
+
+        $cardUnits = [];
+        foreach ($cards as $card) {
+            if (! $card || ! $card->code) {
+                continue;
+            }
+
+            $type = strtolower((string) ($card->type ?? ''));
+            $isElectric = str_contains($type, 'eletric') || str_contains($type, 'electric') || str_contains($type, 'ev');
+            $cardUnits[$card->code] = $isElectric ? 'kWh' : 'L';
+        }
+
+        $cardCodes = array_keys($cardUnits);
+        if (empty($cardCodes)) {
+            return [];
+        }
+
+        return $this->uniqueCombustionTransactions($week->id, $cardCodes)
+            ->sortByDesc(function ($transaction) {
+                return $transaction->date ?? $transaction->created_at;
+            })
+            ->map(function ($transaction) use ($cardUnits) {
+                $date = $transaction->date ?? $transaction->created_at;
+
+                return [
+                    'id' => $transaction->id,
+                    'card' => $transaction->card,
+                    'amount' => (float) ($transaction->amount ?? 0),
+                    'unit' => $cardUnits[$transaction->card] ?? 'L',
+                    'total' => (float) ($transaction->total ?? 0),
+                    'date' => $date ? Carbon::parse($date)->format('Y-m-d H:i:s') : null,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     private function serializeStatementMetrics(?array $accountSummary): ?array

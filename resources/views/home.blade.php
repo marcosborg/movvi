@@ -417,6 +417,31 @@
                     </form>
                 </div>
             </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Passagens Via Verde da semana
+                </div>
+                <div class="panel-body">
+                    @if(($car_track_details ?? collect())->count())
+                        <table class="table table-striped">
+                            <tbody>
+                                <tr>
+                                    <th style="text-align:left;">Data</th>
+                                    <th style="text-align:right;">Valor</th>
+                                </tr>
+                                @foreach($car_track_details as $item)
+                                    <tr>
+                                        <td style="text-align:left;">{{ \Carbon\Carbon::parse($item['date'])->format('d-m-Y H:i') }}</td>
+                                        <td>{{ number_format((float) $item['value'], 2, ',', ' ') }} EUR</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <p>Sem passagens Via Verde para a semana filtrada.</p>
+                    @endif
+                </div>
+            </div>
         </div>
     </div>
     @endif

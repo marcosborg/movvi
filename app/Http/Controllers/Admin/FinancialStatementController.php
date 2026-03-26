@@ -71,6 +71,8 @@ class FinancialStatementController extends Controller
             'tvde_week_id' => $tvde_week_id
         ])->first();
 
+        $car_track_details = $this->driverCarTrackDetails((int) $driver_id, (int) $tvde_week_id);
+
         //return $results;
 
         // Prefer the new commission total when available to avoid re-applying expenses.
@@ -101,6 +103,7 @@ class FinancialStatementController extends Controller
             'total' => $total ?? 0,
             'vat_value' => isset($results) ? $results->vat_value : 0,
             'car_track' => isset($results) ? $results->car_track : 0,
+            'car_track_details' => $car_track_details,
             'car_hire' => isset($results) ? $results->car_hire : 0,
             'fuel_transactions' => isset($results) ? $results->fuel_transactions : 0,
             'driver_balance' => $driver_balance ?? null,
@@ -203,7 +206,7 @@ class FinancialStatementController extends Controller
                 ])->get();
                 $electric_expenses = collect([
                     'amount' => number_format($electric_transactions->sum('amount'), 2, '.', '') . ' kWh',
-                    'total' => number_format($electric_transactions->sum('total'), 2, '.', '') . ' â‚¬',
+                    'total' => number_format($electric_transactions->sum('total'), 2, '.', '') . ' EUR',
                     'value' => $electric_transactions->sum('total')
                 ]);
             }
@@ -222,7 +225,7 @@ class FinancialStatementController extends Controller
             });
             $combustion_expenses = collect([
                 'amount' => number_format($combustion_transactions->sum('amount'), 2, '.', '') . ' L',
-                'total' => number_format($combustion_total, 2, '.', '') . ' €',
+                'total' => number_format($combustion_total, 2, '.', '') . ' EUR',
                 'value' => $combustion_total
             ]);
         }
@@ -460,4 +463,3 @@ class FinancialStatementController extends Controller
     }
 
 }
-

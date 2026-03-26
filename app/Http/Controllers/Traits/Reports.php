@@ -927,6 +927,70 @@ trait Reports
             ->values();
     }
 
+    protected function driverCarTrackDetails(int $driverId, int $tvdeWeekId)
+    {
+        $tvdeWeek = TvdeWeek::find($tvdeWeekId);
+
+        if (!$tvdeWeek || !$driverId) {
+            return collect();
+        }
+
+        $weekStart = Carbon::parse($tvdeWeek->getRawOriginal('start_date'))->startOfDay();
+        $weekEnd = Carbon::parse($tvdeWeek->getRawOriginal('end_date'))->endOfDay();
+
+        $usageIntervals = VehicleUsage::with('vehicle_item')
+            ->where('driver_id', $driverId)
+            ->where('start_date', '<=', $tvdeWeek->end_date)
+            ->where(function ($query) use ($tvdeWeek) {
+                $query->whereNull('end_date')
+                    ->orWhere('end_date', '>=', $tvdeWeek->start_date);
+            })
+            ->where(function ($query) {
+                $query->whereNull('usage_exceptions')
+                    ->orWhere('usage_exceptions', 'usage');
+            })
+            ->get();
+
+        $details = collect();
+
+        foreach ($usageIntervals as $usage) {
+            $plate = optional($usage->vehicle_item)->license_plate;
+            if (!$plate) {
+                continue;
+            }
+
+            $normalizedPlate = strtoupper(str_replace(['-', ' '], '', $plate));
+            $usageStart = $usage->start_date ? Carbon::parse($usage->start_date) : $weekStart;
+            $usageEnd = $usage->end_date ? Carbon::parse($usage->end_date) : $weekEnd;
+
+            if ($usageEnd->lessThan($usageStart)) {
+                continue;
+            }
+
+            $rows = \DB::table('car_tracks as ct')
+                ->select(['ct.date', 'ct.value'])
+                ->where('ct.tvde_week_id', $tvdeWeek->id)
+                ->whereNull('ct.deleted_at')
+                ->whereRaw("REPLACE(REPLACE(UPPER(ct.license_plate), '-', ''), ' ', '') = ?", [$normalizedPlate])
+                ->whereBetween('ct.date', [$usageStart->toDateTimeString(), $usageEnd->toDateTimeString()])
+                ->orderBy('ct.date')
+                ->get();
+
+            foreach ($rows as $row) {
+                $details->push([
+                    'date' => $row->date,
+                    'value' => (float) $row->value,
+                    'signature' => sprintf('%s|%s', (string) $row->date, (string) $row->value),
+                ]);
+            }
+        }
+
+        return $details
+            ->unique('signature')
+            ->sortBy('date')
+            ->values();
+    }
+
     /**
      * CarHire is the single source of truth for rental proration (civil days).
      */
