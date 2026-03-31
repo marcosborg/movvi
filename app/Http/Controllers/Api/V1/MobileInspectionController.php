@@ -283,7 +283,7 @@ class MobileInspectionController extends Controller
             'type' => ['required', 'in:handover,return'],
             'vehicle_id' => ['required', 'integer', 'exists:vehicle_items,id'],
             'driver_id' => ['nullable', 'integer', Rule::exists('drivers', 'id')->where(fn ($query) => $query->where('state_id', '!=', 2))],
-            'source_driver_id' => ['nullable', 'integer', Rule::exists('drivers', 'id')->where(fn ($query) => $query->where('state_id', '!=', 2))],
+            'source_driver_id' => ['nullable', 'integer', 'exists:drivers,id'],
             'transfer_mode' => ['nullable', 'in:entrega,recolha,passagem'],
             'location_lat' => ['nullable', 'numeric'],
             'location_lng' => ['nullable', 'numeric'],
@@ -308,7 +308,7 @@ class MobileInspectionController extends Controller
         $validated = Validator::make($request->all(), [
             'vehicle_id' => ['required', 'integer', 'exists:vehicle_items,id'],
             'driver_id' => ['nullable', 'integer', Rule::exists('drivers', 'id')->where(fn ($query) => $query->where('state_id', '!=', 2))],
-            'source_driver_id' => ['nullable', 'integer', Rule::exists('drivers', 'id')->where(fn ($query) => $query->where('state_id', '!=', 2))],
+            'source_driver_id' => ['nullable', 'integer', 'exists:drivers,id'],
             'transfer_mode' => ['required', 'in:entrega,recolha,passagem'],
         ])->validate();
 
