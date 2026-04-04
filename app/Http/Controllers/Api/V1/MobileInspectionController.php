@@ -221,6 +221,7 @@ class MobileInspectionController extends Controller
     public function createOptions(Request $request)
     {
         $this->ensureUserIsAdmin($request);
+        $showAll = $request->boolean('show_all');
 
         $activeUsages = VehicleUsage::query()
             ->with('driver:id,name')
@@ -228,15 +229,20 @@ class MobileInspectionController extends Controller
                 $query->whereNull('end_date')->orWhere('end_date', '>=', now()->format('Y-m-d H:i:s'));
             })
             ->orderByDesc('start_date')
-            ->get()
+            ->get();
+        $activeUsagesByVehicle = $activeUsages
             ->unique('vehicle_item_id')
             ->keyBy('vehicle_item_id');
-        $activeDriverIds = $activeUsages
-            ->pluck('driver_id')
-            ->filter()
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values();
+        $activeUsagesByDriver = $activeUsages
+            ->filter(fn (VehicleUsage $usage) => !empty($usage->driver_id))
+            ->unique('driver_id')
+            ->keyBy('driver_id');
+        $vehiclesById = VehicleItem::query()
+            ->where(function ($query) {
+                $query->whereNull('suspended')->orWhere('suspended', false)->orWhere('suspended', 0);
+            })
+            ->get(['id', 'license_plate'])
+            ->keyBy('id');
 
         return response()->json([
             'types' => collect(array_values((array) config('inspections.types', [])))
@@ -248,8 +254,8 @@ class MobileInspectionController extends Controller
                 })
                 ->orderBy('license_plate')
                 ->get(['id', 'license_plate', 'driver_id'])
-                ->map(function (VehicleItem $vehicle) use ($activeUsages) {
-                    $activeUsage = $activeUsages->get($vehicle->id);
+                ->map(function (VehicleItem $vehicle) use ($activeUsagesByVehicle) {
+                    $activeUsage = $activeUsagesByVehicle->get($vehicle->id);
 
                     return [
                         'id' => (int) $vehicle->id,
@@ -258,18 +264,26 @@ class MobileInspectionController extends Controller
                         'driver_name' => $activeUsage?->driver?->name,
                     ];
                 })
+                ->when(!$showAll, fn ($collection) => $collection->filter(fn (array $vehicle) => empty($vehicle['driver_id'])))
                 ->values(),
             'drivers' => Driver::query()
                 ->where('state_id', '!=', 2)
-                ->when($activeDriverIds->isNotEmpty(), function ($query) use ($activeDriverIds) {
-                    $query->whereNotIn('id', $activeDriverIds->all());
-                })
                 ->orderBy('name')
                 ->get(['id', 'name'])
-                ->map(fn (Driver $driver) => [
-                    'id' => (int) $driver->id,
-                    'name' => (string) $driver->name,
-                ])
+                ->map(function (Driver $driver) use ($activeUsagesByDriver, $vehiclesById) {
+                    $activeUsage = $activeUsagesByDriver->get($driver->id);
+                    $currentVehicle = $activeUsage?->vehicle_item_id
+                        ? $vehiclesById->get($activeUsage->vehicle_item_id)
+                        : null;
+
+                    return [
+                        'id' => (int) $driver->id,
+                        'name' => (string) $driver->name,
+                        'current_vehicle_id' => $currentVehicle?->id ? (int) $currentVehicle->id : null,
+                        'current_vehicle_license_plate' => $currentVehicle?->license_plate,
+                    ];
+                })
+                ->when(!$showAll, fn ($collection) => $collection->filter(fn (array $driver) => empty($driver['current_vehicle_id'])))
                 ->values(),
         ]);
     }
