@@ -21,11 +21,12 @@
     </div>
     <div class="btn-group btn-group-justified" role="group" style="margin-top: 5px;">
         @foreach ($tvde_weeks as $tvde_week)
-        <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana de {{
-            \Carbon\Carbon::parse($tvde_week->start_date)->format('d')
-            }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d') }}</a>
+        <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana {{ $tvde_week->display_number ?? $tvde_week->number }}/{{ $tvde_week->display_year ?? '-' }} · {{
+            \Carbon\Carbon::parse($tvde_week->start_date)->format('d/m')
+            }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d/m') }}</a>
         @endforeach
     </div>
+    @include('admin.partials.weekQuickSelect', ['tvde_weeks' => $tvde_weeks, 'tvde_week_id' => $tvde_week_id])
     @endif
     <div class="row" style="margin-top: 20px;">
         <div class="col-lg-6">

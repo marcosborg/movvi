@@ -80,6 +80,7 @@ class VehicleProfitabilityService
 
         arsort($driverUsageSeconds);
         $driverIds = array_map('intval', array_keys($driverUsageSeconds));
+        $driverWeekUsageSeconds = self::buildDriverWeekUsageSeconds($weekStart, $weekEnd, $driverIds);
 
         $accounts = CurrentAccount::with('driver')
             ->where('tvde_week_id', $week->id)
@@ -96,6 +97,10 @@ class VehicleProfitabilityService
 
         foreach ($driverIds as $driverId) {
             $usageSeconds = (int) ($driverUsageSeconds[$driverId] ?? 0);
+            $driverTotalUsageSeconds = (int) ($driverWeekUsageSeconds[$driverId] ?? 0);
+            $allocationRatio = $driverTotalUsageSeconds > 0
+                ? ($usageSeconds / $driverTotalUsageSeconds)
+                : 0.0;
             $account = $accounts->get($driverId);
             $fallbackAdjustments = self::calculateDriverAdjustmentsForWeek(
                 $driverId,
@@ -106,15 +111,17 @@ class VehicleProfitabilityService
 
             if (!$account) {
                 $missingAccounts[] = $driverId;
+                $allocatedFallbackAdjustments = $fallbackAdjustments * $allocationRatio;
                 $drivers[] = [
                     'id' => $driverId,
                     'name' => $driverNames[$driverId] ?? null,
                     'usage_seconds' => $usageSeconds,
+                    'allocation_ratio' => $allocationRatio,
                     'type' => 'unknown',
                     'rental' => 0.0,
                     'commission' => 0.0,
-                    'adjustments' => $fallbackAdjustments,
-                    'general_adjustments' => $fallbackAdjustments,
+                    'adjustments' => $allocatedFallbackAdjustments,
+                    'general_adjustments' => $allocatedFallbackAdjustments,
                     'minimum_billing_difference' => 0.0,
                     'has_current_account' => false,
                 ];
@@ -128,7 +135,11 @@ class VehicleProfitabilityService
                 ? (float) ($earnings['general_adjustments'] ?? 0)
                 : (float) ($earnings['adjustments'] ?? 0);
             $minimumBillingDifference = 0 - (float) ($earnings['diferenca_faturacao_minima'] ?? 0);
-            $adjustments = $generalAdjustments + $minimumBillingDifference;
+            $allocatedRental = $rental * $allocationRatio;
+            $allocatedCommission = $commission * $allocationRatio;
+            $allocatedGeneralAdjustments = $generalAdjustments * $allocationRatio;
+            $allocatedMinimumBillingDifference = $minimumBillingDifference * $allocationRatio;
+            $adjustments = $allocatedGeneralAdjustments + $allocatedMinimumBillingDifference;
 
             $type = 'unknown';
             if ($rental > 0 && $commission <= 0) {
@@ -141,21 +152,22 @@ class VehicleProfitabilityService
                 $type = 'none';
             }
 
-            $totalRental += $rental;
-            $totalCommission += $commission;
-            $totalGeneralAdjustments += $generalAdjustments;
-            $totalMinimumBillingDifference += $minimumBillingDifference;
+            $totalRental += $allocatedRental;
+            $totalCommission += $allocatedCommission;
+            $totalGeneralAdjustments += $allocatedGeneralAdjustments;
+            $totalMinimumBillingDifference += $allocatedMinimumBillingDifference;
 
             $drivers[] = [
                 'id' => (int) $account->driver->id,
                 'name' => $account->driver->name ?? null,
                 'usage_seconds' => $usageSeconds,
+                'allocation_ratio' => $allocationRatio,
                 'type' => $type,
-                'rental' => $rental,
-                'commission' => $commission,
+                'rental' => $allocatedRental,
+                'commission' => $allocatedCommission,
                 'adjustments' => $adjustments,
-                'general_adjustments' => $generalAdjustments,
-                'minimum_billing_difference' => $minimumBillingDifference,
+                'general_adjustments' => $allocatedGeneralAdjustments,
+                'minimum_billing_difference' => $allocatedMinimumBillingDifference,
                 'has_current_account' => true,
             ];
         }
@@ -262,6 +274,7 @@ class VehicleProfitabilityService
         }
 
         $driverIds = array_keys($driverIds);
+        $driverWeekUsageSeconds = self::buildDriverWeekUsageSeconds($weekStart, $weekEnd, $driverIds);
 
         $accounts = CurrentAccount::query()
             ->where('tvde_week_id', $week->id)
@@ -291,6 +304,10 @@ class VehicleProfitabilityService
             $missingAccountsCount = 0;
 
             foreach ($drivers as $driverId => $seconds) {
+                $driverTotalUsageSeconds = (int) ($driverWeekUsageSeconds[(int) $driverId] ?? 0);
+                $allocationRatio = $driverTotalUsageSeconds > 0
+                    ? ($seconds / $driverTotalUsageSeconds)
+                    : 0.0;
                 $earnings = $decoded[(int) $driverId] ?? null;
                 $fallbackAdjustments = self::calculateDriverAdjustmentsForWeek(
                     (int) $driverId,
@@ -300,17 +317,19 @@ class VehicleProfitabilityService
                 );
 
                 if ($earnings === null) {
-                    $generalAdjustmentsTotal += $fallbackAdjustments;
+                    $generalAdjustmentsTotal += $fallbackAdjustments * $allocationRatio;
                     $missingAccountsCount++;
                     continue;
                 }
 
-                $rentalTotal += (float) ($earnings['car_hire'] ?? 0);
-                $commissionTotal += (float) ($earnings['percent_value'] ?? 0);
-                $generalAdjustmentsTotal += array_key_exists('general_adjustments', $earnings)
-                    ? (float) ($earnings['general_adjustments'] ?? 0)
-                    : (float) ($earnings['adjustments'] ?? 0);
-                $minimumBillingDifferenceTotal += 0 - (float) ($earnings['diferenca_faturacao_minima'] ?? 0);
+                $rentalTotal += (float) ($earnings['car_hire'] ?? 0) * $allocationRatio;
+                $commissionTotal += (float) ($earnings['percent_value'] ?? 0) * $allocationRatio;
+                $generalAdjustmentsTotal += (
+                    array_key_exists('general_adjustments', $earnings)
+                        ? (float) ($earnings['general_adjustments'] ?? 0)
+                        : (float) ($earnings['adjustments'] ?? 0)
+                ) * $allocationRatio;
+                $minimumBillingDifferenceTotal += (0 - (float) ($earnings['diferenca_faturacao_minima'] ?? 0)) * $allocationRatio;
             }
 
             $adjustmentsTotal = $generalAdjustmentsTotal + $minimumBillingDifferenceTotal;
@@ -418,6 +437,41 @@ class VehicleProfitabilityService
         }
 
         return self::$hasVehicleProfitabilityAdjustmentsColumn;
+    }
+
+    private static function buildDriverWeekUsageSeconds(Carbon $weekStart, Carbon $weekEnd, array $driverIds): array
+    {
+        if (empty($driverIds)) {
+            return [];
+        }
+
+        $secondsByDriver = [];
+        $usages = VehicleUsage::query()
+            ->whereIn('driver_id', $driverIds)
+            ->where('start_date', '<=', $weekEnd)
+            ->where(function ($query) use ($weekStart) {
+                $query->whereNull('end_date')
+                    ->orWhere('end_date', '>=', $weekStart);
+            })
+            ->get(['driver_id', 'start_date', 'end_date']);
+
+        foreach ($usages as $usage) {
+            $usageStart = Carbon::parse($usage->start_date);
+            $usageEnd = $usage->end_date ? Carbon::parse($usage->end_date) : $weekEnd;
+
+            $intervalStart = $usageStart->greaterThan($weekStart) ? $usageStart : $weekStart;
+            $intervalEnd = $usageEnd->lessThan($weekEnd) ? $usageEnd : $weekEnd;
+
+            if ($intervalEnd->lessThan($intervalStart)) {
+                continue;
+            }
+
+            $driverId = (int) $usage->driver_id;
+            $secondsByDriver[$driverId] = ($secondsByDriver[$driverId] ?? 0)
+                + $intervalEnd->diffInSeconds($intervalStart) + 1;
+        }
+
+        return $secondsByDriver;
     }
 
     private static function emptyResult(

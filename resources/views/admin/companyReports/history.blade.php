@@ -17,6 +17,18 @@
     tr:nth-child(odd) {
         background-color: #ffffff;
     }
+
+    .report-toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 15px;
+    }
+
+    .report-toolbar .form-control {
+        max-width: 260px;
+    }
 </style>
 @endsection
 @section('content')
@@ -41,20 +53,30 @@
     </div>
     <div class="btn-group btn-group-justified" role="group" style="margin-top: 5px;">
         @foreach ($tvde_weeks as $tvde_week)
-        <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana de {{
-            \Carbon\Carbon::parse($tvde_week->start_date)->format('d')
-            }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d') }}</a>
+        <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana {{ $tvde_week->display_number ?? $tvde_week->number }}/{{ $tvde_week->display_year ?? '-' }} · {{
+            \Carbon\Carbon::parse($tvde_week->start_date)->format('d/m')
+            }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d/m') }}</a>
         @endforeach
     </div>
+    @include('admin.partials.weekQuickSelect', ['tvde_weeks' => $tvde_weeks, 'tvde_week_id' => $tvde_week_id])
 
     <div class="panel panel-default" style="margin-top: 20px;">
         <div class="panel-heading">
             Faturacao (Historico)
         </div>
+        <div class="panel-body" style="border-bottom: 1px solid #f4f4f4;">
+            <div class="report-toolbar">
+                <input type="text" id="historyReportSearch" class="form-control" placeholder="Filtrar por condutor ou matricula">
+            </div>
+        </div>
         <div class="table-sticky-container">
             <table class="table table-bordered table-striped table-sm">
                 <thead>
-                    <tr>
+                    <tr
+                        class="history-driver-row"
+                        data-driver="{{ mb_strtolower($driver->name ?? '') }}"
+                        data-plate="{{ mb_strtolower($driver->license_plate ?? '') }}"
+                    >
                         <th>Condutor</th>
                         <th>Matricula</th>
                         <th style="text-align: right; background: #eeeeee; display: none;">Bruto Uber</th>
@@ -190,4 +212,24 @@
 
 @endif
 </div>
+@endsection
+@section('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('historyReportSearch');
+        const rows = Array.from(document.querySelectorAll('.history-driver-row'));
+
+        const applyHistoryFilter = () => {
+            const search = (searchInput?.value || '').trim().toLowerCase();
+
+            rows.forEach((row) => {
+                const driver = row.dataset.driver || '';
+                const plate = row.dataset.plate || '';
+                row.style.display = search === '' || driver.includes(search) || plate.includes(search) ? '' : 'none';
+            });
+        };
+
+        searchInput?.addEventListener('input', applyHistoryFilter);
+    });
+</script>
 @endsection

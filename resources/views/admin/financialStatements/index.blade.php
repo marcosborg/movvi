@@ -21,11 +21,12 @@
     </div>
     <div class="btn-group btn-group-justified" role="group" style="margin-top: 5px;">
         @foreach ($tvde_weeks as $tvde_week)
-        <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana de {{
-            \Carbon\Carbon::parse($tvde_week->start_date)->format('d')
-            }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d') }}</a>
+        <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana {{ $tvde_week->display_number ?? $tvde_week->number }}/{{ $tvde_week->display_year ?? '-' }} · {{
+            \Carbon\Carbon::parse($tvde_week->start_date)->format('d/m')
+            }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d/m') }}</a>
         @endforeach
     </div>
+    @include('admin.partials.weekQuickSelect', ['tvde_weeks' => $tvde_weeks, 'tvde_week_id' => $tvde_week_id])
     <a href="/admin/financial-statements/driver/0" class="btn btn-default {{ $driver_id == null ? 'disabled selected' : '' }}" style="margin-top: 5px;">Todos</a>
     @foreach ($drivers as $d)
     <a href="/admin/financial-statements/driver/{{ $d->id }}" class="btn btn-default {{ $driver_id == $d->id ? 'disabled selected' : '' }}" style="margin-top: 5px;">{{
@@ -200,6 +201,36 @@
                         <a href="/admin/financial-statements/pdf/1" class="btn btn-primary"><i class="fa fa-cloud-download"></i></a>
                     </div>
                 </div>
+                @if(session('status'))
+                <div class="alert alert-success" style="margin: 0 15px 15px 15px;">
+                    {{ session('status') }}
+                </div>
+                @endif
+                @if($errors->has('statement_email'))
+                <div class="alert alert-danger" style="margin: 0 15px 15px 15px;">
+                    {{ $errors->first('statement_email') }}
+                </div>
+                @endif
+                @if($driver_id && $driver_email)
+                <div class="panel-body" style="padding-top: 0;">
+                    <form action="{{ route('admin.financial-statements.send-email') }}" method="post" class="form-inline">
+                        @csrf
+                        <input type="hidden" name="driver_id" value="{{ $driver_id }}">
+                        <input type="hidden" name="tvde_week_id" value="{{ $tvde_week_id }}">
+                        <button type="submit" class="btn btn-info">Enviar extrato por email</button>
+                        <span style="margin-left: 10px;">
+                            Destino: <strong>{{ $driver_email }}</strong>
+                            @if($statement_sent_at)
+                            <small style="display:block;">Ultimo envio: {{ \Carbon\Carbon::parse($statement_sent_at)->format('d/m/Y H:i') }} para {{ $statement_sent_to }}</small>
+                            @endif
+                        </span>
+                    </form>
+                </div>
+                @elseif($driver_id)
+                <div class="alert alert-warning" style="margin: 0 15px 15px 15px;">
+                    O motorista selecionado nao tem email configurado.
+                </div>
+                @endif
                 @if (auth()->user()->hasRole('Admin'))
                 <div class="panel-footer">
                     <form action="/admin/financial-statements/update-balance" method="post" id="update-balance">

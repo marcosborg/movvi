@@ -23,6 +23,8 @@ class CurrentAccount extends Model
         'tvde_week_id',
         'driver_id',
         'data',
+        'statement_sent_at',
+        'statement_sent_to',
         'created_at',
         'updated_at',
         'deleted_at',

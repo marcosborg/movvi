@@ -37,6 +37,18 @@
     .receipt-check-cell {
         min-width: 150px;
     }
+
+    .report-toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 15px;
+    }
+
+    .report-toolbar .form-control {
+        max-width: 260px;
+    }
 </style>
 @endsection
 @section('scripts')
@@ -126,9 +138,10 @@
         </div>
         <div class="btn-group btn-group-justified" role="group" style="margin-top: 5px;">
             @foreach ($tvde_weeks as $tvde_week)
-                <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana de {{ \Carbon\Carbon::parse($tvde_week->start_date)->format('d') }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d') }}</a>
+                <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana {{ $tvde_week->display_number ?? $tvde_week->number }}/{{ $tvde_week->display_year ?? '-' }} · {{ \Carbon\Carbon::parse($tvde_week->start_date)->format('d/m') }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d/m') }}</a>
             @endforeach
         </div>
+        @include('admin.partials.weekQuickSelect', ['tvde_weeks' => $tvde_weeks, 'tvde_week_id' => $tvde_week_id])
 
         <div class="row" style="margin-top: 20px;">
             <div class="col-md-3">
@@ -276,6 +289,22 @@
                 <button class="btn btn-primary btn-sm pull-right" onclick="selectAll()" id="selectAll">Selecionar todos</button>
                 <button class="btn btn-primary btn-sm pull-right" onclick="unselectAll()" id="unselectAll" style="display: none;">Remover seleção</button>
             </div>
+            <div class="panel-body" style="border-bottom: 1px solid #f4f4f4;">
+                <div class="report-toolbar">
+                    <input type="text" id="reportSearch" class="form-control" placeholder="Filtrar por condutor ou viatura">
+                    <select id="reportValidationFilter" class="form-control">
+                        <option value="all">Todos os estados de validacao</option>
+                        <option value="validated">Validados</option>
+                        <option value="pending">Pendentes</option>
+                    </select>
+                    <select id="reportReceiptCheckFilter" class="form-control">
+                        <option value="all">Todos os duplos checks</option>
+                        <option value="match">Duplo check OK</option>
+                        <option value="mismatch">Duplo check divergente</option>
+                        <option value="missing">Sem recibo validado</option>
+                    </select>
+                </div>
+            </div>
             <div class="table-sticky-container">
                 <table class="table table-bordered table-striped table-sm">
                     <thead>
@@ -312,7 +341,13 @@
                     <tbody>
                         @foreach ($drivers as $driver)
                             @if ($driver->earnings)
-                                <tr>
+                                <tr
+                                    class="report-driver-row"
+                                    data-driver="{{ mb_strtolower($driver->name ?? '') }}"
+                                    data-plate="{{ mb_strtolower($driver->license_plate ?? '') }}"
+                                    data-validation="{{ $driver->current_account ? 'validated' : 'pending' }}"
+                                    data-receipt-check="{{ $driver->receipt_check['status'] ?? 'missing' }}"
+                                >
                                     <td>{{ $driver->name }}</td>
                                     <td>{{ $driver->license_plate ?? '-' }}</td>
                                     <td style="text-align: right; background: #eeeeee; display: none;">{{ number_format($driver->earnings['uber']['uber_gross'] ?? 0, 2) }} <small>€</small></td>
@@ -483,6 +518,34 @@
                 this.form.submit();
             });
         });
+
+        const searchInput = document.getElementById('reportSearch');
+        const validationFilter = document.getElementById('reportValidationFilter');
+        const receiptCheckFilter = document.getElementById('reportReceiptCheckFilter');
+        const rows = Array.from(document.querySelectorAll('.report-driver-row'));
+
+        const applyReportFilters = () => {
+            const search = (searchInput?.value || '').trim().toLowerCase();
+            const validation = validationFilter?.value || 'all';
+            const receiptCheck = receiptCheckFilter?.value || 'all';
+
+            rows.forEach((row) => {
+                const driver = row.dataset.driver || '';
+                const plate = row.dataset.plate || '';
+                const rowValidation = row.dataset.validation || 'pending';
+                const rowReceiptCheck = row.dataset.receiptCheck || 'missing';
+
+                const matchesSearch = search === '' || driver.includes(search) || plate.includes(search);
+                const matchesValidation = validation === 'all' || rowValidation === validation;
+                const matchesReceiptCheck = receiptCheck === 'all' || rowReceiptCheck === receiptCheck;
+
+                row.style.display = matchesSearch && matchesValidation && matchesReceiptCheck ? '' : 'none';
+            });
+        };
+
+        searchInput?.addEventListener('input', applyReportFilters);
+        validationFilter?.addEventListener('change', applyReportFilters);
+        receiptCheckFilter?.addEventListener('change', applyReportFilters);
     });
 
     function deleteData(tvde_week_id, driver_id) {

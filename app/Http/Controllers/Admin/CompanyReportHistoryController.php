@@ -78,7 +78,7 @@ class CompanyReportHistoryController extends Controller
             $driver->new_balance = $balance ? (float) $balance->new_balance : 0.0;
 
             return $driver;
-        });
+        })->sortByDesc(fn ($driver) => (float) ($driver->total ?? 0))->values();
 
         $totals = collect([
             'gross_uber' => $drivers->sum(fn ($d) => (float) ($d->earnings['uber']['uber_gross'] ?? 0)),

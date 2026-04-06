@@ -307,6 +307,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
         Route::get('month/{tvde_month_id}', 'FinancialStatementController@month');
         Route::get('week/{tvde_week_id}', 'FinancialStatementController@week');
         Route::get('driver/{driver_id}', 'FinancialStatementController@driver');
+        Route::post('send-email', 'FinancialStatementController@sendEmail')->name('financial-statements.send-email');
         Route::post('update-balance', 'FinancialStatementController@updateBalance');
     });
 

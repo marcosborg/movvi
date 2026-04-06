@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\DriverFinancialStatementMail;
 use App\Models\Adjustment;
 use App\Models\Card;
 use App\Models\CombustionTransaction;
@@ -19,6 +20,7 @@ use App\Models\TvdeYear;
 use App\Models\CurrentAccount;
 use Gate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\Response;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Http\Controllers\Traits\Reports;
@@ -115,6 +117,9 @@ class FinancialStatementController extends Controller
             'car_hire' => isset($results) ? $results->car_hire : 0,
             'fuel_transactions' => isset($results) ? $results->fuel_transactions : 0,
             'driver_balance' => $driver_balance ?? null,
+            'statement_sent_at' => $results && isset($currentAccount?->statement_sent_at) ? $currentAccount->statement_sent_at : null,
+            'statement_sent_to' => $results && isset($currentAccount?->statement_sent_to) ? $currentAccount->statement_sent_to : null,
+            'driver_email' => $drivers->firstWhere('id', $driver_id)?->email,
         ]);
     }
 
@@ -159,10 +164,83 @@ class FinancialStatementController extends Controller
         $tvde_week_id = session()->get('tvde_week_id');
         $driver_id = session()->get('driver_id');
         $company_id = session()->get('company_id');
+        $statement = $this->buildStatementPdfData($tvde_week_id, $driver_id, $company_id);
+        $pdf = $this->buildStatementPdf($statement);
 
+
+        if ($request->download) {
+            $filename = $this->statementFilename($statement['driver'], $statement['tvde_week']);
+            return $pdf->download($filename);
+        } else {
+            return $pdf->stream();
+        }
+
+    }
+
+    public function sendEmail(Request $request)
+    {
+        abort_if(Gate::denies('financial_statement_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $request->validate([
+            'driver_id' => 'required|integer|exists:drivers,id',
+            'tvde_week_id' => 'required|integer|exists:tvde_weeks,id',
+        ]);
+
+        $driver = Driver::findOrFail((int) $request->driver_id);
+        $tvdeWeekId = (int) $request->tvde_week_id;
+        $companyId = (int) (session()->get('company_id') ?: $driver->company_id);
+
+        if (blank($driver->email)) {
+            return back()->withErrors([
+                'statement_email' => 'O motorista selecionado nao tem email configurado.',
+            ]);
+        }
+
+        $currentAccount = CurrentAccount::where([
+            'tvde_week_id' => $tvdeWeekId,
+            'driver_id' => $driver->id,
+        ])->first();
+
+        if (!$currentAccount) {
+            return back()->withErrors([
+                'statement_email' => 'Nao existe extrato validado para esse motorista nessa semana.',
+            ]);
+        }
+
+        $statement = $this->buildStatementPdfData($tvdeWeekId, $driver->id, $companyId);
+        $pdf = $this->buildStatementPdf($statement);
+        $filename = $this->statementFilename($statement['driver'], $statement['tvde_week']);
+
+        Mail::to($driver->email)->send(new DriverFinancialStatementMail(
+            $statement,
+            $filename,
+            $pdf->output()
+        ));
+
+        $currentAccount->statement_sent_at = now();
+        $currentAccount->statement_sent_to = $driver->email;
+        $currentAccount->save();
+
+        return back()->with('status', 'Extrato enviado por email para ' . $driver->email . '.');
+    }
+
+    public function updateBalance(Request $request)
+    {
+        $request->validate([
+            'new_balance' => 'required|numeric'
+        ], [], [
+            'new_balance' => 'Saldo'
+        ]);
+
+        $drivers_balance = DriversBalance::find($request->driver_balance_id);
+        $drivers_balance->new_balance = $request->new_balance;
+        $drivers_balance->save();
+    }
+
+    private function buildStatementPdfData(int $tvde_week_id, int $driver_id, int $company_id): array
+    {
         $driver = Driver::find($driver_id);
         $company = Company::find($company_id);
-
         $tvde_week = TvdeWeek::find($tvde_week_id);
         $currentAccount = CurrentAccount::where([
             'tvde_week_id' => $tvde_week_id,
@@ -183,8 +261,7 @@ class FinancialStatementController extends Controller
             'tvde_operator_id' => 1,
             'driver_code' => $driver->uber_uuid,
             'company_id' => $company_id,
-        ])
-            ->get();
+        ])->get();
 
         $adjustments = Adjustment::whereHas('drivers', function ($query) use ($driver_id) {
             $query->where('id', $driver_id);
@@ -202,19 +279,14 @@ class FinancialStatementController extends Controller
 
         $refund = 0;
         $deduct = 0;
-
         foreach ($adjustments as $adjustment) {
-            switch ($adjustment->type) {
-                case 'refund':
-                    $refund = $refund + $adjustment->amount;
-                    break;
-                case 'deduct':
-                    $deduct = $deduct + $adjustment->amount;
-                    break;
+            if ($adjustment->type === 'refund') {
+                $refund += $adjustment->amount;
+            }
+            if ($adjustment->type === 'deduct') {
+                $deduct += $adjustment->amount;
             }
         }
-
-        // FUEL EXPENSES
 
         $electric_expenses = null;
         if ($driver && $driver->electric_id) {
@@ -222,23 +294,20 @@ class FinancialStatementController extends Controller
             if ($electric) {
                 $electric_transactions = ElectricTransaction::where([
                     'card' => $electric->code,
-                    'tvde_week_id' => $tvde_week_id
+                    'tvde_week_id' => $tvde_week_id,
                 ])->get();
                 $electric_expenses = collect([
                     'amount' => number_format($electric_transactions->sum('amount'), 2, '.', '') . ' kWh',
                     'total' => number_format($electric_transactions->sum('total'), 2, '.', '') . ' EUR',
-                    'value' => $electric_transactions->sum('total')
+                    'value' => $electric_transactions->sum('total'),
                 ]);
             }
         }
+
         $combustion_expenses = null;
         if ($driver && $driver->card_id) {
             $card = Card::find($driver->card_id);
-            if (!$card) {
-                $code = 0;
-            } else {
-                $code = $card->code;
-            }
+            $code = $card?->code ?? 0;
             $combustion_transactions = $this->uniqueCombustionTransactions($tvde_week_id, [$code]);
             $combustion_total = $combustion_transactions->sum(function ($t) {
                 return (float) $t->total;
@@ -246,7 +315,7 @@ class FinancialStatementController extends Controller
             $combustion_expenses = collect([
                 'amount' => number_format($combustion_transactions->sum('amount'), 2, '.', '') . ' L',
                 'total' => number_format($combustion_total, 2, '.', '') . ' EUR',
-                'value' => $combustion_total
+                'value' => $combustion_total,
             ]);
         }
 
@@ -258,7 +327,6 @@ class FinancialStatementController extends Controller
         $total_earnings = $bolt_activities->sum('net') + $uber_activities->sum('net');
         $total_earnings_no_tip = ($bolt_activities->sum('net') - $bolt_activities->sum('gross')) + ($uber_activities->sum('net') - $uber_activities->sum('gross'));
 
-        //CHECK PERCENT
         $contract_type_ranks = $driver ? ContractTypeRank::where('contract_type_id', $driver->contract_type_id)->get() : [];
         $contract_type_rank = count($contract_type_ranks) > 0 ? $contract_type_ranks[0] : null;
         foreach ($contract_type_ranks as $value) {
@@ -266,27 +334,21 @@ class FinancialStatementController extends Controller
                 $contract_type_rank = $value;
             }
         }
-        //
 
         $total_bolt = number_format(($bolt_activities->sum('net') - $bolt_activities->sum('gross')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0), 2, '.', '');
         $total_uber = number_format(($uber_activities->sum('net') - $uber_activities->sum('gross')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0), 2, '.', '');
-
         $total_earnings_after_vat = $total_bolt + $total_uber;
 
         $bolt_tip_percent = $driver ? 100 - $driver->contract_vat->tips : 100;
         $uber_tip_percent = $driver ? 100 - $driver->contract_vat->tips : 100;
-
         $bolt_tip_after_vat = number_format($total_tips_bolt * ($bolt_tip_percent / 100), 2);
         $uber_tip_after_vat = number_format($total_tips_uber * ($uber_tip_percent / 100), 2);
-
         $total_tip_after_vat = $bolt_tip_after_vat + $uber_tip_after_vat;
 
         $total = $total_earnings + $total_tips;
         $total_after_vat = $total_earnings_after_vat + $total_tip_after_vat;
-
         $gross_credits = $total_earnings_no_tip + $total_tips + $refund;
         $gross_debts = ($total_earnings_no_tip - $total_earnings_after_vat) + ($total_tips - $total_tip_after_vat) + $deduct;
-
         $final_total = $gross_credits - $gross_debts;
 
         if ($statementResults) {
@@ -297,37 +359,29 @@ class FinancialStatementController extends Controller
         $combustion_racio = null;
 
         if ($electric_expenses && $total_earnings > 0) {
-            $final_total = $final_total - $electric_expenses['value'];
-            $gross_debts = $gross_debts + $electric_expenses['value'];
-            if ($electric_expenses['value'] > 0) {
-                $electric_racio = ($electric_expenses['value'] / $total_earnings) * 100;
-            } else {
-                $electric_racio = 0;
-            }
+            $final_total -= $electric_expenses['value'];
+            $gross_debts += $electric_expenses['value'];
+            $electric_racio = $electric_expenses['value'] > 0 ? ($electric_expenses['value'] / $total_earnings) * 100 : 0;
         }
+
         if ($combustion_expenses && $total_earnings > 0) {
-            $final_total = $final_total - $combustion_expenses['value'];
-            $gross_debts = $gross_debts + $combustion_expenses['value'];
-            if ($combustion_expenses['value'] > 0) {
-                $combustion_racio = ($combustion_expenses['value'] / $total_earnings) * 100;
-            } else {
-                $combustion_racio = 0;
-            }
+            $final_total -= $combustion_expenses['value'];
+            $gross_debts += $combustion_expenses['value'];
+            $combustion_racio = $combustion_expenses['value'] > 0 ? ($combustion_expenses['value'] / $total_earnings) * 100 : 0;
         }
 
         if ($driver->contract_vat->percent && $driver->contract_vat->percent > 0) {
             $txt_admin = ($final_total * $driver->contract_vat->percent) / 100;
-            $gross_debts = $gross_debts + $txt_admin;
-            $final_total = $final_total - $txt_admin;
+            $gross_debts += $txt_admin;
+            $final_total -= $txt_admin;
         } else {
             $txt_admin = 0;
         }
 
-        //GRAFICOS
-
         $drivers = Driver::where('company_id', $company_id)->get();
-
         $team_earnings = collect();
+        $labels = [];
+        $earnings = [];
 
         foreach ($drivers as $key => $d) {
             $team_driver_bolt_earnings = TvdeActivity::where([
@@ -340,85 +394,26 @@ class FinancialStatementController extends Controller
             $team_driver_uber_earnings = TvdeActivity::where([
                 'tvde_week_id' => $tvde_week_id,
                 'tvde_operator_id' => 1,
-                'driver_code' => $d->uber_uuid
-            ])
-                ->get()->sum('net');
+                'driver_code' => $d->uber_uuid,
+            ])->get()->sum('net');
 
             $team_driver_earnings = $team_driver_bolt_earnings + $team_driver_uber_earnings;
             if ($driver) {
                 $entry = collect([
                     'driver' => $driver->uber_uuid == $d->uber_uuid || !empty(array_intersect($driver->boltIdentifiers(), $d->boltIdentifiers())) ? $driver->name : 'Motorista ' . $key + 1,
                     'earnings' => sprintf("%.2f", $team_driver_earnings),
-                    'own' => $driver->uber_uuid == $d->uber_uuid || !empty(array_intersect($driver->boltIdentifiers(), $d->boltIdentifiers()))
+                    'own' => $driver->uber_uuid == $d->uber_uuid || !empty(array_intersect($driver->boltIdentifiers(), $d->boltIdentifiers())),
                 ]);
                 $team_earnings->add($entry);
             }
-
-            $labels = [];
-            $earnings = [];
-            $backgrounds = [];
-
-            foreach ($team_earnings as $entry) {
-                $labels[] = $entry['driver'];
-                $earnings[] = $entry['earnings'];
-                if ($entry['own']) {
-                    $backgrounds[] = '#605ca8';
-                } else {
-                    $backgrounds[] = '#00a65a94';
-                }
-            }
-
         }
 
-        $chart1 = "https://quickchart.io/chart?c={type:'bar',data:{labels:" . json_encode($labels) . ",datasets:[{borderWidth: 1, label:'Valor faturado',data:" . json_encode($earnings) . "}]}}";
-        $chart2 = "https://quickchart.io/chart?c={type:'doughnut',data:{labels:['UBER', 'BOLT', 'GORJETAS'],datasets:[{label: 'Valor faturado', data: [" . $total_earnings_uber . ", " . $total_earnings_bolt . ", " . $total_tips . "]}]}}";
+        foreach ($team_earnings as $entry) {
+            $labels[] = $entry['driver'];
+            $earnings[] = $entry['earnings'];
+        }
 
-        /*
-
-        return view('admin.financialStatements.pdf', compact([
-            'company_id',
-            'company',
-            'tvde_week_id',
-            'tvde_week',
-            'driver_id',
-            'bolt_activities',
-            'uber_activities',
-            'total_earnings_uber',
-            'contract_type_rank',
-            'total_uber',
-            'total_earnings_bolt',
-            'total_bolt',
-            'total_tips_uber',
-            'uber_tip_percent',
-            'uber_tip_after_vat',
-            'total_tips_bolt',
-            'bolt_tip_percent',
-            'bolt_tip_after_vat',
-            'total_tips',
-            'total_tip_after_vat',
-            'adjustments',
-            'total_earnings',
-            'total_earnings_no_tip',
-            'total',
-            'total_after_vat',
-            'gross_credits',
-            'gross_debts',
-            'final_total',
-            'driver',
-            'electric_expenses',
-            'combustion_expenses',
-            'combustion_racio',
-            'electric_racio',
-            'total_earnings_after_vat',
-            'team_earnings',
-            'txt_admin',
-            'chart1',
-            'chart2',
-        ]));
-
-        */
-
-        $pdf = Pdf::loadView('admin.financialStatements.pdf', [
+        return [
             'company_id' => $company_id,
             'company' => $company,
             'tvde_week_id' => $tvde_week_id,
@@ -464,35 +459,21 @@ class FinancialStatementController extends Controller
             'percent_value' => $statementResults ? ($statementResults->percent_value ?? 0) : 0,
             'txt_admin' => $txt_admin,
             'team_earnings' => $team_earnings,
-            'chart1' => $chart1,
-            'chart2' => $chart2,
-        ])->setOption([
-                    'isRemoteEnabled' => true,
-                ]);
-
-
-        if ($request->download) {
-
-            $filename = strtolower(str_replace(' ', '_', preg_replace('/[^A-Za-z0-9\-]/', '', $driver->name . '-' . $tvde_week->start_date))) . '.pdf';
-
-            return $pdf->download($filename);
-        } else {
-            return $pdf->stream();
-        }
-
+            'chart1' => "https://quickchart.io/chart?c={type:'bar',data:{labels:" . json_encode($labels) . ",datasets:[{borderWidth: 1, label:'Valor faturado',data:" . json_encode($earnings) . "}]}}",
+            'chart2' => "https://quickchart.io/chart?c={type:'doughnut',data:{labels:['UBER', 'BOLT', 'GORJETAS'],datasets:[{label: 'Valor faturado', data: [" . $total_earnings_uber . ", " . $total_earnings_bolt . ", " . $total_tips . "]}]}}",
+        ];
     }
 
-    public function updateBalance(Request $request)
+    private function buildStatementPdf(array $statement)
     {
-        $request->validate([
-            'new_balance' => 'required|numeric'
-        ], [], [
-            'new_balance' => 'Saldo'
+        return Pdf::loadView('admin.financialStatements.pdf', $statement)->setOption([
+            'isRemoteEnabled' => true,
         ]);
+    }
 
-        $drivers_balance = DriversBalance::find($request->driver_balance_id);
-        $drivers_balance->new_balance = $request->new_balance;
-        $drivers_balance->save();
+    private function statementFilename(Driver $driver, TvdeWeek $tvde_week): string
+    {
+        return strtolower(str_replace(' ', '_', preg_replace('/[^A-Za-z0-9\-]/', '', $driver->name . '-' . $tvde_week->start_date))) . '.pdf';
     }
 
 }

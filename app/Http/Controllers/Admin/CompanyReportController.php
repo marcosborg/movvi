@@ -54,6 +54,10 @@ class CompanyReportController extends Controller
             'mileage' => $mileageCount > 0,
         ];
 
+        $drivers = collect($results['drivers'])
+            ->sortByDesc(fn ($driver) => (float) ($driver->total ?? 0))
+            ->values();
+
         return view('admin.companyReports.index')->with([
             'company_id' => $company_id,
             'tvde_years' => $tvde_years,
@@ -62,7 +66,7 @@ class CompanyReportController extends Controller
             'tvde_month_id' => $tvde_month_id,
             'tvde_weeks' => $tvde_weeks,
             'tvde_week_id' => $tvde_week_id,
-            'drivers' => $results['drivers'],
+            'drivers' => $drivers,
             'totals' => $results['totals'],
             'mileageCount' => $mileageCount,
             'importState' => $importState,
@@ -83,11 +87,15 @@ class CompanyReportController extends Controller
         $company = Company::find($company_id);
         $main_company = Company::where('main', true)->first();
 
+        $drivers = collect($results['drivers'])
+            ->sortByDesc(fn ($driver) => (float) ($driver->total ?? 0))
+            ->values();
+
         $pdf = Pdf::loadView('admin.companyReports.pdf', [
             'company' => $company,
             'main_company' => $main_company,
             'tvde_week' => $tvde_week,
-            'drivers' => $results['drivers'],
+            'drivers' => $drivers,
             'totals' => $results['totals'],
         ])->setOption([
             'isRemoteEnabled' => true,
