@@ -499,7 +499,7 @@ class MobileController extends Controller
 
         $evaluation = null;
         if ($vehicleId) {
-            $evaluation = WeeklyVehicleEvaluation::where([
+            $evaluation = WeeklyVehicleEvaluation::with('media')->where([
                 'tvde_week_id' => $week->id,
                 'driver_id' => $driver->id,
                 'vehicle_item_id' => $vehicleId,
@@ -537,6 +537,9 @@ class MobileController extends Controller
             'front_tire_status' => ['required', 'in:' . implode(',', array_keys(WeeklyVehicleEvaluation::TIRE_STATUSES))],
             'rear_tire_status' => ['required', 'in:' . implode(',', array_keys(WeeklyVehicleEvaluation::TIRE_STATUSES))],
             'oil_level' => ['required', 'in:' . implode(',', array_keys(WeeklyVehicleEvaluation::OIL_LEVELS))],
+            'has_panel_warning' => ['required', 'boolean'],
+            'panel_warning_notes' => ['nullable', 'string', 'max:5000'],
+            'panel_photo' => ['nullable', 'file', 'image', 'max:10240'],
             'has_vehicle_issue' => ['required', 'boolean'],
             'issue_notes' => ['nullable', 'string', 'max:5000'],
         ]);
@@ -556,8 +559,24 @@ class MobileController extends Controller
             ], 422);
         }
 
+        $hasPanelWarning = (bool) $validated['has_panel_warning'];
+        $panelWarningNotes = trim((string) ($validated['panel_warning_notes'] ?? ''));
         $issueNotes = trim((string) ($validated['issue_notes'] ?? ''));
         $hasIssue = (bool) $validated['has_vehicle_issue'];
+
+        if ($hasPanelWarning && ! $request->hasFile('panel_photo')) {
+            $existingEvaluation = WeeklyVehicleEvaluation::where([
+                'tvde_week_id' => $week->id,
+                'driver_id' => $driver->id,
+                'vehicle_item_id' => (int) $validated['vehicle_id'],
+            ])->first();
+
+            if (! $existingEvaluation || ! $existingEvaluation->getFirstMedia('panel_photo')) {
+                return response()->json([
+                    'error' => 'Se assinalar avisos no painel, anexe a foto do painel.',
+                ], 422);
+            }
+        }
 
         if ($hasIssue && $issueNotes === '') {
             return response()->json([
@@ -578,15 +597,25 @@ class MobileController extends Controller
                 'front_tire_status' => $validated['front_tire_status'],
                 'rear_tire_status' => $validated['rear_tire_status'],
                 'oil_level' => $validated['oil_level'],
+                'has_panel_warning' => $hasPanelWarning,
+                'panel_warning_notes' => $hasPanelWarning ? ($panelWarningNotes !== '' ? $panelWarningNotes : null) : null,
                 'has_vehicle_issue' => $hasIssue,
                 'issue_notes' => $hasIssue ? ($issueNotes !== '' ? $issueNotes : null) : null,
                 'submitted_at' => now(),
             ]
         );
 
+        if ($request->hasFile('panel_photo')) {
+            $evaluation
+                ->addMediaFromRequest('panel_photo')
+                ->toMediaCollection('panel_photo');
+        } elseif (! $hasPanelWarning) {
+            $evaluation->clearMediaCollection('panel_photo');
+        }
+
         return response()->json([
             'message' => 'Avaliacao semanal submetida com sucesso.',
-            'evaluation' => $this->serializeWeeklyEvaluation($evaluation->fresh(['vehicle', 'tvdeWeek'])),
+            'evaluation' => $this->serializeWeeklyEvaluation($evaluation->fresh()),
         ], 201);
     }
 
@@ -1164,6 +1193,12 @@ class MobileController extends Controller
             'front_tire_status' => $evaluation->front_tire_status,
             'rear_tire_status' => $evaluation->rear_tire_status,
             'oil_level' => $evaluation->oil_level,
+            'has_panel_warning' => (bool) $evaluation->has_panel_warning,
+            'panel_warning_notes' => $evaluation->panel_warning_notes,
+            'panel_photo' => ($panelPhoto = $evaluation->getFirstMedia('panel_photo')) ? [
+                'name' => $panelPhoto->file_name,
+                'url' => $panelPhoto->getUrl(),
+            ] : null,
             'has_vehicle_issue' => (bool) $evaluation->has_vehicle_issue,
             'issue_notes' => $evaluation->issue_notes,
             'submitted_at' => $evaluation->submitted_at,

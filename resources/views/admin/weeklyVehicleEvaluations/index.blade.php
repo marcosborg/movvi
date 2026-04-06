@@ -2,7 +2,7 @@
 @section('content')
 <div class="card">
     <div class="card-header">
-        Avaliações semanais da viatura
+        Avaliacoes semanais da viatura
     </div>
 
     <div class="card-body">
@@ -13,7 +13,7 @@
                     <option value="">Todas</option>
                     @foreach($weeks as $week)
                         <option value="{{ $week->id }}" {{ (string) request('tvde_week_id') === (string) $week->id ? 'selected' : '' }}>
-                            Semana {{ $week->number ?? '-' }} · {{ $week->start_date }} a {{ $week->end_date }}
+                            Semana {{ $week->number ?? '-' }} - {{ $week->start_date }} a {{ $week->end_date }}
                         </option>
                     @endforeach
                 </select>
@@ -62,9 +62,10 @@
                         <th>Motorista</th>
                         <th>Viatura</th>
                         <th>KM final</th>
-                        <th>Combustível</th>
+                        <th>Combustivel</th>
                         <th>Pneus</th>
-                        <th>Óleo</th>
+                        <th>Oleo</th>
+                        <th>Painel</th>
                         <th>Problema</th>
                         <th>Submetido em</th>
                         <th>&nbsp;</th>
@@ -81,10 +82,11 @@
                             <td>{{ \App\Models\WeeklyVehicleEvaluation::FUEL_LEVELS[$evaluation->fuel_level] ?? '-' }}</td>
                             <td>
                                 Frente: {{ \App\Models\WeeklyVehicleEvaluation::TIRE_STATUSES[$evaluation->front_tire_status] ?? '-' }}<br>
-                                Trás: {{ \App\Models\WeeklyVehicleEvaluation::TIRE_STATUSES[$evaluation->rear_tire_status] ?? '-' }}
+                                Tras: {{ \App\Models\WeeklyVehicleEvaluation::TIRE_STATUSES[$evaluation->rear_tire_status] ?? '-' }}
                             </td>
                             <td>{{ \App\Models\WeeklyVehicleEvaluation::OIL_LEVELS[$evaluation->oil_level] ?? '-' }}</td>
-                            <td>{{ $evaluation->has_vehicle_issue ? 'Sim' : 'Não' }}</td>
+                            <td>{{ $evaluation->has_panel_warning ? 'Sim' : 'Nao' }}</td>
+                            <td>{{ $evaluation->has_vehicle_issue ? 'Sim' : 'Nao' }}</td>
                             <td>{{ $evaluation->submitted_at ?? '-' }}</td>
                             <td>
                                 <a class="btn btn-xs btn-primary" href="{{ route('admin.weekly-vehicle-evaluations.show', $evaluation->id) }}">Ver</a>
@@ -92,7 +94,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11">Sem avaliações submetidas.</td>
+                            <td colspan="12">Sem avaliacoes submetidas.</td>
                         </tr>
                     @endforelse
                 </tbody>

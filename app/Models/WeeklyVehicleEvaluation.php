@@ -7,10 +7,12 @@ use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class WeeklyVehicleEvaluation extends Model
+class WeeklyVehicleEvaluation extends Model implements HasMedia
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, InteractsWithMedia, SoftDeletes;
 
     public $table = 'weekly_vehicle_evaluations';
 
@@ -42,6 +44,7 @@ class WeeklyVehicleEvaluation extends Model
 
     protected $casts = [
         'has_vehicle_issue' => 'boolean',
+        'has_panel_warning' => 'boolean',
         'submitted_at' => 'datetime',
     ];
 
@@ -55,6 +58,8 @@ class WeeklyVehicleEvaluation extends Model
         'front_tire_status',
         'rear_tire_status',
         'oil_level',
+        'has_panel_warning',
+        'panel_warning_notes',
         'has_vehicle_issue',
         'issue_notes',
         'submitted_at',
@@ -88,5 +93,10 @@ class WeeklyVehicleEvaluation extends Model
     public function getSubmittedAtAttribute($value)
     {
         return $value ? Carbon::parse($value)->format('Y-m-d H:i:s') : null;
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('panel_photo')->singleFile();
     }
 }

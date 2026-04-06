@@ -16,7 +16,7 @@ class WeeklyVehicleEvaluationController extends Controller
     {
         abort_unless($this->canManage($request), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $query = WeeklyVehicleEvaluation::with(['tvdeWeek', 'driver', 'vehicle', 'submittedBy'])
+        $query = WeeklyVehicleEvaluation::with(['tvdeWeek', 'driver', 'vehicle', 'submittedBy', 'media'])
             ->orderByDesc('submitted_at')
             ->orderByDesc('id');
 
@@ -48,7 +48,7 @@ class WeeklyVehicleEvaluationController extends Controller
     {
         abort_unless($this->canManage(request()), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $weeklyVehicleEvaluation->load(['tvdeWeek', 'driver.company', 'vehicle.vehicle_brand', 'vehicle.vehicle_model', 'submittedBy']);
+        $weeklyVehicleEvaluation->load(['tvdeWeek', 'driver.company', 'vehicle.vehicle_brand', 'vehicle.vehicle_model', 'submittedBy', 'media']);
 
         return view('admin.weeklyVehicleEvaluations.show', [
             'evaluation' => $weeklyVehicleEvaluation,
