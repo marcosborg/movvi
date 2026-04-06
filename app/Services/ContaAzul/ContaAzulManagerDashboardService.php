@@ -17,6 +17,8 @@ class ContaAzulManagerDashboardService
     {
         $receivables = $this->normalizeItems($this->client->listReceivables($company, $query));
         $payables = $this->normalizeItems($this->client->listPayables($company, $query));
+        $orderedReceivables = $this->sortItemsByDateDesc($receivables);
+        $orderedPayables = $this->sortItemsByDateDesc($payables);
 
         $revenues = $this->sumAmounts($receivables);
         $expenses = $this->sumAmounts($payables);
@@ -35,8 +37,8 @@ class ContaAzulManagerDashboardService
                 'payables_count' => $payables->count(),
             ],
             'raw' => [
-                'receivables' => $receivables->values()->all(),
-                'payables' => $payables->values()->all(),
+                'receivables' => $orderedReceivables->values()->all(),
+                'payables' => $orderedPayables->values()->all(),
             ],
         ];
     }
@@ -56,15 +58,19 @@ class ContaAzulManagerDashboardService
 
         return [
             'accounts' => [
-                'items' => collect($accounts['items'] ?? [])->map(function (array $account) {
-                    return [
-                        'id' => $account['id'] ?? null,
-                        'name' => $account['nome'] ?? $account['name'] ?? 'Conta sem nome',
-                        'type' => $account['tipo'] ?? $account['type'] ?? null,
-                        'active' => $account['ativo'] ?? $account['active'] ?? null,
-                        'balance' => $this->asFloat($account['saldo_atual'] ?? null),
-                    ];
-                })->values()->all(),
+                'items' => collect($accounts['items'] ?? [])
+                    ->map(function (array $account) {
+                        return [
+                            'id' => $account['id'] ?? null,
+                            'name' => $account['nome'] ?? $account['name'] ?? 'Conta sem nome',
+                            'type' => $account['tipo'] ?? $account['type'] ?? null,
+                            'active' => $account['ativo'] ?? $account['active'] ?? null,
+                            'balance' => $this->asFloat($account['saldo_atual'] ?? null),
+                        ];
+                    })
+                    ->sortByDesc('balance')
+                    ->values()
+                    ->all(),
                 'totals' => [
                     'current_balance' => round(collect($accounts['items'] ?? [])->sum(function (array $account) {
                         return $this->asFloat($account['saldo_atual'] ?? 0);
@@ -84,6 +90,7 @@ class ContaAzulManagerDashboardService
     public function expenses(Company $company, array $query = []): array
     {
         $payables = $this->normalizeItems($this->client->listPayables($company, $query));
+        $orderedPayables = $this->sortItemsByDateDesc($payables);
         $categories = $this->client->listCategories($company, $query);
 
         $verifiedExpenses = $payables->filter(fn (array $item) => $this->isSettled($item));
@@ -105,7 +112,7 @@ class ContaAzulManagerDashboardService
                 'expense_breakdown' => $this->summarizeByCategory($payables),
                 'catalog' => $this->normalizeCategoryCatalog($categories),
             ],
-            'items' => $payables->map(fn (array $item) => [
+            'items' => $orderedPayables->map(fn (array $item) => [
                 'id' => $item['id'],
                 'description' => $item['description'],
                 'counterparty' => $item['counterparty'],
@@ -189,6 +196,13 @@ class ContaAzulManagerDashboardService
             ->filter()
             ->values()
             ->all();
+    }
+
+    protected function sortItemsByDateDesc(Collection $items): Collection
+    {
+        return $items
+            ->sortByDesc(fn (array $item) => $item['date'] ?? '')
+            ->values();
     }
 
     protected function summarizeByCategory(Collection $items): array
