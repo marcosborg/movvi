@@ -68,6 +68,11 @@
                                 Existem motoristas que conduziram esta viatura nesta semana mas ainda não têm dados validados em <code>/admin/company-reports</code>.
                             </div>
                         @endif
+                        <div class="alert alert-info" role="alert" style="margin-top: 10px; margin-bottom: 0;">
+                            <strong>Leitura operacional:</strong>
+                            {{ $result['meta']['exclusions']['receipts'] ?? '' }}
+                            {{ $result['meta']['exclusions']['reimbursements'] ?? '' }}
+                        </div>
                     </div>
                 </div>
             </div>

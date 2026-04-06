@@ -185,6 +185,7 @@ class VehicleProfitabilityService
             'meta' => [
                 'drivers' => $drivers,
                 'missing_current_accounts' => $missingAccounts,
+                'exclusions' => self::profitabilityExclusions(),
             ],
         ];
     }
@@ -350,6 +351,9 @@ class VehicleProfitabilityService
                 'adjustments_total' => $totAdjustments,
                 'total_revenue' => $totRental + $totCommission + $totAdjustments,
             ],
+            'meta' => [
+                'exclusions' => self::profitabilityExclusions(),
+            ],
         ];
     }
 
@@ -444,6 +448,7 @@ class VehicleProfitabilityService
             'meta' => [
                 'drivers' => [],
                 'missing_current_accounts' => [],
+                'exclusions' => self::profitabilityExclusions(),
             ],
         ];
     }
@@ -465,8 +470,18 @@ class VehicleProfitabilityService
                 'adjustments_total' => 0.0,
                 'total_revenue' => 0.0,
             ],
+            'meta' => [
+                'exclusions' => self::profitabilityExclusions(),
+            ],
         ];
     }
 
-    //
+    private static function profitabilityExclusions(): array
+    {
+        return [
+            'receipts' => 'Recibos, pagamentos ao motorista e amount_transferred nao entram na rentabilidade da viatura.',
+            'reimbursements' => 'Devolucoes, reforcos e outros movimentos de saldo do motorista nao contam como receita operacional da viatura.',
+            'balances' => 'DriversBalance e estados semanais sao fluxo financeiro do motorista, nao receita de exploracao.',
+        ];
+    }
 }

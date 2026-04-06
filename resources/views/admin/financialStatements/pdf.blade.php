@@ -250,6 +250,22 @@
                                 <td></td>
                             </tr>
                             @endif
+                            @if (($iva_value ?? 0) != 0)
+                            <tr>
+                                <th style="text-align: left;">IVA</th>
+                                <td></td>
+                                <td style="text-align: right;">- {{ number_format($iva_value, 2) }}€</td>
+                                <td></td>
+                            </tr>
+                            @endif
+                            @if (($percent_value ?? 0) != 0)
+                            <tr>
+                                <th style="text-align: left;">Percentagem</th>
+                                <td></td>
+                                <td style="text-align: right;">- {{ number_format($percent_value, 2) }}€</td>
+                                <td></td>
+                            </tr>
+                            @endif
                             @foreach ($adjustments as $adjustment)
                             @if (in_array($adjustment->category ?? \App\Models\Adjustment::CATEGORY_GENERAL, [
                                 \App\Models\Adjustment::CATEGORY_CAUTION_RECEIVED,

@@ -26,6 +26,7 @@
         @if(!empty($result['meta']['missing_current_accounts']))
             <p><strong>Aviso:</strong> Existem motoristas sem dados validados em <code>/admin/company-reports</code> nesta semana.</p>
         @endif
+        <p><strong>Leitura operacional:</strong> {{ $result['meta']['exclusions']['receipts'] ?? '' }} {{ $result['meta']['exclusions']['reimbursements'] ?? '' }}</p>
     </div>
 
     <div class="page-break"></div>

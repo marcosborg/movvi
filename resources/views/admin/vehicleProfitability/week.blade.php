@@ -41,6 +41,11 @@
     @if($result)
         <div class="row">
             <div class="col-lg-12">
+                <div class="alert alert-info" role="alert">
+                    <strong>Leitura operacional:</strong>
+                    {{ $result['meta']['exclusions']['receipts'] ?? '' }}
+                    {{ $result['meta']['exclusions']['reimbursements'] ?? '' }}
+                </div>
                 <form action="{{ route('admin.vehicle-profitabilities.export-conta-azul') }}" method="POST">
                     @csrf
                     <input type="hidden" name="tvde_week_id" value="{{ $weekId }}">

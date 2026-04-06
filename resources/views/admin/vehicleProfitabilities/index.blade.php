@@ -10,6 +10,11 @@
                 <div class="panel-heading">
                     {{ trans('cruds.vehicleProfitability.title') ?? 'Vehicle Profitability' }}
                 </div>
+                <div class="panel-body" style="padding-bottom:0;">
+                    <div class="alert alert-info" role="alert" style="margin-bottom: 0;">
+                        Esta vista mistura transferencias ao motorista com rentabilidade da viatura. Usa preferencialmente o relatorio novo em <code>Vehicle Profitability</code> para leitura operacional.
+                    </div>
+                </div>
 
                 {{-- FILTROS --}}
                 <div class="panel-body">
@@ -296,7 +301,7 @@
                                 <th>Tesouraria</th>
                                 <th>Impostos</th>
                                 <th>Final</th>
-                                <th>Transferido</th>
+                                <th>Transferido ao motorista</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -311,7 +316,10 @@
                                     <td>{{ number_format($r['total_treasury'], 2, ',', '.') }} €</td>
                                     <td>{{ number_format($r['total_taxes'], 2, ',', '.') }} €</td>
                                     <td><strong>{{ number_format($r['final_total'], 2, ',', '.') }} €</strong></td>
-                                    <td>{{ number_format($r['receipt']->amount_transferred ?? 0, 2, ',', '.') }} €</td>
+                                    <td>
+                                        {{ number_format($r['receipt']->amount_transferred ?? 0, 2, ',', '.') }} €
+                                        <br><small class="text-muted">informativo, fora da rentabilidade operacional</small>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr><td colspan="6">Sem dados.</td></tr>
