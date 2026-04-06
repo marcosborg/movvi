@@ -9,6 +9,8 @@ use Symfony\Component\Process\Process;
 
 class MakeInstallPackage extends Command
 {
+    protected $aliases = ['db:copy-production-to-sandbox'];
+
     /**
      * The name and signature of the console command.
      *
@@ -20,6 +22,7 @@ class MakeInstallPackage extends Command
         {--target-database= : Nome da base de dados destino (default da ligacao)} 
         {--chunk=500 : Numero de linhas por insercao no modo legacy} 
         {--mode=dump : dump (mysqldump/mysql) ou legacy (tabela a tabela)} 
+        {--transport=pipe : pipe (stream direto) ou file (dump temporario em disco)} 
         {--mysqldump-bin=mysqldump : Binario mysqldump a usar no modo dump} 
         {--mysql-bin=mysql : Binario mysql a usar no modo dump}';
 
@@ -28,7 +31,7 @@ class MakeInstallPackage extends Command
      *
      * @var string
      */
-    protected $description = 'Copia integralmente uma base de dados para outra ligacao (default: dump completo via mysqldump/mysql)';
+    protected $description = 'Clona integralmente uma base de dados para outra ligacao, por defeito via dump/import direto em streaming';
 
     /**
      * Execute the console command.
@@ -41,6 +44,7 @@ class MakeInstallPackage extends Command
         $targetName = $this->option('target') ?: 'mysql_sandbox';
         $chunkSize = max((int) $this->option('chunk'), 1);
         $mode = strtolower((string) ($this->option('mode') ?: 'dump'));
+        $transport = strtolower((string) ($this->option('transport') ?: 'pipe'));
 
         $sourceConfig = config("database.connections.{$sourceName}");
         if (!$sourceConfig) {
@@ -82,9 +86,15 @@ class MakeInstallPackage extends Command
             return self::FAILURE;
         }
 
+        if (!in_array($transport, ['pipe', 'file'], true)) {
+            $this->error("Transporte '{$transport}' invalido. Use --transport=pipe ou --transport=file.");
+
+            return self::FAILURE;
+        }
+
         if ($mode === 'dump') {
             try {
-                $this->cloneDatabaseWithDump($sourceConfig, $targetConfig, $targetDatabase);
+                $this->cloneDatabaseWithDump($sourceConfig, $targetConfig, $targetDatabase, $transport);
             } catch (\Throwable $e) {
                 $this->error("Falha na copia em lote via dump: {$e->getMessage()}");
 
@@ -95,6 +105,7 @@ class MakeInstallPackage extends Command
             $this->info("Base de dados origem: " . Arr::get($sourceConfig, 'database') . " ({$sourceName})");
             $this->info("Base de dados destino: {$targetDatabase} ({$targetName})");
             $this->info('Modo utilizado: dump');
+            $this->info("Transporte utilizado: {$transport}");
 
             return self::SUCCESS;
         }
@@ -162,7 +173,7 @@ class MakeInstallPackage extends Command
         return self::SUCCESS;
     }
 
-    private function cloneDatabaseWithDump(array $sourceConfig, array $targetConfig, string $targetDatabase): void
+    private function cloneDatabaseWithDump(array $sourceConfig, array $targetConfig, string $targetDatabase, string $transport): void
     {
         $sourceDatabase = Arr::get($sourceConfig, 'database');
         if (!$sourceDatabase) {
@@ -187,6 +198,42 @@ class MakeInstallPackage extends Command
                 'C:\\Program Files\\MySQL\\MySQL Server 5.7\\bin\\mysql.exe',
             ]
         );
+        $this->prepareFreshDatabase($targetConfig, $targetDatabase);
+
+        $dumpArgs = array_filter([
+            $mysqldumpBinary,
+            '--host=' . Arr::get($sourceConfig, 'host', '127.0.0.1'),
+            '--port=' . Arr::get($sourceConfig, 'port', '3306'),
+            '--user=' . Arr::get($sourceConfig, 'username'),
+            $this->passwordArgument(Arr::get($sourceConfig, 'password')),
+            '--default-character-set=' . Arr::get($sourceConfig, 'charset', 'utf8mb4'),
+            '--single-transaction',
+            '--quick',
+            '--skip-lock-tables',
+            '--routines',
+            '--triggers',
+            '--events',
+            '--no-tablespaces',
+            $sourceDatabase,
+        ], fn($value) => $value !== null && $value !== '');
+
+        $importArgs = array_filter([
+            $mysqlBinary,
+            '--host=' . Arr::get($targetConfig, 'host', '127.0.0.1'),
+            '--port=' . Arr::get($targetConfig, 'port', '3306'),
+            '--user=' . Arr::get($targetConfig, 'username'),
+            $this->passwordArgument(Arr::get($targetConfig, 'password')),
+            '--default-character-set=' . Arr::get($targetConfig, 'charset', 'utf8mb4'),
+            '--database=' . $targetDatabase,
+        ], fn($value) => $value !== null && $value !== '');
+
+        if ($transport === 'pipe') {
+            $this->info("A clonar {$sourceDatabase} para {$targetDatabase} por stream direto...");
+            $this->runShellPipeline($dumpArgs, $importArgs, 'Falha ao clonar a base de dados por stream direto');
+
+            return;
+        }
+
         $dumpFile = tempnam(sys_get_temp_dir(), 'movvi-db-copy-');
 
         if ($dumpFile === false) {
@@ -201,41 +248,12 @@ class MakeInstallPackage extends Command
         }
 
         try {
-            $this->prepareFreshDatabase($targetConfig, $targetDatabase);
+            $this->info("A gerar dump completo de {$sourceDatabase} para ficheiro temporario...");
 
-            $this->info("A gerar dump completo de {$sourceDatabase}...");
-
-            $dumpArgs = array_filter([
-                $mysqldumpBinary,
-                '--host=' . Arr::get($sourceConfig, 'host', '127.0.0.1'),
-                '--port=' . Arr::get($sourceConfig, 'port', '3306'),
-                '--user=' . Arr::get($sourceConfig, 'username'),
-                $this->passwordArgument(Arr::get($sourceConfig, 'password')),
-                '--default-character-set=' . Arr::get($sourceConfig, 'charset', 'utf8mb4'),
-                '--single-transaction',
-                '--quick',
-                '--skip-lock-tables',
-                '--routines',
-                '--triggers',
-                '--events',
-                '--no-tablespaces',
-                '--result-file=' . $dumpFileSql,
-                $sourceDatabase,
-            ], fn($value) => $value !== null && $value !== '');
-
-            $this->runProcess(new Process($dumpArgs), 'Falha ao gerar o dump da base de dados origem');
+            $fileDumpArgs = [...$dumpArgs, '--result-file=' . $dumpFileSql];
+            $this->runProcess(new Process($fileDumpArgs), 'Falha ao gerar o dump da base de dados origem');
 
             $this->info("A importar dump completo em {$targetDatabase}...");
-
-            $importArgs = array_filter([
-                $mysqlBinary,
-                '--host=' . Arr::get($targetConfig, 'host', '127.0.0.1'),
-                '--port=' . Arr::get($targetConfig, 'port', '3306'),
-                '--user=' . Arr::get($targetConfig, 'username'),
-                $this->passwordArgument(Arr::get($targetConfig, 'password')),
-                '--default-character-set=' . Arr::get($targetConfig, 'charset', 'utf8mb4'),
-                '--database=' . $targetDatabase,
-            ], fn($value) => $value !== null && $value !== '');
 
             $importProcess = new Process($importArgs);
             $importHandle = fopen($dumpFileSql, 'r');
@@ -342,6 +360,27 @@ class MakeInstallPackage extends Command
         if (!$process->isSuccessful()) {
             throw new \RuntimeException(trim($failureMessage . ': ' . $process->getErrorOutput() . PHP_EOL . $process->getOutput()));
         }
+    }
+
+    private function runShellPipeline(array $leftCommand, array $rightCommand, string $failureMessage): void
+    {
+        $commandLine = $this->buildShellCommand($leftCommand) . ' | ' . $this->buildShellCommand($rightCommand);
+
+        $process = Process::fromShellCommandline($commandLine);
+        $this->runProcess($process, $failureMessage);
+    }
+
+    private function buildShellCommand(array $parts): string
+    {
+        return implode(' ', array_map(function ($part) {
+            $value = (string) $part;
+
+            if (DIRECTORY_SEPARATOR === '\\') {
+                return '"' . str_replace('"', '\"', $value) . '"';
+            }
+
+            return escapeshellarg($value);
+        }, $parts));
     }
 
     private function resolveMysqlBinary(string $configuredBinary, string $windowsBinaryName, array $commonWindowsPaths): string
