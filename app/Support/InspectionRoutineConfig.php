@@ -4,6 +4,32 @@ namespace App\Support;
 
 class InspectionRoutineConfig
 {
+    public static function presets(): array
+    {
+        return [
+            'full' => [
+                'label' => 'Completa',
+                'config' => self::defaults(),
+            ],
+            'simple' => [
+                'label' => 'Simplificada',
+                'config' => [
+                    'documents' => [],
+                    'operational_checks' => ['cleanliness', 'fuel_energy', 'mileage', 'tire_condition', 'panel_warnings'],
+                    'accessories' => [],
+                    'exterior_slots' => [],
+                    'interior_slots' => [],
+                ],
+            ],
+        ];
+    }
+
+    public static function preset(string $key): array
+    {
+        $presets = self::presets();
+        return self::sanitize(($presets[$key]['config'] ?? self::defaults()));
+    }
+
     public static function options(): array
     {
         return [
@@ -86,4 +112,3 @@ class InspectionRoutineConfig
         return array_values(array_unique($normalized));
     }
 }
-

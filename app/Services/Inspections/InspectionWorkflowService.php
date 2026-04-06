@@ -8,6 +8,7 @@ use App\Models\InspectionPhoto;
 use App\Models\InspectionSignature;
 use App\Models\InspectionStepState;
 use App\Models\User;
+use App\Support\InspectionRoutineConfig;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -71,6 +72,12 @@ class InspectionWorkflowService
 
             $this->sequence->cloneOpenDamages($inspection);
             $this->audit->log($inspection, 'inspection_created', ['type' => $type]);
+            if (!empty($data['routine_config']) && is_array($data['routine_config'])) {
+                $this->audit->log($inspection, 'routine_config_applied', [
+                    'routine_config' => InspectionRoutineConfig::sanitize($data['routine_config']),
+                    'preset' => $data['routine_preset'] ?? null,
+                ]);
+            }
 
             $plan = $this->vehicleUsage->buildPlan($inspection, $data);
             if ($plan) {
@@ -101,7 +108,7 @@ class InspectionWorkflowService
                 'completed_by_user_id' => auth()->id(),
             ]);
 
-        $nextStep = min(12, $step + 1);
+        $nextStep = $this->resolveNextStep($inspection, $step);
 
         $inspection->update([
             'current_step' => $nextStep,
@@ -112,6 +119,21 @@ class InspectionWorkflowService
         $this->audit->log($inspection, 'step_completed', ['step' => $step]);
 
         return $inspection;
+    }
+
+    public function previousEnabledStep(Inspection $inspection, int $fromStep): int
+    {
+        $previous = 1;
+
+        foreach ($this->enabledSteps($inspection) as $step) {
+            if ($step >= $fromStep) {
+                break;
+            }
+
+            $previous = $step;
+        }
+
+        return $previous;
     }
 
     public function uploadPhoto(Inspection $inspection, UploadedFile $file, string $category, ?string $slot = null): InspectionPhoto
@@ -228,6 +250,58 @@ class InspectionWorkflowService
         $this->audit->log($inspection, 'inspection_signed', ['role' => $role]);
 
         return $record;
+    }
+
+    private function resolveNextStep(Inspection $inspection, int $currentStep): int
+    {
+        foreach ($this->enabledSteps($inspection) as $step) {
+            if ($step > $currentStep) {
+                return $step;
+            }
+        }
+
+        return 12;
+    }
+
+    private function enabledSteps(Inspection $inspection): array
+    {
+        $config = $this->resolveRoutineConfig($inspection);
+        $steps = [1, 2, 4, 10, 11, 12];
+
+        if (!empty($config['documents'])) {
+            $steps[] = 3;
+        }
+
+        if (!empty($config['accessories'])) {
+            $steps[] = 5;
+        }
+
+        if (!empty($config['exterior_slots'])) {
+            $steps[] = 6;
+            $steps[] = 8;
+        }
+
+        if (!empty($config['interior_slots'])) {
+            $steps[] = 7;
+            $steps[] = 9;
+        }
+
+        $steps = array_values(array_unique($steps));
+        sort($steps);
+
+        return $steps;
+    }
+
+    private function resolveRoutineConfig(Inspection $inspection): array
+    {
+        $audit = $inspection->audits()->where('action', 'routine_config_applied')->latest('id')->first();
+        $payload = (array) ($audit?->payload ?? []);
+
+        if (!empty($payload['routine_config']) && is_array($payload['routine_config'])) {
+            return InspectionRoutineConfig::sanitize($payload['routine_config']);
+        }
+
+        return InspectionRoutineConfig::defaults();
     }
 
     private function storeSignatureDataUrl(string $dataUrl, string $role): array

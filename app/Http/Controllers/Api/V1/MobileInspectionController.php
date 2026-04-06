@@ -157,6 +157,8 @@ class MobileInspectionController extends Controller
                 ],
                 'report_pdf_url' => $inspection->report ? asset('storage/' . $inspection->report->pdf_path) : null,
                 'transfer_context' => $transferContext,
+                'enabled_steps' => $this->enabledStepsForRoutine($routineConfig),
+                'routine_preset' => $this->resolveRoutinePreset($inspection),
             ],
             'driver_options' => Driver::query()
                 ->where('state_id', '!=', 2)
@@ -248,6 +250,12 @@ class MobileInspectionController extends Controller
             'types' => collect(array_values((array) config('inspections.types', [])))
                 ->map(fn ($key) => ['key' => (string) $key, 'label' => (string) config('inspections.type_labels.' . $key, $key)])
                 ->values(),
+            'routine_presets' => collect(InspectionRoutineConfig::presets())
+                ->map(fn (array $preset, string $key) => [
+                    'key' => $key,
+                    'label' => (string) ($preset['label'] ?? $key),
+                ])
+                ->values(),
             'vehicles' => VehicleItem::query()
                 ->where(function ($query) {
                     $query->whereNull('suspended')->orWhere('suspended', false)->orWhere('suspended', 0);
@@ -297,6 +305,7 @@ class MobileInspectionController extends Controller
             'type' => ['required', 'in:handover,return'],
             'vehicle_id' => ['required', 'integer', 'exists:vehicle_items,id'],
             'driver_id' => ['nullable', 'integer', Rule::exists('drivers', 'id')->where(fn ($query) => $query->where('state_id', '!=', 2))],
+            'routine_preset' => ['nullable', Rule::in(array_keys(InspectionRoutineConfig::presets()))],
             'source_driver_id' => ['nullable', 'integer', 'exists:drivers,id'],
             'transfer_mode' => ['nullable', 'in:entrega,recolha,passagem'],
             'location_lat' => ['nullable', 'numeric'],
@@ -305,6 +314,10 @@ class MobileInspectionController extends Controller
             'location_accuracy' => ['nullable', 'numeric'],
             'location_timezone' => ['nullable', 'string', 'max:60'],
         ])->validate();
+
+        $routinePreset = (string) ($validated['routine_preset'] ?? 'full');
+        $validated['routine_preset'] = $routinePreset;
+        $validated['routine_config'] = InspectionRoutineConfig::preset($routinePreset);
 
         $inspection = $this->workflow->create($validated, $user);
 
@@ -567,7 +580,7 @@ class MobileInspectionController extends Controller
         }
 
         $inspection->update([
-            'current_step' => max(1, ((int) $inspection->current_step) - 1),
+            'current_step' => $this->workflow->previousEnabledStep($inspection, (int) $inspection->current_step),
             'status' => 'in_progress',
         ]);
 
@@ -771,6 +784,43 @@ class MobileInspectionController extends Controller
         }
 
         return InspectionRoutineConfig::defaults();
+    }
+
+    private function resolveRoutinePreset(Inspection $inspection): string
+    {
+        $audit = $inspection->audits()->where('action', 'routine_config_applied')->latest('id')->first();
+        $payload = (array) ($audit?->payload ?? []);
+        $preset = (string) ($payload['preset'] ?? '');
+
+        return array_key_exists($preset, InspectionRoutineConfig::presets()) ? $preset : 'full';
+    }
+
+    private function enabledStepsForRoutine(array $routineConfig): array
+    {
+        $steps = [1, 2, 4, 10, 11, 12];
+
+        if (!empty($routineConfig['documents'])) {
+            $steps[] = 3;
+        }
+
+        if (!empty($routineConfig['accessories'])) {
+            $steps[] = 5;
+        }
+
+        if (!empty($routineConfig['exterior_slots'])) {
+            $steps[] = 6;
+            $steps[] = 8;
+        }
+
+        if (!empty($routineConfig['interior_slots'])) {
+            $steps[] = 7;
+            $steps[] = 9;
+        }
+
+        $steps = array_values(array_unique($steps));
+        sort($steps);
+
+        return $steps;
     }
 
     private function resolveTransferContext(Inspection $inspection): ?array

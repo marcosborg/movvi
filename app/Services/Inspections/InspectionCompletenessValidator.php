@@ -3,6 +3,7 @@
 namespace App\Services\Inspections;
 
 use App\Models\Inspection;
+use App\Support\InspectionRoutineConfig;
 use Illuminate\Validation\ValidationException;
 
 class InspectionCompletenessValidator
@@ -17,6 +18,8 @@ class InspectionCompletenessValidator
             $missing[] = 'Condutor nao selecionado';
         }
 
+        $routineConfig = $this->resolveRoutineConfig($inspection);
+
         $docLabels = [
             'dua' => 'Documento Unico Automovel (DUA)',
             'insurance' => 'Seguro',
@@ -30,7 +33,8 @@ class InspectionCompletenessValidator
             $docChecks[$item->item_key] = (bool) $item->value_bool;
         }
 
-        foreach ($docLabels as $key => $label) {
+        foreach ($routineConfig['documents'] as $key) {
+            $label = $docLabels[$key] ?? $key;
             if (empty($docChecks[$key])) {
                 $missing[] = $label . ' nao assinalado';
                 continue;
@@ -45,7 +49,7 @@ class InspectionCompletenessValidator
             }
         }
 
-        foreach (config('inspections.required_slots.exterior', []) as $slot) {
+        foreach ($routineConfig['exterior_slots'] as $slot) {
             $has = $inspection->photos->first(function ($photo) use ($slot) {
                 return $photo->category === 'exterior' && $photo->slot === $slot;
             });
@@ -55,7 +59,7 @@ class InspectionCompletenessValidator
             }
         }
 
-        foreach (config('inspections.required_slots.interior', []) as $slot) {
+        foreach ($routineConfig['interior_slots'] as $slot) {
             $has = $inspection->photos->first(function ($photo) use ($slot) {
                 return $photo->category === 'interior' && $photo->slot === $slot;
             });
@@ -86,5 +90,17 @@ class InspectionCompletenessValidator
                 'inspection' => 'Inspecao incompleta: ' . implode(', ', array_unique($missing)),
             ]);
         }
+    }
+
+    private function resolveRoutineConfig(Inspection $inspection): array
+    {
+        $audit = $inspection->audits()->where('action', 'routine_config_applied')->latest('id')->first();
+        $payload = (array) ($audit?->payload ?? []);
+
+        if (!empty($payload['routine_config']) && is_array($payload['routine_config'])) {
+            return InspectionRoutineConfig::sanitize($payload['routine_config']);
+        }
+
+        return InspectionRoutineConfig::defaults();
     }
 }
