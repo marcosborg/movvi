@@ -1220,8 +1220,17 @@ trait Reports
 
     public function filter($state_id = 1)
     {
+        $mainCompanyId = Company::where('main', true)->value('id');
+        $sessionCompanyId = session()->get('company_id');
+        $userCompanyId = auth()->check() ? optional(auth()->user()->company)->id : null;
 
-        $company_id = Company::where('main', true)->first()->id;
+        $company_id = $sessionCompanyId ?: $userCompanyId ?: $mainCompanyId;
+
+        if (!$company_id || !Company::whereKey($company_id)->exists()) {
+            $company_id = $mainCompanyId;
+        }
+
+        session()->put('company_id', $company_id);
 
         $tvde_year_id = session()->get('tvde_year_id') ? session()->get('tvde_year_id') : $tvde_year_id = TvdeYear::orderBy('name', 'desc')->first()->id;
         if (session()->has('tvde_month_id')) {

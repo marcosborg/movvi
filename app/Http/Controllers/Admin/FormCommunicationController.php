@@ -30,8 +30,16 @@ class FormCommunicationController extends Controller
     {
 
         $form_name = FormName::find($form_id)->load('form_inputs');
-        $drivers = Driver::where('state_id', 1)->get();
-        $vehicle_items = VehicleItem::all();
+        $companyId = session()->get('company_id') ?: optional(auth()->user()->company)->id;
+        $drivers = Driver::query()
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
+            ->where('state_id', 1)
+            ->orderBy('name')
+            ->get();
+        $vehicle_items = VehicleItem::query()
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
+            ->orderBy('license_plate')
+            ->get();
         $users = User::whereHas('roles', function ($role) {
             $role->where('title', 'Técnico');
         })->get();

@@ -46,6 +46,28 @@
         @endforeach
     </div>
     @include('admin.partials.weekQuickSelect', ['tvde_weeks' => $tvde_weeks, 'tvde_week_id' => $tvde_week_id])
+    <div class="row" style="margin-top: 15px;">
+        <div class="col-md-3">
+            <div class="alert alert-info" style="margin-bottom: 10px;">
+                Ganhos operacionais: <strong>{{ number_format(isset($totals->total_operators) ? $totals->total_operators : $totals['total_operators'], 2) }} €</strong>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="alert alert-warning" style="margin-bottom: 10px;">
+                Despesa total: <strong>{{ number_format($final_total, 2) }} €</strong>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="alert alert-success" style="margin-bottom: 10px;">
+                Rentabilidade: <strong>{{ number_format($profit, 2) }} €</strong>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="alert alert-default" style="margin-bottom: 10px;">
+                ROI: <strong>{{ round($roi) }}%</strong>
+            </div>
+        </div>
+    </div>
     <div class="row" style="margin-top: 20px;">
         <div class="col-md-8">
             <div class="panel panel-default">

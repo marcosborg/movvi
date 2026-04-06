@@ -289,15 +289,23 @@ class CompanyReportController extends Controller
 
     public function driverReportAllWeeks($driver_id = NULL, $state_id = 1)
     {
+        $companyId = session()->get('company_id') ?: \App\Models\Company::where('main', true)->value('id');
+        $drivers = Driver::where('company_id', $companyId)
+            ->where('state_id', $state_id)
+            ->orderBy('name')
+            ->get();
 
-        $drivers = Driver::where('state_id', $state_id)->get();
-        $driver_id = $driver_id ?? $drivers->first()->id;
+        $driver_id = $driver_id ?? $drivers->first()?->id;
 
         $weeks = \App\Models\TvdeWeek::orderBy('start_date', 'desc')->get();
 
         $results = [];
 
         foreach ($weeks as $week) {
+            if (!$driver_id) {
+                break;
+            }
+
             $account = \App\Models\CurrentAccount::where([
                 'tvde_week_id' => $week->id,
                 'driver_id' => $driver_id

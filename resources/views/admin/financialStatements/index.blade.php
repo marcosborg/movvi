@@ -24,12 +24,20 @@
         <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana {{ $tvde_week->display_number ?? $tvde_week->number }}/{{ $tvde_week->display_year ?? '-' }} · {{
             \Carbon\Carbon::parse($tvde_week->start_date)->format('d/m')
             }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d/m') }}</a>
-        @endforeach
+    @endforeach
     </div>
     @include('admin.partials.weekQuickSelect', ['tvde_weeks' => $tvde_weeks, 'tvde_week_id' => $tvde_week_id])
+    <div class="report-toolbar">
+        <input type="text" id="driverStatementSearch" class="form-control" placeholder="Filtrar motorista por nome">
+        @if($driver_id && $driver_email)
+        <span class="label label-info">Email configurado</span>
+        @elseif($driver_id)
+        <span class="label label-warning">Sem email configurado</span>
+        @endif
+    </div>
     <a href="/admin/financial-statements/driver/0" class="btn btn-default {{ $driver_id == null ? 'disabled selected' : '' }}" style="margin-top: 5px;">Todos</a>
     @foreach ($drivers as $d)
-    <a href="/admin/financial-statements/driver/{{ $d->id }}" class="btn btn-default {{ $driver_id == $d->id ? 'disabled selected' : '' }}" style="margin-top: 5px;">{{
+    <a href="/admin/financial-statements/driver/{{ $d->id }}" class="btn btn-default statement-driver-link {{ $driver_id == $d->id ? 'disabled selected' : '' }}" data-driver-name="{{ mb_strtolower($d->name) }}" style="margin-top: 5px;">{{
         $d->name }} {{ $d->team->count() > 0 ? '(Team)' : '' }}</a>
     @endforeach
     <div class="row" style="margin-top: 5px;">
@@ -279,6 +287,18 @@
 @endsection
 @section('styles')
 <style>
+    .report-toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 10px 0 15px 0;
+    }
+
+    .report-toolbar .form-control {
+        max-width: 320px;
+    }
+
     td {
         text-align: right;
     }
@@ -301,6 +321,18 @@
 </script>
 <script>
     $(() => {
+        const driverSearch = document.getElementById('driverStatementSearch');
+        const driverLinks = Array.from(document.querySelectorAll('.statement-driver-link'));
+
+        driverSearch?.addEventListener('input', (event) => {
+            const query = (event.target.value || '').toLowerCase().trim();
+
+            driverLinks.forEach((link) => {
+                const name = link.dataset.driverName || '';
+                link.style.display = !query || name.includes(query) ? '' : 'none';
+            });
+        });
+
         $('#update-balance').ajaxForm({
             beforeSubmit: () => {
                 $('#update-balance').LoadingOverlay('show');

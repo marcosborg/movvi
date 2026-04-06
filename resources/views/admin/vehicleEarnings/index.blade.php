@@ -27,6 +27,21 @@
         @endforeach
     </div>
     @include('admin.partials.weekQuickSelect', ['tvde_weeks' => $tvde_weeks, 'tvde_week_id' => $tvde_week_id])
+    <div class="row" style="margin-top: 15px;">
+        <div class="col-md-6">
+            <div class="alert alert-warning" style="margin-bottom: 10px;">
+                Viaturas sem motorista atribuido: <strong>{{ $vehicles_without_driver->count() }}</strong>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="alert alert-info" style="margin-bottom: 10px;">
+                Condutores com issues: <strong>{{ $drivers_with_issues->count() }}</strong>
+            </div>
+        </div>
+    </div>
+    <div class="report-toolbar">
+        <input type="text" id="vehicleIssuesSearch" class="form-control" placeholder="Filtrar por matricula ou condutor">
+    </div>
     @endif
     <div class="row" style="margin-top: 20px;">
         <div class="col-lg-6">
@@ -43,7 +58,7 @@
                         </thead>
                         <tbody>
                             @foreach ($vehicles_without_driver as $vehicle)
-                            <tr>
+                            <tr class="vehicle-issue-row" data-plate="{{ mb_strtolower($vehicle->license_plate) }}" data-brand="{{ mb_strtolower($vehicle->vehicle_brand->name ?? '') }}" data-model="{{ mb_strtolower($vehicle->vehicle_model->name ?? '') }}">
                                 <td>{{ $vehicle->license_plate }}</td>
                                 <td>{{ $vehicle->vehicle_brand->name ?? '' }}</td>
                                 <td>{{ $vehicle->vehicle_model->name ?? '' }}</td>
@@ -73,7 +88,7 @@
                         </thead>
                         <tbody>
                             @foreach ($drivers_with_issues as $driver)
-                            <tr>
+                            <tr class="driver-issue-row" data-driver="{{ mb_strtolower($driver->name) }}" data-vat="{{ mb_strtolower($driver->nif ?? '') }}">
                                 <td>{{ $driver->name }}</td>
                                 <td>{{ $driver->nif ?? '—' }}</td>
                             </tr>
@@ -91,4 +106,43 @@
     </div>
 
 </div>
+@endsection
+@section('styles')
+<style>
+    .report-toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .report-toolbar .form-control {
+        max-width: 360px;
+    }
+</style>
+@endsection
+@section('scripts')
+@parent
+<script>
+    (() => {
+        const search = document.getElementById('vehicleIssuesSearch');
+        const vehicleRows = Array.from(document.querySelectorAll('.vehicle-issue-row'));
+        const driverRows = Array.from(document.querySelectorAll('.driver-issue-row'));
+
+        search?.addEventListener('input', (event) => {
+            const query = (event.target.value || '').toLowerCase().trim();
+
+            vehicleRows.forEach((row) => {
+                const haystack = [row.dataset.plate, row.dataset.brand, row.dataset.model].join(' ');
+                row.style.display = !query || haystack.includes(query) ? '' : 'none';
+            });
+
+            driverRows.forEach((row) => {
+                const haystack = [row.dataset.driver, row.dataset.vat].join(' ');
+                row.style.display = !query || haystack.includes(query) ? '' : 'none';
+            });
+        });
+    })();
+</script>
 @endsection
