@@ -465,6 +465,15 @@ trait Reports
             ])->first();
 
             $driver->current_account = (bool) $current_account;
+
+            $current_balance = DriversBalance::where([
+                'tvde_week_id' => $tvde_week_id,
+                'driver_id' => $driver->id,
+            ])->first();
+
+            $driver->balance_manual_status = $current_balance?->manual_status;
+            $driver->balance_manual_status_label = $current_balance?->manual_status_label;
+            $driver->balance_record_id = $current_balance?->id;
         }
 
         $totals = collect([

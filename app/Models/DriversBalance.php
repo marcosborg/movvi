@@ -11,6 +11,16 @@ class DriversBalance extends Model
 {
     use SoftDeletes, HasFactory;
 
+    public const STATUS_PAID = 'paid';
+    public const STATUS_NEGATIVE = 'negative';
+    public const STATUS_SETTLEMENT = 'settlement';
+
+    public const STATUS_LABELS = [
+        self::STATUS_PAID => 'Pago',
+        self::STATUS_NEGATIVE => 'Negativo',
+        self::STATUS_SETTLEMENT => 'Acerto',
+    ];
+
     public $table = 'drivers_balances';
 
     protected $casts = [
@@ -31,9 +41,14 @@ class DriversBalance extends Model
         'value',
         'last_balance',
         'new_balance',
+        'manual_status',
         'created_at',
         'updated_at',
         'deleted_at',
+    ];
+
+    protected $appends = [
+        'manual_status_label',
     ];
 
     protected function serializeDate(DateTimeInterface $date)
@@ -49,5 +64,14 @@ class DriversBalance extends Model
     public function tvde_week()
     {
         return $this->belongsTo(TvdeWeek::class, 'tvde_week_id');
+    }
+
+    public function getManualStatusLabelAttribute(): ?string
+    {
+        if (!$this->manual_status) {
+            return null;
+        }
+
+        return self::STATUS_LABELS[$this->manual_status] ?? $this->manual_status;
     }
 }

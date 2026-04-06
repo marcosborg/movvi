@@ -51,18 +51,26 @@
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.driversBalance.fields.balance') }}
+                                        {{ trans('cruds.driversBalance.fields.last_balance') }}
                                     </th>
                                     <td>
-                                        {{ $driversBalance->balance }}
+                                        {{ $driversBalance->last_balance }}
                                     </td>
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.driversBalance.fields.drivers_balance') }}
+                                        {{ trans('cruds.driversBalance.fields.new_balance') }}
                                     </th>
                                     <td>
-                                        {{ $driversBalance->drivers_balance }}
+                                        {{ $driversBalance->new_balance }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        Estado semanal
+                                    </th>
+                                    <td>
+                                        {{ $driversBalance->manual_status_label ?? 'Sem estado definido' }}
                                     </td>
                                 </tr>
                             </tbody>

@@ -234,9 +234,33 @@
                                 @endif
                             </tr>
                             @endif
-                            @foreach ($adjustments as $adjustment)
+                            @if (($car_hire_base ?? 0) > 0)
                             <tr>
-                                <th style="text-align: left;">{{ $adjustment->name }}</th>
+                                <th style="text-align: left;">Aluguer</th>
+                                <td></td>
+                                <td style="text-align: right;">- {{ number_format($car_hire_base, 2) }}€</td>
+                                <td></td>
+                            </tr>
+                            @endif
+                            @if (($rent_discount ?? 0) > 0)
+                            <tr>
+                                <th style="text-align: left;">Abatimento de aluguer</th>
+                                <td style="text-align: right;">{{ number_format($rent_discount, 2) }}€</td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            @endif
+                            @foreach ($adjustments as $adjustment)
+                            @if (in_array($adjustment->category ?? \App\Models\Adjustment::CATEGORY_GENERAL, [
+                                \App\Models\Adjustment::CATEGORY_CAUTION_RECEIVED,
+                                \App\Models\Adjustment::CATEGORY_CAUTION_RETURNED,
+                                \App\Models\Adjustment::CATEGORY_RENT_DISCOUNT,
+                                \App\Models\Adjustment::CATEGORY_MINIMUM_BILLING_DIFFERENCE,
+                            ], true))
+                                @continue
+                            @endif
+                            <tr>
+                                <th style="text-align: left;">{{ $adjustment->name }} @if(!empty($adjustment->category_label))<small>({{ $adjustment->category_label }})</small>@endif</th>
                                 <td style="text-align: right;">{{ $adjustment->type == 'refund' ? '' .
                                     $adjustment->amount . '€' : '' }}</td>
                                 <td style="text-align: right;">{{ $adjustment->type == 'deduct' ? '- ' .
@@ -244,6 +268,30 @@
                                 <td></td>
                             </tr>
                             @endforeach
+                            @if (($minimum_billing_difference ?? 0) != 0)
+                            <tr>
+                                <th style="text-align: left;">Diferença de faturação mínima</th>
+                                <td style="text-align: right;">{{ $minimum_billing_difference > 0 ? number_format($minimum_billing_difference, 2) . '€' : '' }}</td>
+                                <td style="text-align: right;">{{ $minimum_billing_difference < 0 ? '- ' . number_format(abs($minimum_billing_difference), 2) . '€' : '' }}</td>
+                                <td></td>
+                            </tr>
+                            @endif
+                            @if (($caution_received ?? 0) != 0)
+                            <tr>
+                                <th style="text-align: left;">Caução recebida</th>
+                                <td style="text-align: right;">{{ number_format($caution_received, 2) }}€</td>
+                                <td></td>
+                                <td style="text-align: right;">Informativo</td>
+                            </tr>
+                            @endif
+                            @if (($caution_returned ?? 0) != 0)
+                            <tr>
+                                <th style="text-align: left;">Caução devolvida</th>
+                                <td style="text-align: right;">{{ number_format($caution_returned, 2) }}€</td>
+                                <td></td>
+                                <td style="text-align: right;">Informativo</td>
+                            </tr>
+                            @endif
                             @if ($txt_admin > 0)
                             <tr>
                                 <th style="text-align: left;">Taxa administrativa</th>
@@ -309,6 +357,37 @@
             </td>
         </tr>
     </table>
+    @if (($general_adjustments ?? 0) != 0 || ($rent_discount ?? 0) != 0 || ($minimum_billing_difference ?? 0) != 0 || ($caution_received ?? 0) != 0 || ($caution_returned ?? 0) != 0)
+    <table class="bordered" style="margin-top: 20px;">
+        <thead>
+            <tr>
+                <th colspan="2" style="text-align: left; text-transform: uppercase;">Resumo de categorias</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th style="text-align: left;">Ajustes gerais</th>
+                <td style="text-align: right;">{{ number_format($general_adjustments ?? 0, 2) }}€</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Abatimento de aluguer</th>
+                <td style="text-align: right;">{{ number_format($rent_discount ?? 0, 2) }}€</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Diferença de faturação mínima</th>
+                <td style="text-align: right;">{{ number_format($minimum_billing_difference ?? 0, 2) }}€</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Caução recebida</th>
+                <td style="text-align: right;">{{ number_format($caution_received ?? 0, 2) }}€</td>
+            </tr>
+            <tr>
+                <th style="text-align: left;">Caução devolvida</th>
+                <td style="text-align: right;">{{ number_format($caution_returned ?? 0, 2) }}€</td>
+            </tr>
+        </tbody>
+    </table>
+    @endif
     <footer>
         Tribos&Montanhas ©
         <?php echo date("Y");?>

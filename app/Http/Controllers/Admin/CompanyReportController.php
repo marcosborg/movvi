@@ -179,6 +179,7 @@ class CompanyReportController extends Controller
 
             // 🔹 Último saldo
             $last_balance = DriversBalance::where('driver_id', $data['driver']['id'])
+                ->where('tvde_week_id', '!=', $data['tvde_week_id'])
                 ->orderBy('tvde_week_id', 'desc')
                 ->first();
 
@@ -192,6 +193,7 @@ class CompanyReportController extends Controller
             $driver_balance->value           = $total;
             $driver_balance->last_balance    = $last_balance;
             $driver_balance->new_balance     = $new_balance;
+            $driver_balance->manual_status   = null;
             $driver_balance->save();
 
             /*
@@ -217,6 +219,12 @@ class CompanyReportController extends Controller
         $current_account->data = json_encode($this->buildCurrentAccountPayload($data['driver']));
         $current_account->save();
 
+        $existingBalance = DriversBalance::where([
+            'tvde_week_id' => $tvde_week_id,
+            'driver_id' => $driver_id
+        ])->first();
+        $existingManualStatus = $existingBalance?->manual_status;
+
         DriversBalance::where([
             'tvde_week_id' => $tvde_week_id,
             'driver_id' => $driver_id
@@ -235,6 +243,7 @@ class CompanyReportController extends Controller
         $driver_balance->value = $data['driver']['total'];
         $driver_balance->last_balance = $previous_balance;
         $driver_balance->new_balance = $new_balance;
+        $driver_balance->manual_status = $existingManualStatus;
         $driver_balance->save();
     }
 

@@ -101,9 +101,17 @@
                             <tr>
                                 <th>Aluguer</th>
                                 <td></td>
-                                <td>- {{ number_format($car_hire, 2) }}€</td>
-                                <td>- {{ number_format($car_hire, 2) }}€</td>
+                                <td>- {{ number_format($car_hire_base, 2) }}€</td>
+                                <td>- {{ number_format($car_hire_base, 2) }}€</td>
                             </tr>
+                            @if (($rent_discount ?? 0) > 0)
+                            <tr>
+                                <th>Abatimento de aluguer</th>
+                                <td>{{ number_format($rent_discount, 2) }}€</td>
+                                <td></td>
+                                <td>{{ number_format($rent_discount, 2) }}€</td>
+                            </tr>
+                            @endif
                             <tr>
                                 <th>Via Verde</th>
                                 <td></td>
@@ -118,10 +126,34 @@
                             </tr>
                             <tr>
                                 <th>Acertos</th>
-                                <td>{{ $adjustments > 0 ? number_format($adjustments, 2) . '€' : '' }}</td>
-                                <td>{{ $adjustments < 0 ? number_format($adjustments, 2) . '€' : '' }}</td>
-                                <td>{{ number_format($adjustments, 2) }}€</td>
+                                <td>{{ $general_adjustments > 0 ? number_format($general_adjustments, 2) . '€' : '' }}</td>
+                                <td>{{ $general_adjustments < 0 ? number_format($general_adjustments, 2) . '€' : '' }}</td>
+                                <td>{{ number_format($general_adjustments, 2) }}€</td>
                             </tr>
+                            @if (($minimum_billing_difference ?? 0) != 0)
+                            <tr>
+                                <th>Diferença de faturação mínima</th>
+                                <td>{{ $minimum_billing_difference > 0 ? number_format($minimum_billing_difference, 2) . '€' : '' }}</td>
+                                <td>{{ $minimum_billing_difference < 0 ? number_format($minimum_billing_difference, 2) . '€' : '' }}</td>
+                                <td>{{ number_format($minimum_billing_difference, 2) }}€</td>
+                            </tr>
+                            @endif
+                            @if (($caution_received ?? 0) != 0)
+                            <tr>
+                                <th>Caução recebida</th>
+                                <td>{{ number_format($caution_received, 2) }}€</td>
+                                <td></td>
+                                <td>Informativo</td>
+                            </tr>
+                            @endif
+                            @if (($caution_returned ?? 0) != 0)
+                            <tr>
+                                <th>Caução devolvida</th>
+                                <td>{{ number_format($caution_returned, 2) }}€</td>
+                                <td></td>
+                                <td>Informativo</td>
+                            </tr>
+                            @endif
                             <tr>
                                 <th>Taxa</th>
                                 <td></td>
@@ -129,8 +161,14 @@
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
                             </tr>
                             @php
-                            if ($adjustments && $adjustments > 0) {
-                            $total_net = $total_net + $adjustments;
+                            if ($general_adjustments && $general_adjustments > 0) {
+                                $total_net = $total_net + $general_adjustments;
+                            }
+                            if ($minimum_billing_difference && $minimum_billing_difference > 0) {
+                                $total_net = $total_net + $minimum_billing_difference;
+                            }
+                            if ($rent_discount && $rent_discount > 0) {
+                                $total_net = $total_net + $rent_discount;
                             }
                             @endphp
                             <tr>

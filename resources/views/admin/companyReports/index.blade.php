@@ -126,6 +126,44 @@
             @endforeach
         </div>
 
+        <div class="row" style="margin-top: 20px;">
+            <div class="col-md-3">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Total motoristas</div>
+                    <div class="panel-body">
+                        <h3 style="margin: 0;">{{ number_format($totals['total_drivers'] ?? 0, 2) }} <small>€</small></h3>
+                        <small>Valor final semanal validado</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Alugueres recebidos</div>
+                    <div class="panel-body">
+                        <h3 style="margin: 0;">{{ number_format($totals['total_car_hire'] ?? 0, 2) }} <small>€</small></h3>
+                        <small>Total de aluguer efetivo da semana</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Percentuais recebidos</div>
+                    <div class="panel-body">
+                        <h3 style="margin: 0;">{{ number_format($totals['total_percent_value'] ?? 0, 2) }} <small>€</small></h3>
+                        <small>Total de percentagem cobrada</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Receita operacional</div>
+                    <div class="panel-body">
+                        <h3 style="margin: 0;">{{ number_format(($totals['total_car_hire'] ?? 0) + ($totals['total_percent_value'] ?? 0) + ($totals['total_adjustments'] ?? 0), 2) }} <small>€</small></h3>
+                        <small>Aluguer + percentagem + ajustes operacionais</small>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="panel panel-default" style="margin-top: 20px;">
             <div class="panel-heading">
                 Importações da semana
@@ -250,6 +288,7 @@
                             <th style="text-align: right">Valor da semana</th>
                             <th style="text-align: right">Último saldo</th>
                             <th style="text-align: right">Novo saldo</th>
+                            <th style="text-align: center">Estado</th>
                             <th style="text-align: right">Validar</th>
                             <th></th>
                             <th></th>
@@ -288,6 +327,16 @@
                                     <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>€</small></td>
                                     <td style="text-align: right">{{ number_format($driver->last_balance, 2) }} <small>€</small></td>
                                     <td style="text-align: right">{{ number_format($driver->new_balance, 2) }} <small>€</small></td>
+                                    <td style="text-align: center">
+                                        @if($driver->balance_manual_status_label)
+                                            <span class="label label-primary">{{ $driver->balance_manual_status_label }}</span>
+                                        @else
+                                            <span class="label label-default">Sem estado</span>
+                                        @endif
+                                        @if($driver->balance_record_id)
+                                            <br><a class="btn btn-xs btn-info" href="{{ route('admin.drivers-balances.edit', $driver->balance_record_id) }}" target="_blank" style="margin-top: 4px;">Editar</a>
+                                        @endif
+                                    </td>
                                     <td style="text-align: right">
                                         <div class="checkbox">
                                             <label>
@@ -323,6 +372,7 @@
                             <th style="text-align: right; color: red;">{{ number_format($totals['total_percent_value'], 2) }} <small>€</small></th>
                             <th style="text-align: right;">-{{ number_format($totals['total_car_hire'], 2) }} <small>€</small></th>
                             <th style="text-align: right;">{{ number_format($totals['total_drivers'], 2) }} <small>€</small></th>
+                            <th></th>
                             <th></th>
                             <th></th>
                             <th></th>

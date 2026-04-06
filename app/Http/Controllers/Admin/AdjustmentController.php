@@ -10,8 +10,12 @@ use App\Http\Requests\UpdateAdjustmentRequest;
 use App\Models\Adjustment;
 use App\Models\Company;
 use App\Models\Driver;
+use App\Models\TvdeWeek;
+use Carbon\Carbon;
 use Gate;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -99,9 +103,22 @@ class AdjustmentController extends Controller
         $payload['affects_vehicle_profitability'] = $request->boolean('affects_vehicle_profitability');
         $payload['company_expense'] = false;
         $payload['fleet_management'] = false;
+        $driverIds = $request->input('drivers', []);
+
+        if (
+            ($payload['category'] ?? null) === Adjustment::CATEGORY_CAUTION_RECEIVED
+            && (int) ($payload['dilution_weeks'] ?? 1) > 1
+        ) {
+            $this->storeDilutedCautionAdjustments($payload, $driverIds);
+
+            return redirect()->route('admin.adjustments.index')
+                ->with('message', 'Caucao diluida criada com sucesso.');
+        }
+
+        unset($payload['dilution_weeks']);
 
         $adjustment = Adjustment::create($payload);
-        $adjustment->drivers()->sync($request->input('drivers', []));
+        $adjustment->drivers()->sync($driverIds);
 
         return redirect()->route('admin.adjustments.index');
     }
@@ -163,5 +180,88 @@ class AdjustmentController extends Controller
         }
 
         return response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    protected function storeDilutedCautionAdjustments(array $payload, array $driverIds): void
+    {
+        $weeksToDilute = (int) ($payload['dilution_weeks'] ?? 1);
+        $startWeek = $this->resolveDilutionStartWeek((string) ($payload['start_date'] ?? ''));
+        $weeks = TvdeWeek::query()
+            ->where('start_date', '>=', $startWeek->getRawOriginal('start_date'))
+            ->orderBy('start_date')
+            ->limit($weeksToDilute)
+            ->get();
+
+        if ($weeks->count() < $weeksToDilute) {
+            throw ValidationException::withMessages([
+                'dilution_weeks' => 'Nao existem semanas TVDE suficientes para criar todas as parcelas da caucao.',
+            ]);
+        }
+
+        $amounts = $this->splitAmountAcrossWeeks((float) ($payload['amount'] ?? 0), $weeksToDilute);
+        $baseName = trim((string) ($payload['name'] ?? 'Caucao'));
+
+        DB::transaction(function () use ($payload, $driverIds, $weeks, $weeksToDilute, $amounts, $baseName) {
+            foreach ($weeks->values() as $index => $week) {
+                $weekPayload = $payload;
+                unset($weekPayload['dilution_weeks']);
+
+                $weekPayload['name'] = sprintf('%s (%d/%d)', $baseName, $index + 1, $weeksToDilute);
+                $weekPayload['amount'] = $amounts[$index];
+                $weekPayload['start_date'] = Carbon::parse($week->getRawOriginal('start_date'))->format(config('panel.date_format'));
+                $weekPayload['end_date'] = Carbon::parse($week->getRawOriginal('end_date'))->format(config('panel.date_format'));
+
+                $adjustment = Adjustment::create($weekPayload);
+                $adjustment->drivers()->sync($driverIds);
+            }
+        });
+    }
+
+    protected function resolveDilutionStartWeek(string $startDate): TvdeWeek
+    {
+        $normalizedDate = Carbon::createFromFormat(config('panel.date_format'), $startDate)->format('Y-m-d');
+
+        $week = TvdeWeek::query()
+            ->where('start_date', '<=', $normalizedDate)
+            ->where('end_date', '>=', $normalizedDate)
+            ->orderByDesc('start_date')
+            ->first();
+
+        if ($week) {
+            return $week;
+        }
+
+        $nextWeek = TvdeWeek::query()
+            ->where('start_date', '>=', $normalizedDate)
+            ->orderBy('start_date')
+            ->first();
+
+        if ($nextWeek) {
+            return $nextWeek;
+        }
+
+        throw ValidationException::withMessages([
+            'start_date' => 'Nao foi encontrada nenhuma semana TVDE para iniciar a diluicao.',
+        ]);
+    }
+
+    protected function splitAmountAcrossWeeks(float $amount, int $weeks): array
+    {
+        $amountInCents = (int) round($amount * 100);
+        $baseSlice = intdiv($amountInCents, $weeks);
+        $remainder = $amountInCents % $weeks;
+        $parts = [];
+
+        for ($index = 0; $index < $weeks; $index++) {
+            $slice = $baseSlice;
+            if ($remainder > 0) {
+                $slice++;
+                $remainder--;
+            }
+
+            $parts[] = $slice / 100;
+        }
+
+        return $parts;
     }
 }

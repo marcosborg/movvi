@@ -105,6 +105,7 @@ class FinancialStatementController extends Controller
             'minimum_billing_difference' => isset($results) ? ($results->diferenca_faturacao_minima ?? 0) : 0,
             'caution_received' => isset($results) ? ($results->caucao_recebida ?? 0) : 0,
             'caution_returned' => isset($results) ? ($results->caucao_devolvida ?? 0) : 0,
+            'car_hire_base' => isset($results) ? ($results->car_hire_base ?? $results->car_hire ?? 0) : 0,
             'total' => $total ?? 0,
             'vat_value' => isset($results) ? $results->vat_value : 0,
             'car_track' => isset($results) ? $results->car_track : 0,
@@ -154,6 +155,11 @@ class FinancialStatementController extends Controller
         $company = Company::find($company_id);
 
         $tvde_week = TvdeWeek::find($tvde_week_id);
+        $currentAccount = CurrentAccount::where([
+            'tvde_week_id' => $tvde_week_id,
+            'driver_id' => $driver_id,
+        ])->first();
+        $statementResults = $currentAccount ? json_decode($currentAccount->data) : null;
 
         $bolt_activities = TvdeActivity::where([
             'tvde_week_id' => $tvde_week_id,
@@ -273,6 +279,10 @@ class FinancialStatementController extends Controller
         $gross_debts = ($total_earnings_no_tip - $total_earnings_after_vat) + ($total_tips - $total_tip_after_vat) + $deduct;
 
         $final_total = $gross_credits - $gross_debts;
+
+        if ($statementResults) {
+            $final_total = (float) ($statementResults->driver_total ?? $statementResults->total ?? $final_total);
+        }
 
         $electric_racio = null;
         $combustion_racio = null;
@@ -421,6 +431,13 @@ class FinancialStatementController extends Controller
             'total_tips' => $total_tips,
             'total_tip_after_vat' => $total_tip_after_vat,
             'adjustments' => $adjustments,
+            'statement_results' => $statementResults,
+            'general_adjustments' => $statementResults ? ($statementResults->general_adjustments ?? $statementResults->adjustments ?? 0) : 0,
+            'rent_discount' => $statementResults ? ($statementResults->abatimento_aluguer ?? 0) : 0,
+            'minimum_billing_difference' => $statementResults ? ($statementResults->diferenca_faturacao_minima ?? 0) : 0,
+            'caution_received' => $statementResults ? ($statementResults->caucao_recebida ?? 0) : 0,
+            'caution_returned' => $statementResults ? ($statementResults->caucao_devolvida ?? 0) : 0,
+            'car_hire_base' => $statementResults ? ($statementResults->car_hire_base ?? $statementResults->car_hire ?? 0) : 0,
             'total_earnings' => $total_earnings,
             'total_earnings_no_tip' => $total_earnings_no_tip,
             'total' => $total,

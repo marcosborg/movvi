@@ -1139,6 +1139,8 @@ class MobileController extends Controller
             'vat' => $vat,
             'rf' => $rf,
             'final' => round(((float) $balance->new_balance) + $vat + $rf, 2),
+            'manual_status' => $balance->manual_status,
+            'manual_status_label' => $balance->manual_status_label,
         ];
     }
 

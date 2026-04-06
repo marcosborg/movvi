@@ -52,6 +52,9 @@
                                         {{ trans('cruds.driversBalance.fields.new_balance') }}
                                     </th>
                                     <th>
+                                        Estado semanal
+                                    </th>
+                                    <th>
                                         &nbsp;
                                     </th>
                                 </tr>
@@ -88,6 +91,9 @@
                                         </td>
                                         <td>
                                             {{ $driversBalance->new_balance ?? '' }}
+                                        </td>
+                                        <td>
+                                            {{ $driversBalance->manual_status_label ?? 'Sem estado' }}
                                         </td>
                                         <td>
                                             @can('drivers_balance_show')

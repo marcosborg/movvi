@@ -60,6 +60,19 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.driversBalance.fields.new_balance_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('manual_status') ? 'has-error' : '' }}">
+                            <label for="manual_status">Estado semanal manual</label>
+                            <select class="form-control" name="manual_status" id="manual_status">
+                                <option value="">Sem estado definido</option>
+                                @foreach($manualStatuses as $value => $label)
+                                    <option value="{{ $value }}" {{ old('manual_status', $driversBalance->manual_status) === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @if($errors->has('manual_status'))
+                                <span class="help-block" role="alert">{{ $errors->first('manual_status') }}</span>
+                            @endif
+                            <span class="help-block">Usa este campo para marcar manualmente Pago, Negativo ou Acerto.</span>
+                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}

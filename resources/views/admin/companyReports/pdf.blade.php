@@ -39,6 +39,7 @@
             <col style="width: 8%;">
             <col style="width: 7%;">
             <col style="width: 8%;">
+            <col style="width: 7%;">
         </colgroup>
         <thead>
             <tr>
@@ -58,6 +59,7 @@
                 <th>Total semana</th>
                 <th>Último saldo</th>
                 <th>Novo saldo</th>
+                <th>Estado</th>
             </tr>
         </thead>
         <tbody>
@@ -84,6 +86,7 @@
                     <td class="nowrap">{{ number_format($driver->total ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->last_balance ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->new_balance ?? 0, 2) }} &euro;</td>
+                    <td class="nowrap">{{ $driver->balance_manual_status_label ?? '-' }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -105,8 +108,28 @@
                 <th>{{ number_format($totals['total_drivers'] ?? 0, 2) }} &euro;</th>
                 <th></th>
                 <th></th>
+                <th></th>
             </tr>
         </tfoot>
+    </table>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Total motoristas</th>
+                <th>Alugueres recebidos</th>
+                <th>Percentuais recebidos</th>
+                <th>Receita operacional</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ number_format($totals['total_drivers'] ?? 0, 2) }} &euro;</td>
+                <td>{{ number_format($totals['total_car_hire'] ?? 0, 2) }} &euro;</td>
+                <td>{{ number_format($totals['total_percent_value'] ?? 0, 2) }} &euro;</td>
+                <td>{{ number_format(($totals['total_car_hire'] ?? 0) + ($totals['total_percent_value'] ?? 0) + ($totals['total_adjustments'] ?? 0), 2) }} &euro;</td>
+            </tr>
+        </tbody>
     </table>
 
     <table>

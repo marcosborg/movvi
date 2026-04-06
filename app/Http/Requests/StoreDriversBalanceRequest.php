@@ -38,6 +38,10 @@ class StoreDriversBalanceRequest extends FormRequest
                 'nullable',
                 'numeric',
             ],
+            'manual_status' => [
+                'nullable',
+                'in:' . implode(',', array_keys(DriversBalance::STATUS_LABELS)),
+            ],
         ];
     }
 }

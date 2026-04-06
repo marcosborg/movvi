@@ -44,7 +44,9 @@ class DriversBalanceController extends Controller
 
         $tvde_weeks = TvdeWeek::orderBy('start_date', 'desc')->get()->pluck('start_date', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.driversBalances.create', compact('drivers', 'tvde_weeks'));
+        $manualStatuses = DriversBalance::STATUS_LABELS;
+
+        return view('admin.driversBalances.create', compact('drivers', 'tvde_weeks', 'manualStatuses'));
     }
 
     public function store(StoreDriversBalanceRequest $request)
@@ -63,8 +65,9 @@ class DriversBalanceController extends Controller
         $tvde_weeks = TvdeWeek::orderBy('start_date', 'desc')->get()->pluck('start_date', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $driversBalance->load('driver', 'tvde_week');
+        $manualStatuses = DriversBalance::STATUS_LABELS;
 
-        return view('admin.driversBalances.edit', compact('drivers', 'driversBalance', 'tvde_weeks'));
+        return view('admin.driversBalances.edit', compact('drivers', 'driversBalance', 'tvde_weeks', 'manualStatuses'));
     }
 
     public function update(UpdateDriversBalanceRequest $request, DriversBalance $driversBalance)

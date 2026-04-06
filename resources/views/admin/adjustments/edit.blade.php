@@ -77,6 +77,11 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.adjustment.fields.end_date_helper') }}</span>
                         </div>
+                        <div class="form-group" id="dilution_weeks_group" style="display: none;">
+                            <label for="dilution_weeks">Diluir por semanas</label>
+                            <input class="form-control" type="number" id="dilution_weeks" value="1" min="1" max="52" disabled>
+                            <span class="help-block">A diluicao automatica so esta disponivel no momento da criacao. Para alterar parcelas ja criadas, edita cada semana individualmente.</span>
+                        </div>
                         <div class="form-group {{ $errors->has('drivers') ? 'has-error' : '' }}">
                             <label for="drivers">{{ trans('cruds.adjustment.fields.drivers') }}</label>
                             <div style="padding-bottom: 4px">
@@ -130,4 +135,24 @@
         </div>
     </div>
 </div>
+@endsection
+@section('scripts')
+@parent
+<script>
+    (function () {
+        const categoryInput = document.getElementById('category');
+        const dilutionGroup = document.getElementById('dilution_weeks_group');
+
+        if (!categoryInput || !dilutionGroup) {
+            return;
+        }
+
+        const toggleDilutionField = () => {
+            dilutionGroup.style.display = categoryInput.value === '{{ App\Models\Adjustment::CATEGORY_CAUTION_RECEIVED }}' ? 'block' : 'none';
+        };
+
+        categoryInput.addEventListener('change', toggleDilutionField);
+        toggleDilutionField();
+    })();
+</script>
 @endsection
