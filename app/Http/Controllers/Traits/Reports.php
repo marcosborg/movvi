@@ -16,6 +16,7 @@ use App\Models\TvdeWeek;
 use App\Models\CurrentAccount;
 use App\Models\Electric;
 use App\Models\Card;
+use App\Models\Receipt;
 use App\Models\TvdeMonth;
 use App\Models\TvdeYear;
 use App\Models\CompanyExpense;
@@ -66,6 +67,15 @@ trait Reports
 
         $mileages = WeeklyVehicleMileage::where('tvde_week_id', $tvde_week_id)->get();
         $mileageAllocation = $this->buildWeeklyMileageAllocation($weekUsages, $mileages, $weekStart, $weekEnd);
+        $weekReceipts = Receipt::whereIn('driver_id', $driverIds)
+            ->where('tvde_week_id', $tvde_week_id)
+            ->orderByDesc('verified')
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('driver_id')
+            ->map(function ($receipts) {
+                return $receipts->firstWhere('verified', true) ?? $receipts->first();
+            });
 
         // Totais (mantendo compatibilidade)
         $total_operators = [];
@@ -104,6 +114,10 @@ trait Reports
         $total_minimum_billing_difference = [];
         $total_caution_received = [];
         $total_caution_returned = [];
+        $receipt_check_match_count = 0;
+        $receipt_check_mismatch_count = 0;
+        $receipt_check_missing_count = 0;
+        $receipt_check_difference_total = [];
 
         foreach ($drivers as $driver) {
             $driverPlates = $mileageAllocation['plates'][$driver->id] ?? [];
@@ -427,6 +441,43 @@ trait Reports
             $driver->final_total_balance = $driver->final_total + $driver->new_balance;
             $driver->earnings_per_km = $earnings_per_km;
 
+            $receipt = $weekReceipts->get($driver->id);
+            $receivedInAccount = $receipt && $receipt->verified_value !== null
+                ? (float) $receipt->verified_value
+                : null;
+            $platformNetTotal = round($net_total, 2);
+            $receiptCheckDifference = $receivedInAccount !== null
+                ? round($receivedInAccount - $platformNetTotal, 2)
+                : null;
+            $receiptCheckStatus = 'missing';
+
+            if ($receivedInAccount !== null) {
+                $receiptCheckStatus = abs($receiptCheckDifference) <= 0.01 ? 'match' : 'mismatch';
+            }
+
+            if ($receiptCheckStatus === 'match') {
+                $receipt_check_match_count++;
+            } elseif ($receiptCheckStatus === 'mismatch') {
+                $receipt_check_mismatch_count++;
+            } else {
+                $receipt_check_missing_count++;
+            }
+
+            if ($receiptCheckDifference !== null) {
+                $receipt_check_difference_total[] = $receiptCheckDifference;
+            }
+
+            $driver->receipt_check = [
+                'status' => $receiptCheckStatus,
+                'platform_net_total' => $platformNetTotal,
+                'received_in_account' => $receivedInAccount,
+                'difference' => $receiptCheckDifference,
+                'receipt_id' => $receipt?->id,
+                'amount_transferred' => $receipt && $receipt->amount_transferred !== null
+                    ? (float) $receipt->amount_transferred
+                    : null,
+            ];
+
             // ---------- Alimentar arrays de totais ----------
             $gross_uber[] = $uber_gross;
             $gross_bolt[] = $bolt_gross;
@@ -524,6 +575,10 @@ trait Reports
             'total_earnings_per_km' => array_sum($total_weekly_km) > 0
                 ? (array_sum($total_net_operators) / array_sum($total_weekly_km))
                 : 0,
+            'receipt_check_match_count' => $receipt_check_match_count,
+            'receipt_check_mismatch_count' => $receipt_check_mismatch_count,
+            'receipt_check_missing_count' => $receipt_check_missing_count,
+            'receipt_check_difference_total' => array_sum($receipt_check_difference_total),
         ]);
 
         return [
@@ -1172,13 +1227,14 @@ trait Reports
         if (session()->has('tvde_month_id')) {
             $tvde_month_id = session()->get('tvde_month_id');
         } else {
-            $tvde_month = TvdeMonth::orderBy('number', 'desc')
+            $tvde_month = TvdeMonth::where('year_id', $tvde_year_id)
                 ->whereHas('weeks', function ($week) use ($company_id) {
                     $week->whereHas('tvdeActivities', function ($tvdeActivity) use ($company_id) {
                         $tvdeActivity->where('company_id', $company_id);
                     });
                 })
-                ->where('year_id', $tvde_year_id)
+                ->withMax('weeks', 'start_date')
+                ->orderByDesc('weeks_max_start_date')
                 ->first();
             if ($tvde_month) {
                 $tvde_month_id = $tvde_month->id;
@@ -1190,8 +1246,8 @@ trait Reports
             $tvde_week_id = session()->get('tvde_week_id');
         } else {
             $tvde_week = TvdeWeek::has('tvdeActivities')
-                ->orderBy('number', 'desc')
                 ->where('tvde_month_id', $tvde_month_id)
+                ->orderByDesc('start_date')
                 ->first();
             if ($tvde_week) {
                 $tvde_week_id = $tvde_week->id;
@@ -1210,19 +1266,22 @@ trait Reports
                 });
             })
             ->get();
-        $tvde_months = TvdeMonth::orderBy('number', 'asc')
+        $tvde_months = TvdeMonth::where('year_id', $tvde_year_id)
             ->whereHas('weeks', function ($week) use ($company_id) {
                 $week->whereHas('tvdeActivities', function ($tvdeActivity) use ($company_id) {
                     $tvdeActivity->where('company_id', $company_id);
                 });
             })
-            ->where('year_id', $tvde_year_id)->get();
+            ->withMin('weeks', 'start_date')
+            ->orderBy('weeks_min_start_date', 'asc')
+            ->get();
 
-        $tvde_weeks = TvdeWeek::orderBy('number', 'asc')
+        $tvde_weeks = TvdeWeek::where('tvde_month_id', $tvde_month_id)
             ->whereHas('tvdeActivities', function ($tvdeActivity) use ($company_id) {
                 $tvdeActivity->where('company_id', $company_id);
             })
-            ->where('tvde_month_id', $tvde_month_id)->get();
+            ->orderBy('start_date', 'asc')
+            ->get();
 
         $tvde_week = TvdeWeek::find($tvde_week_id);
 

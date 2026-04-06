@@ -45,7 +45,7 @@ class CompanyReportApiController extends Controller
             ],
             'week' => [
                 'id' => (int) $week->id,
-                'number' => $week->number ? (int) $week->number : null,
+                'number' => $week->display_number ? (int) $week->display_number : null,
                 'start_date' => Carbon::parse($week->getRawOriginal('start_date'))->format('d-m-Y'),
                 'end_date' => Carbon::parse($week->getRawOriginal('end_date'))->format('d-m-Y'),
                 'requested_date' => $requestedDate,
@@ -79,6 +79,20 @@ class CompanyReportApiController extends Controller
                             'new_balance' => (float) ($driver->new_balance ?? 0),
                             'manual_status' => $driver->balance_manual_status,
                             'manual_status_label' => $driver->balance_manual_status_label,
+                            'receipt_check' => [
+                                'status' => data_get($driver->receipt_check, 'status'),
+                                'platform_net_total' => (float) data_get($driver->receipt_check, 'platform_net_total', 0),
+                                'received_in_account' => (($receivedInAccount = data_get($driver->receipt_check, 'received_in_account')) !== null)
+                                    ? (float) $receivedInAccount
+                                    : null,
+                                'difference' => (($difference = data_get($driver->receipt_check, 'difference')) !== null)
+                                    ? (float) $difference
+                                    : null,
+                                'receipt_id' => data_get($driver->receipt_check, 'receipt_id'),
+                                'amount_transferred' => (($amountTransferred = data_get($driver->receipt_check, 'amount_transferred')) !== null)
+                                    ? (float) $amountTransferred
+                                    : null,
+                            ],
                             'validated' => (bool) ($driver->current_account ?? false),
                         ];
                     })
@@ -102,6 +116,10 @@ class CompanyReportApiController extends Controller
                     'total_car_track' => (float) ($results['totals']['total_car_track'] ?? 0),
                     'total_percent_value' => (float) ($results['totals']['total_percent_value'] ?? 0),
                     'total_car_hire' => (float) ($results['totals']['total_car_hire'] ?? 0),
+                    'receipt_check_match_count' => (int) ($results['totals']['receipt_check_match_count'] ?? 0),
+                    'receipt_check_mismatch_count' => (int) ($results['totals']['receipt_check_mismatch_count'] ?? 0),
+                    'receipt_check_missing_count' => (int) ($results['totals']['receipt_check_missing_count'] ?? 0),
+                    'receipt_check_difference_total' => (float) ($results['totals']['receipt_check_difference_total'] ?? 0),
                 ],
             ],
         ]);

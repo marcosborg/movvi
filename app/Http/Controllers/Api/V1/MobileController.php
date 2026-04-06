@@ -360,13 +360,13 @@ class MobileController extends Controller
             ->map(function (TvdeWeek $week) {
                 return [
                     'id' => $week->id,
-                    'number' => $week->number,
+                    'number' => $week->display_number,
                     'start_date' => $week->start_date,
                     'end_date' => $week->end_date,
                     'date_key' => Carbon::parse($week->getRawOriginal('start_date'))->format('d-m-Y'),
                     'label' => sprintf(
                         'Semana %s · %s a %s',
-                        $week->number ?? '-',
+                        ($week->display_number ?? '-') . '/' . ($week->display_year ?? '-'),
                         Carbon::parse($week->getRawOriginal('start_date'))->format('d/m'),
                         Carbon::parse($week->getRawOriginal('end_date'))->format('d/m')
                     ),
@@ -396,13 +396,13 @@ class MobileController extends Controller
             ->map(function (TvdeWeek $week) {
                 return [
                     'id' => $week->id,
-                    'number' => $week->number,
+                    'number' => $week->display_number,
                     'start_date' => $week->start_date,
                     'end_date' => $week->end_date,
                     'date_key' => Carbon::parse($week->getRawOriginal('start_date'))->format('d-m-Y'),
                     'label' => sprintf(
                         'Semana %s · %s a %s',
-                        $week->number ?? '-',
+                        ($week->display_number ?? '-') . '/' . ($week->display_year ?? '-'),
                         Carbon::parse($week->getRawOriginal('start_date'))->format('d/m'),
                         Carbon::parse($week->getRawOriginal('end_date'))->format('d/m')
                     ),
@@ -727,12 +727,18 @@ class MobileController extends Controller
 
         if ($requestedDate !== '') {
             try {
-                $dbDate = Carbon::createFromFormat('d-m-Y', $requestedDate)->format('Y-m-d');
+                $parsedDate = Carbon::createFromFormat('d-m-Y', $requestedDate)->startOfDay();
             } catch (\Throwable $e) {
                 return [null, $requestedDate];
             }
 
-            return [TvdeWeek::where('start_date', $dbDate)->first(), $requestedDate];
+            return [
+                TvdeWeek::whereDate('start_date', '<=', $parsedDate)
+                    ->whereDate('end_date', '>=', $parsedDate)
+                    ->orderByDesc('start_date')
+                    ->first(),
+                $requestedDate,
+            ];
         }
 
         $week = TvdeWeek::orderByDesc('start_date')->first();
@@ -805,7 +811,7 @@ class MobileController extends Controller
     {
         return [
             'id' => $week->id,
-            'number' => $week->number,
+            'number' => $week->display_number,
             'start_date' => $week->start_date,
             'end_date' => $week->end_date,
             'requested_date' => $requestedDate,

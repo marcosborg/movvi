@@ -162,5 +162,32 @@
             </tr>
         </tbody>
     </table>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Duplo check Uber/Bolt vs conta</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Sem diferenÃ§a</td>
+                <td>{{ number_format($totals['receipt_check_match_count'] ?? 0, 0) }}</td>
+            </tr>
+            <tr>
+                <td>Divergente</td>
+                <td>{{ number_format($totals['receipt_check_mismatch_count'] ?? 0, 0) }}</td>
+            </tr>
+            <tr>
+                <td>Sem recibo validado</td>
+                <td>{{ number_format($totals['receipt_check_missing_count'] ?? 0, 0) }}</td>
+            </tr>
+            <tr>
+                <td>Diferenca agregada</td>
+                <td>{{ number_format($totals['receipt_check_difference_total'] ?? 0, 2) }} &euro;</td>
+            </tr>
+        </tbody>
+    </table>
 </body>
 </html>

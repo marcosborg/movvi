@@ -67,4 +67,26 @@ class TvdeWeek extends Model
         return $this->hasMany(TvdeActivity::class);
     }
 
+    public function getDisplayNumberAttribute(): ?int
+    {
+        $rawStartDate = $this->getRawOriginal('start_date');
+
+        if (! $rawStartDate) {
+            return $this->number !== null ? (int) $this->number : null;
+        }
+
+        return Carbon::parse($rawStartDate)->isoWeek();
+    }
+
+    public function getDisplayYearAttribute(): ?int
+    {
+        $rawStartDate = $this->getRawOriginal('start_date');
+
+        if (! $rawStartDate) {
+            return null;
+        }
+
+        return Carbon::parse($rawStartDate)->isoWeekYear();
+    }
+
 }

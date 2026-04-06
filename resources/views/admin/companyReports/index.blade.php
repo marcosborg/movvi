@@ -33,6 +33,10 @@
     .verified {
         color: #00a65a;
     }
+
+    .receipt-check-cell {
+        min-width: 150px;
+    }
 </style>
 @endsection
 @section('scripts')
@@ -127,6 +131,15 @@
         </div>
 
         <div class="row" style="margin-top: 20px;">
+            <div class="col-md-3">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Duplo check OK</div>
+                    <div class="panel-body">
+                        <h3 style="margin: 0;">{{ $totals['receipt_check_match_count'] ?? 0 }}</h3>
+                        <small>Sem diferenÃ§a entre Uber/Bolt e valor recebido</small>
+                    </div>
+                </div>
+            </div>
             <div class="col-md-3">
                 <div class="panel panel-default">
                     <div class="panel-heading">Total motoristas</div>
@@ -274,6 +287,8 @@
                             <th style="text-align: right; background: #eeeeee; display: none;">Bruto operadores</th>
                             <th style="text-align: right;">Líquido Uber</th>
                             <th style="text-align: right;">Líquido Bolt</th>
+                            <th style="text-align: right;">Recebido conta</th>
+                            <th style="text-align: right;">Dif. conta</th>
                             <th style="text-align: right;">KM</th>
                             <th style="text-align: right;">€/km</th>
                             <th style="text-align: right; display: none;">Líquido operadores</th>
@@ -305,6 +320,27 @@
                                     <td style="text-align: right; background: #eeeeee; display: none;">{{ number_format($driver->earnings['total_gross'] ?? 0, 2) }} <small>€</small></td>
                                     <td style="text-align: right">{{ number_format($driver->earnings['uber']['uber_net'] ?? 0, 2) }}<small> €</small></td>
                                     <td style="text-align: right">{{ number_format($driver->earnings['bolt']['bolt_net'] ?? 0, 2) }} <small>€</small></td>
+                                    <td style="text-align: right" class="receipt-check-cell">
+                                        @if(($driver->receipt_check['received_in_account'] ?? null) !== null)
+                                            {{ number_format($driver->receipt_check['received_in_account'], 2) }} <small>â‚¬</small>
+                                        @else
+                                            <span class="text-muted">Sem recibo validado</span>
+                                        @endif
+                                    </td>
+                                    <td style="text-align: right" class="receipt-check-cell">
+                                        @if(($driver->receipt_check['difference'] ?? null) !== null)
+                                            @php $receiptDifference = $driver->receipt_check['difference']; @endphp
+                                            <strong class="{{ abs($receiptDifference) <= 0.01 ? 'text-success' : 'text-danger' }}">
+                                                {{ number_format($receiptDifference, 2) }} <small>â‚¬</small>
+                                            </strong>
+                                            <br>
+                                            <span class="label {{ abs($receiptDifference) <= 0.01 ? 'label-success' : 'label-danger' }}">
+                                                {{ abs($receiptDifference) <= 0.01 ? 'OK' : 'Divergente' }}
+                                            </span>
+                                        @else
+                                            <span class="label label-default">Falta validar</span>
+                                        @endif
+                                    </td>
                                     <td style="text-align: right">{{ number_format($driver->weekly_km ?? 0, 1) }} <small>km</small></td>
                                     <td style="text-align: right">{{ number_format($driver->earnings_per_km ?? 0, 3) }} <small>€</small></td>
                                     <td style="text-align: right; display: none;">{{ number_format($driver->earnings['total_net'] ?? 0, 2) }} <small>€</small></td>
@@ -360,6 +396,13 @@
                             <th style="text-align: right; background: #eeeeee; display: none;">{{ number_format($totals['total_operators'], 2) }} <small>€</small></th>
                             <th style="text-align: right;">{{ number_format($totals['net_uber'], 2) }} <small>€</small></th>
                             <th style="text-align: right;">{{ number_format($totals['net_bolt'], 2) }} <small>€</small></th>
+                            <th></th>
+                            <th style="text-align: right;">
+                                @php $receiptDifferenceTotal = $totals['receipt_check_difference_total'] ?? 0; @endphp
+                                <span class="{{ abs($receiptDifferenceTotal) <= 0.01 ? 'text-success' : 'text-danger' }}">
+                                    {{ number_format($receiptDifferenceTotal, 2) }} <small>â‚¬</small>
+                                </span>
+                            </th>
                             <th style="text-align: right;">{{ number_format($totals['total_weekly_km'] ?? 0, 1) }} <small>km</small></th>
                             <th style="text-align: right;">{{ number_format($totals['total_earnings_per_km'] ?? 0, 3) }} <small>€</small></th>
                             <th style="text-align: right; display: none;">{{ number_format($totals['total_net_operators'], 2) }} <small>€</small></th>
