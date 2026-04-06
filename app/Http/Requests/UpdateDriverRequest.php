@@ -6,6 +6,7 @@ use App\Models\Driver;
 use Gate;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Response;
+use Illuminate\Validation\Rule;
 
 class UpdateDriverRequest extends FormRequest
 {
@@ -16,6 +17,23 @@ class UpdateDriverRequest extends FormRequest
 
     public function rules()
     {
+        $driver = $this->route('driver');
+        $driverId = $driver instanceof Driver ? $driver->id : $driver;
+        $uberUuidRules = [
+            'string',
+            'nullable',
+        ];
+
+        if (filled($this->input('uber_uuid'))) {
+            $currentUberUuid = $driver instanceof Driver ? $driver->uber_uuid : null;
+
+            if ((string) $this->input('uber_uuid') !== (string) $currentUberUuid) {
+                $uberUuidRules[] = Rule::unique('drivers', 'uber_uuid')
+                    ->ignore($driverId)
+                    ->whereNull('deleted_at');
+            }
+        }
+
         return [
             'code' => [
                 'string',
@@ -88,8 +106,7 @@ class UpdateDriverRequest extends FormRequest
                 'nullable',
             ],
             'uber_uuid' => [
-                'string',
-                'nullable',
+                ...$uberUuidRules,
             ],
             'bolt_name' => [
                 'string',

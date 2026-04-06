@@ -75,6 +75,7 @@ class CompanyReportApiController extends Controller
                             'validated' => (bool) ($driver->current_account ?? false),
                         ];
                     })
+                    ->sortByDesc('total')
                     ->values(),
                 'totals' => [
                     'net_uber' => (float) ($results['totals']['net_uber'] ?? 0),

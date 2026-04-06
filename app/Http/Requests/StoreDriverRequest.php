@@ -6,6 +6,7 @@ use App\Models\Driver;
 use Gate;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Response;
+use Illuminate\Validation\Rule;
 
 class StoreDriverRequest extends FormRequest
 {
@@ -90,6 +91,7 @@ class StoreDriverRequest extends FormRequest
             'uber_uuid' => [
                 'string',
                 'nullable',
+                Rule::unique('drivers', 'uber_uuid')->whereNull('deleted_at'),
             ],
             'bolt_name' => [
                 'string',
