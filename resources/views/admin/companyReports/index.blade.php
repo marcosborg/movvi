@@ -273,14 +273,18 @@
                                     <td style="text-align: right; color: red;">{{ number_format($driver->earnings['iva_value'], 2) }} <small>€</small></td>
                                     <td style="text-align: right; display: none;">{{ number_format($driver->earnings['total_after_vat'], 2) }} <small>€</small></td>
                                     <td style="text-align: right;">-{{ number_format($driver->fuel, 2) }} <small>€</small></td>
-                                    <td style="text-align: right">{{ number_format($driver->adjustments, 2) }} <small>€</small><button class="btn btn-sm" data-toggle="popover" title="Adjustments" data-html="true" data-content="
+                                    <td style="text-align: right">{{ number_format($driver->adjustments, 2) }} <small>€</small><button class="btn btn-sm" data-toggle="popover" title="Movimentos" data-html="true" data-content="
                                         @foreach($driver->earnings['adjustments_array'] as $adjustment)
-                                            <strong>{{ $adjustment['name'] }}: </strong>{{ $adjustment['type'] == 'deduct' ? '-' : '' }}{{ $adjustment['amount'] }}€<br>
+                                            <strong>{{ $adjustment['name'] }} ({{ $adjustment['category_label'] ?? ($adjustment['category'] ?? 'geral') }}): </strong>{{ $adjustment['type'] == 'deduct' ? '-' : '' }}{{ $adjustment['amount'] }}€<br>
                                         @endforeach
                                         "><i class="fa-fw fas fa-eye"></i></button></td>
                                     <td style="text-align: right">{{ number_format($driver->earnings['car_track'], 2) }} <small>€</small></td>
                                     <td style="text-align: right; color: red;">{{ number_format($driver->earnings['percent_value'], 2) }} <small>€</small></td>
-                                    <td style="text-align: right">-{{ number_format($driver->earnings['car_hire'], 2) }} <small>€</small></td>
+                                    <td style="text-align: right">-{{ number_format($driver->earnings['car_hire'], 2) }} <small>€</small>
+                                        @if(($driver->earnings['abatimento_aluguer'] ?? 0) > 0)
+                                            <br><small class="text-success">abatimento: {{ number_format($driver->earnings['abatimento_aluguer'], 2) }} €</small>
+                                        @endif
+                                    </td>
                                     <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>€</small></td>
                                     <td style="text-align: right">{{ number_format($driver->last_balance, 2) }} <small>€</small></td>
                                     <td style="text-align: right">{{ number_format($driver->new_balance, 2) }} <small>€</small></td>
@@ -325,6 +329,37 @@
                             <th></th>
                         </tr>
                     </tfoot>
+                </table>
+            </div>
+        </div>
+        <div class="panel panel-default" style="margin-top: 20px;">
+            <div class="panel-heading">
+                Resumo de categorias
+            </div>
+            <div class="panel-body">
+                <table class="table table-bordered table-striped table-sm" style="margin-bottom: 0;">
+                    <tbody>
+                        <tr>
+                            <th>Ajustes gerais / manuais</th>
+                            <td style="text-align: right;">{{ number_format($totals['total_general_adjustments'] ?? 0, 2) }} <small>€</small></td>
+                        </tr>
+                        <tr>
+                            <th>Abatimento de aluguer</th>
+                            <td style="text-align: right;">{{ number_format($totals['total_rent_discounts'] ?? 0, 2) }} <small>€</small></td>
+                        </tr>
+                        <tr>
+                            <th>Diferença de faturação mínima</th>
+                            <td style="text-align: right;">{{ number_format($totals['total_minimum_billing_difference'] ?? 0, 2) }} <small>€</small></td>
+                        </tr>
+                        <tr>
+                            <th>Caução recebida</th>
+                            <td style="text-align: right;">{{ number_format($totals['total_caution_received'] ?? 0, 2) }} <small>€</small></td>
+                        </tr>
+                        <tr>
+                            <th>Caução devolvida</th>
+                            <td style="text-align: right;">{{ number_format($totals['total_caution_returned'] ?? 0, 2) }} <small>€</small></td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
         </div>

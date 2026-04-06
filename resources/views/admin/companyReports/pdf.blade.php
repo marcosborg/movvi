@@ -75,7 +75,12 @@
                     <td class="nowrap">{{ number_format($driver->adjustments ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['car_track'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['percent_value'] ?? 0, 2) }} &euro;</td>
-                    <td class="nowrap">{{ number_format($driver->earnings['car_hire'] ?? 0, 2) }} &euro;</td>
+                    <td class="nowrap">
+                        {{ number_format($driver->earnings['car_hire'] ?? 0, 2) }} &euro;
+                        @if(($driver->earnings['abatimento_aluguer'] ?? 0) > 0)
+                            <br><small>abatimento: {{ number_format($driver->earnings['abatimento_aluguer'], 2) }} &euro;</small>
+                        @endif
+                    </td>
                     <td class="nowrap">{{ number_format($driver->total ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->last_balance ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->new_balance ?? 0, 2) }} &euro;</td>
@@ -102,6 +107,37 @@
                 <th></th>
             </tr>
         </tfoot>
+    </table>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Resumo de categorias</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Ajustes gerais / manuais</td>
+                <td>{{ number_format($totals['total_general_adjustments'] ?? 0, 2) }} &euro;</td>
+            </tr>
+            <tr>
+                <td>Abatimento de aluguer</td>
+                <td>{{ number_format($totals['total_rent_discounts'] ?? 0, 2) }} &euro;</td>
+            </tr>
+            <tr>
+                <td>Diferença de faturação mínima</td>
+                <td>{{ number_format($totals['total_minimum_billing_difference'] ?? 0, 2) }} &euro;</td>
+            </tr>
+            <tr>
+                <td>Caução recebida</td>
+                <td>{{ number_format($totals['total_caution_received'] ?? 0, 2) }} &euro;</td>
+            </tr>
+            <tr>
+                <td>Caução devolvida</td>
+                <td>{{ number_format($totals['total_caution_returned'] ?? 0, 2) }} &euro;</td>
+            </tr>
+        </tbody>
     </table>
 </body>
 </html>

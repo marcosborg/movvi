@@ -90,20 +90,19 @@ class VehicleProfitabilityService
         $drivers = [];
         $totalRental = 0.0;
         $totalCommission = 0.0;
-        $totalAdjustments = 0.0;
+        $totalGeneralAdjustments = 0.0;
+        $totalMinimumBillingDifference = 0.0;
         $missingAccounts = [];
 
         foreach ($driverIds as $driverId) {
             $usageSeconds = (int) ($driverUsageSeconds[$driverId] ?? 0);
             $account = $accounts->get($driverId);
-            $adjustments = self::calculateDriverAdjustmentsForWeek(
+            $fallbackAdjustments = self::calculateDriverAdjustmentsForWeek(
                 $driverId,
                 $week,
                 (int) $vehicle->company_id,
                 true
             );
-
-            $totalAdjustments += $adjustments;
 
             if (!$account) {
                 $missingAccounts[] = $driverId;
@@ -114,7 +113,9 @@ class VehicleProfitabilityService
                     'type' => 'unknown',
                     'rental' => 0.0,
                     'commission' => 0.0,
-                    'adjustments' => $adjustments,
+                    'adjustments' => $fallbackAdjustments,
+                    'general_adjustments' => $fallbackAdjustments,
+                    'minimum_billing_difference' => 0.0,
                     'has_current_account' => false,
                 ];
                 continue;
@@ -123,6 +124,11 @@ class VehicleProfitabilityService
             $earnings = json_decode($account->data, true) ?? [];
             $rental = (float) ($earnings['car_hire'] ?? 0);
             $commission = (float) ($earnings['percent_value'] ?? 0);
+            $generalAdjustments = array_key_exists('general_adjustments', $earnings)
+                ? (float) ($earnings['general_adjustments'] ?? 0)
+                : (float) ($earnings['adjustments'] ?? 0);
+            $minimumBillingDifference = 0 - (float) ($earnings['diferenca_faturacao_minima'] ?? 0);
+            $adjustments = $generalAdjustments + $minimumBillingDifference;
 
             $type = 'unknown';
             if ($rental > 0 && $commission <= 0) {
@@ -137,6 +143,8 @@ class VehicleProfitabilityService
 
             $totalRental += $rental;
             $totalCommission += $commission;
+            $totalGeneralAdjustments += $generalAdjustments;
+            $totalMinimumBillingDifference += $minimumBillingDifference;
 
             $drivers[] = [
                 'id' => (int) $account->driver->id,
@@ -146,10 +154,13 @@ class VehicleProfitabilityService
                 'rental' => $rental,
                 'commission' => $commission,
                 'adjustments' => $adjustments,
+                'general_adjustments' => $generalAdjustments,
+                'minimum_billing_difference' => $minimumBillingDifference,
                 'has_current_account' => true,
             ];
         }
 
+        $totalAdjustments = $totalGeneralAdjustments + $totalMinimumBillingDifference;
         $totalRevenue = $totalRental + $totalCommission + $totalAdjustments;
 
         return [
@@ -166,6 +177,8 @@ class VehicleProfitabilityService
             'revenues' => [
                 'rental_total' => $totalRental,
                 'commission_total' => $totalCommission,
+                'general_adjustments_total' => $totalGeneralAdjustments,
+                'minimum_billing_difference_total' => $totalMinimumBillingDifference,
                 'adjustments_total' => $totalAdjustments,
                 'total_revenue' => $totalRevenue,
             ],
@@ -263,7 +276,8 @@ class VehicleProfitabilityService
         $rows = [];
         $totRental = 0.0;
         $totCommission = 0.0;
-        $totAdjustments = 0.0;
+        $totGeneralAdjustments = 0.0;
+        $totMinimumBillingDifference = 0.0;
 
         foreach ($vehicles as $vehicle) {
             $vehicleId = (int) $vehicle->id;
@@ -271,12 +285,13 @@ class VehicleProfitabilityService
 
             $rentalTotal = 0.0;
             $commissionTotal = 0.0;
-            $adjustmentsTotal = 0.0;
+            $generalAdjustmentsTotal = 0.0;
+            $minimumBillingDifferenceTotal = 0.0;
             $missingAccountsCount = 0;
 
             foreach ($drivers as $driverId => $seconds) {
                 $earnings = $decoded[(int) $driverId] ?? null;
-                $adjustmentsTotal += self::calculateDriverAdjustmentsForWeek(
+                $fallbackAdjustments = self::calculateDriverAdjustmentsForWeek(
                     (int) $driverId,
                     $week,
                     (int) $vehicle->company_id,
@@ -284,17 +299,24 @@ class VehicleProfitabilityService
                 );
 
                 if ($earnings === null) {
+                    $generalAdjustmentsTotal += $fallbackAdjustments;
                     $missingAccountsCount++;
                     continue;
                 }
 
                 $rentalTotal += (float) ($earnings['car_hire'] ?? 0);
                 $commissionTotal += (float) ($earnings['percent_value'] ?? 0);
+                $generalAdjustmentsTotal += array_key_exists('general_adjustments', $earnings)
+                    ? (float) ($earnings['general_adjustments'] ?? 0)
+                    : (float) ($earnings['adjustments'] ?? 0);
+                $minimumBillingDifferenceTotal += 0 - (float) ($earnings['diferenca_faturacao_minima'] ?? 0);
             }
 
+            $adjustmentsTotal = $generalAdjustmentsTotal + $minimumBillingDifferenceTotal;
             $totRental += $rentalTotal;
             $totCommission += $commissionTotal;
-            $totAdjustments += $adjustmentsTotal;
+            $totGeneralAdjustments += $generalAdjustmentsTotal;
+            $totMinimumBillingDifference += $minimumBillingDifferenceTotal;
 
             $rows[] = [
                 'id' => $vehicleId,
@@ -302,12 +324,16 @@ class VehicleProfitabilityService
                 'model' => optional($vehicle->vehicle_model)->name,
                 'rental_total' => $rentalTotal,
                 'commission_total' => $commissionTotal,
+                'general_adjustments_total' => $generalAdjustmentsTotal,
+                'minimum_billing_difference_total' => $minimumBillingDifferenceTotal,
                 'adjustments_total' => $adjustmentsTotal,
                 'total_revenue' => $rentalTotal + $commissionTotal + $adjustmentsTotal,
                 'drivers_count' => count($drivers),
                 'missing_accounts_count' => $missingAccountsCount,
             ];
         }
+
+        $totAdjustments = $totGeneralAdjustments + $totMinimumBillingDifference;
 
         return [
             'week' => [
@@ -319,6 +345,8 @@ class VehicleProfitabilityService
             'totals' => [
                 'rental_total' => $totRental,
                 'commission_total' => $totCommission,
+                'general_adjustments_total' => $totGeneralAdjustments,
+                'minimum_billing_difference_total' => $totMinimumBillingDifference,
                 'adjustments_total' => $totAdjustments,
                 'total_revenue' => $totRental + $totCommission + $totAdjustments,
             ],
@@ -358,6 +386,22 @@ class VehicleProfitabilityService
 
         return (float) $query->get()->sum(function (Adjustment $adjustment) {
             $amount = (float) ($adjustment->amount ?? 0);
+            $category = $adjustment->category ?? Adjustment::CATEGORY_GENERAL;
+
+            if (in_array($category, [
+                Adjustment::CATEGORY_CAUTION_RECEIVED,
+                Adjustment::CATEGORY_CAUTION_RETURNED,
+            ], true)) {
+                return 0.0;
+            }
+
+            if ($category === Adjustment::CATEGORY_RENT_DISCOUNT) {
+                return 0.0;
+            }
+
+            if ($category === Adjustment::CATEGORY_MINIMUM_BILLING_DIFFERENCE) {
+                return $adjustment->type === 'deduct' ? $amount : -$amount;
+            }
 
             return $adjustment->type === 'deduct' ? $amount : -$amount;
         });
@@ -392,6 +436,8 @@ class VehicleProfitabilityService
             'revenues' => [
                 'rental_total' => 0.0,
                 'commission_total' => 0.0,
+                'general_adjustments_total' => 0.0,
+                'minimum_billing_difference_total' => 0.0,
                 'adjustments_total' => 0.0,
                 'total_revenue' => 0.0,
             ],
@@ -414,6 +460,8 @@ class VehicleProfitabilityService
             'totals' => [
                 'rental_total' => 0.0,
                 'commission_total' => 0.0,
+                'general_adjustments_total' => 0.0,
+                'minimum_billing_difference_total' => 0.0,
                 'adjustments_total' => 0.0,
                 'total_revenue' => 0.0,
             ],

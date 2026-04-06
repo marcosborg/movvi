@@ -99,6 +99,11 @@ trait Reports
         // Novos totais separados para transparência
         $total_iva_value = [];
         $total_percent_value = [];
+        $total_general_adjustments = [];
+        $total_rent_discounts = [];
+        $total_minimum_billing_difference = [];
+        $total_caution_received = [];
+        $total_caution_returned = [];
 
         foreach ($drivers as $driver) {
             $driverPlates = $mileageAllocation['plates'][$driver->id] ?? [];
@@ -225,7 +230,7 @@ trait Reports
 
             // ---------- CAR HIRE ----------
             $carHireResult = $this->calculateCarHireForWeek($driver, $tvde_week);
-            $rent_value = (float) $carHireResult['total'];
+            $rent_base_value = (float) $carHireResult['total'];
 
             // ---------- ADJUSTMENTS ----------
             $adjustments_array = Adjustment::whereHas('drivers', function ($query) use ($driver) {
@@ -242,43 +247,27 @@ trait Reports
                 })
                 ->get();
 
-            $refunds = [];
-            $deducts = [];
-            $fleet_management = [];
-            $company_expense = [];
+            $adjustmentBreakdown = $this->buildDriverAdjustmentBreakdown($adjustments_array);
+            $refunds = $adjustmentBreakdown['refunds_total'];
+            $deducts = $adjustmentBreakdown['deducts_total'];
+            $fleet_management = $adjustmentBreakdown['fleet_management_total'];
+            $company_expense = $adjustmentBreakdown['company_expense_total'];
+            $general_adjustments = $adjustmentBreakdown['general_total'];
+            $rent_discount = $adjustmentBreakdown['rent_discount_total'];
+            $minimum_billing_difference = $adjustmentBreakdown['minimum_billing_difference_total'];
+            $caution_received = $adjustmentBreakdown['caution_received_total'];
+            $caution_returned = $adjustmentBreakdown['caution_returned_total'];
 
-            foreach ($adjustments_array as $adjustment) {
-                if ($adjustment->type == 'deduct') {
-                    if ($adjustment->fleet_management) {
-                        $fleet_management[] = (float) $adjustment->amount;
-                    } else {
-                        $deducts[] = (float) $adjustment->amount;
-                    }
-                } else {
-                    if ($adjustment->fleet_management) {
-                        $fleet_management[] = (float) -$adjustment->amount;
-                    } else {
-                        $refunds[] = (float) $adjustment->amount;
-                    }
-                }
-
-                if ($adjustment->company_expense) {
-                    if ($adjustment->type == 'deduct') {
-                        $company_expense[] = (float) -$adjustment->amount;
-                    } else {
-                        $company_expense[] = (float) $adjustment->amount;
-                    }
-                }
-            }
-
-            $refunds = array_sum($refunds);
-            $deducts = array_sum($deducts);
-            $adjustments = $refunds - $deducts;
-
-            $fleet_management = array_sum($fleet_management);
+            $adjustments = $general_adjustments + $minimum_billing_difference;
+            $rent_value = max(0.0, $rent_base_value - $rent_discount);
             $total_adjustments[] = $adjustments;
             $total_fleet_management[] = $fleet_management;
-            $total_company_adjustments[] = array_sum($company_expense);
+            $total_company_adjustments[] = $company_expense;
+            $total_general_adjustments[] = $general_adjustments;
+            $total_rent_discounts[] = $rent_discount;
+            $total_minimum_billing_difference[] = $minimum_billing_difference;
+            $total_caution_received[] = $caution_received;
+            $total_caution_returned[] = $caution_returned;
             // ---------- CAR TRACK (Via Verde) ----------
             $car_track = 0.0;
             if ($tvde_week->id) {
@@ -398,9 +387,15 @@ trait Reports
                 'car_track' => $car_track,
                 'fuel_transactions' => $driver->fuel,
                 'car_hire' => $rent_value,
+                'car_hire_base' => $rent_base_value,
+                'abatimento_aluguer' => $rent_discount,
                 'adjustments' => $adjustments,
+                'general_adjustments' => $general_adjustments,
+                'diferenca_faturacao_minima' => $minimum_billing_difference,
+                'caucao_recebida' => $caution_received,
+                'caucao_devolvida' => $caution_returned,
                 'fleet_management' => $fleet_management,
-                'company_expense' => array_sum($company_expense),
+                'company_expense' => $company_expense,
 
                 // Legado
                 'earnings_after_discount' => $earnings_after_discount,
@@ -497,6 +492,11 @@ trait Reports
             // Custos/Ajustes
             'total_fuel_transactions' => array_sum($total_fuel_transactions),
             'total_adjustments' => array_sum($total_adjustments),
+            'total_general_adjustments' => array_sum($total_general_adjustments),
+            'total_rent_discounts' => array_sum($total_rent_discounts),
+            'total_minimum_billing_difference' => array_sum($total_minimum_billing_difference),
+            'total_caution_received' => array_sum($total_caution_received),
+            'total_caution_returned' => array_sum($total_caution_returned),
             'total_fleet_management' => array_sum($total_fleet_management),
             'total_car_track' => array_sum($total_car_track),
             'total_car_hire' => array_sum($total_car_hire),
@@ -521,6 +521,69 @@ trait Reports
             'drivers' => $drivers,
             'totals' => $totals,
         ];
+    }
+
+    protected function buildDriverAdjustmentBreakdown($adjustments): array
+    {
+        $breakdown = [
+            'refunds_total' => 0.0,
+            'deducts_total' => 0.0,
+            'fleet_management_total' => 0.0,
+            'company_expense_total' => 0.0,
+            'general_total' => 0.0,
+            'rent_discount_total' => 0.0,
+            'minimum_billing_difference_total' => 0.0,
+            'caution_received_total' => 0.0,
+            'caution_returned_total' => 0.0,
+        ];
+
+        foreach ($adjustments as $adjustment) {
+            $amount = (float) ($adjustment->amount ?? 0);
+            $signedAmount = $adjustment->type === 'deduct' ? -$amount : $amount;
+            $costAmount = $adjustment->type === 'deduct' ? $amount : -$amount;
+            $category = $adjustment->category ?? Adjustment::CATEGORY_GENERAL;
+
+            if ($signedAmount >= 0) {
+                $breakdown['refunds_total'] += $signedAmount;
+            } else {
+                $breakdown['deducts_total'] += abs($signedAmount);
+            }
+
+            if ($adjustment->fleet_management) {
+                $breakdown['fleet_management_total'] += $costAmount;
+                continue;
+            }
+
+            if ($adjustment->company_expense) {
+                $breakdown['company_expense_total'] += $signedAmount;
+            }
+
+            switch ($category) {
+                case Adjustment::CATEGORY_RENT_DISCOUNT:
+                    $breakdown['rent_discount_total'] += $signedAmount;
+                    break;
+
+                case Adjustment::CATEGORY_MINIMUM_BILLING_DIFFERENCE:
+                    $breakdown['minimum_billing_difference_total'] += $signedAmount;
+                    break;
+
+                case Adjustment::CATEGORY_CAUTION_RECEIVED:
+                    $breakdown['caution_received_total'] += $signedAmount;
+                    break;
+
+                case Adjustment::CATEGORY_CAUTION_RETURNED:
+                    $breakdown['caution_returned_total'] += $signedAmount;
+                    break;
+
+                case Adjustment::CATEGORY_MANUAL:
+                case Adjustment::CATEGORY_GENERAL:
+                default:
+                    $breakdown['general_total'] += $signedAmount;
+                    break;
+            }
+        }
+
+        return $breakdown;
     }
 
     protected function buildWeeklyMileageAllocation($weekUsages, $mileages, Carbon $weekStart, Carbon $weekEnd): array

@@ -40,6 +40,18 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.adjustment.fields.amount_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('category') ? 'has-error' : '' }}">
+                            <label class="required" for="category">Categoria</label>
+                            <select class="form-control" name="category" id="category" required>
+                                @foreach(App\Models\Adjustment::CATEGORY_SELECT as $key => $label)
+                                    <option value="{{ $key }}" {{ old('category', App\Models\Adjustment::CATEGORY_GENERAL) === $key ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @if($errors->has('category'))
+                                <span class="help-block" role="alert">{{ $errors->first('category') }}</span>
+                            @endif
+                            <span class="help-block">Define como este ajuste deve ser tratado no extrato e nos relatórios.</span>
+                        </div>
                         <div class="form-group {{ $errors->has('percent') ? 'has-error' : '' }}">
                             <label for="percent">{{ trans('cruds.adjustment.fields.percent') }}</label>
                             <input class="form-control" type="text" name="percent" id="percent" value="{{ old('percent', '') }}">

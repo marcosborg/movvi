@@ -51,6 +51,14 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        Categoria
+                                    </th>
+                                    <td>
+                                        {{ $adjustment->category_label }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.adjustment.fields.percent') }}
                                     </th>
                                     <td>

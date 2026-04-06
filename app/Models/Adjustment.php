@@ -14,9 +14,25 @@ class Adjustment extends Model
 
     public $table = 'adjustments';
 
+    public const CATEGORY_GENERAL = 'general';
+    public const CATEGORY_CAUTION_RECEIVED = 'caucao_recebida';
+    public const CATEGORY_CAUTION_RETURNED = 'caucao_devolvida';
+    public const CATEGORY_RENT_DISCOUNT = 'abatimento_aluguer';
+    public const CATEGORY_MINIMUM_BILLING_DIFFERENCE = 'diferenca_faturacao_minima';
+    public const CATEGORY_MANUAL = 'ajuste_manual';
+
     public const TYPE_RADIO = [
         'deduct' => 'Deduct',
         'refund' => 'Refund',
+    ];
+
+    public const CATEGORY_SELECT = [
+        self::CATEGORY_GENERAL => 'Geral',
+        self::CATEGORY_CAUTION_RECEIVED => 'Caucao recebida',
+        self::CATEGORY_CAUTION_RETURNED => 'Caucao devolvida',
+        self::CATEGORY_RENT_DISCOUNT => 'Abatimento de aluguer',
+        self::CATEGORY_MINIMUM_BILLING_DIFFERENCE => 'Diferenca de faturacao minima',
+        self::CATEGORY_MANUAL => 'Ajuste manual',
     ];
 
     protected $dates = [
@@ -27,11 +43,16 @@ class Adjustment extends Model
         'deleted_at',
     ];
 
+    protected $appends = [
+        'category_label',
+    ];
+
     protected $fillable = [
         'name',
         'type',
         'amount',
         'percent',
+        'category',
         'start_date',
         'end_date',
         'company_id',
@@ -66,6 +87,13 @@ class Adjustment extends Model
     public function setEndDateAttribute($value)
     {
         $this->attributes['end_date'] = $value ? Carbon::createFromFormat(config('panel.date_format'), $value)->format('Y-m-d') : null;
+    }
+
+    public function getCategoryLabelAttribute(): string
+    {
+        $category = $this->attributes['category'] ?? self::CATEGORY_GENERAL;
+
+        return self::CATEGORY_SELECT[$category] ?? self::CATEGORY_SELECT[self::CATEGORY_GENERAL];
     }
 
     public function drivers()

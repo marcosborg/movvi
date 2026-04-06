@@ -93,8 +93,13 @@
             <div class="col-md-3">
                 <div class="box box-danger">
                     <div class="box-body">
-                        <h4>Ajustes (€)</h4>
+                        <h4>Ajustes operacionais (€)</h4>
                         <p>{{ number_format($result['revenues']['adjustments_total'] ?? 0, 2, ',', '.') }}</p>
+                        <small>
+                            Gerais: {{ number_format($result['revenues']['general_adjustments_total'] ?? 0, 2, ',', '.') }}
+                            <br>
+                            Fat. mínima: {{ number_format($result['revenues']['minimum_billing_difference_total'] ?? 0, 2, ',', '.') }}
+                        </small>
                     </div>
                 </div>
             </div>
@@ -123,6 +128,7 @@
                                     <th style="text-align:right;">Aluguer</th>
                                     <th style="text-align:right;">Percentagem</th>
                                     <th style="text-align:right;">Ajustes</th>
+                                    <th style="text-align:right;">Fat. mínima</th>
                                     <th style="text-align:right;">Uso (segundos)</th>
                                 </tr>
                             </thead>
@@ -134,6 +140,7 @@
                                         <td style="text-align:right;">{{ number_format($d['rental'] ?? 0, 2, ',', '.') }}</td>
                                         <td style="text-align:right;">{{ number_format($d['commission'] ?? 0, 2, ',', '.') }}</td>
                                         <td style="text-align:right;">{{ number_format($d['adjustments'] ?? 0, 2, ',', '.') }}</td>
+                                        <td style="text-align:right;">{{ number_format($d['minimum_billing_difference'] ?? 0, 2, ',', '.') }}</td>
                                         <td style="text-align:right;">{{ number_format($d['usage_seconds'] ?? 0, 0, ',', '.') }}</td>
                                     </tr>
                                 @endforeach

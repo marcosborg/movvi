@@ -58,6 +58,7 @@ class AdjustmentController extends Controller
         $table->editColumn('id', fn($row) => $row->id ?? '');
         $table->editColumn('name', fn($row) => $row->name ?? '');
         $table->editColumn('type', fn($row) => $row->type ? Adjustment::TYPE_RADIO[$row->type] : '');
+        $table->editColumn('category', fn($row) => $row->category_label ?? '');
         $table->editColumn('amount', fn($row) => $row->amount ?? '');
         $table->editColumn('percent', fn($row) => $row->percent ?? '');
 

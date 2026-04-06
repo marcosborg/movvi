@@ -32,6 +32,10 @@ class StoreAdjustmentRequest extends FormRequest
                 'string',
                 'nullable',
             ],
+            'category' => [
+                'required',
+                'in:' . implode(',', array_keys(Adjustment::CATEGORY_SELECT)),
+            ],
             'start_date' => [
                 'date_format:' . config('panel.date_format'),
                 'nullable',
