@@ -328,7 +328,6 @@
                             <th style="text-align: right; background: #eeeeee; display: none;">Bruto operadores</th>
                             <th style="text-align: right;">Líquido Uber</th>
                             <th style="text-align: right;">Líquido Bolt</th>
-                            <th style="text-align: right;">Recebido conta</th>
                             <th style="text-align: right;">Dif. conta</th>
                             <th style="text-align: right;">KM</th>
                             <th style="text-align: right;">€/km</th>
@@ -345,6 +344,7 @@
                             <th style="text-align: right">Valor da semana</th>
                             <th style="text-align: right">Último saldo</th>
                             <th style="text-align: right">Novo saldo</th>
+                            <th style="text-align: right;">Recebido conta</th>
                             <th style="text-align: center">Estado</th>
                             <th style="text-align: right">Validar</th>
                             <th></th>
@@ -368,13 +368,6 @@
                                     <td style="text-align: right; background: #eeeeee; display: none;">{{ number_format($driver->earnings['total_gross'] ?? 0, 2) }} <small>€</small></td>
                                     <td style="text-align: right">{{ number_format($driver->earnings['uber']['uber_net'] ?? 0, 2) }}<small> €</small></td>
                                     <td style="text-align: right">{{ number_format($driver->earnings['bolt']['bolt_net'] ?? 0, 2) }} <small>€</small></td>
-                                    <td style="text-align: right" class="receipt-check-cell">
-                                        @if(($driver->receipt_check['received_in_account'] ?? null) !== null)
-                                            {{ number_format($driver->receipt_check['received_in_account'], 2) }} <small>&euro;</small>
-                                        @else
-                                            <span class="text-muted">Sem recibo validado</span>
-                                        @endif
-                                    </td>
                                     <td style="text-align: right" class="receipt-check-cell">
                                         @if(($driver->receipt_check['difference'] ?? null) !== null)
                                             @php $receiptDifference = $driver->receipt_check['difference']; @endphp
@@ -427,6 +420,13 @@
                                     <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>€</small></td>
                                     <td style="text-align: right">{{ number_format($driver->last_balance, 2) }} <small>€</small></td>
                                     <td style="text-align: right">{{ number_format($driver->new_balance, 2) }} <small>€</small></td>
+                                    <td style="text-align: right" class="receipt-check-cell">
+                                        @if(($driver->receipt_check['received_in_account'] ?? null) !== null)
+                                            {{ number_format($driver->receipt_check['received_in_account'], 2) }} <small>&euro;</small>
+                                        @else
+                                            <span class="text-muted">Sem recibo validado</span>
+                                        @endif
+                                    </td>
                                     <td style="text-align: center">
                                         @if($driver->balance_manual_status_label)
                                             <span class="label label-primary">{{ $driver->balance_manual_status_label }}</span>
