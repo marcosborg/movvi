@@ -54,9 +54,8 @@ class CompanyReportController extends Controller
             'mileage' => $mileageCount > 0,
         ];
 
-        $drivers = collect($results['drivers'])
-            ->sortByDesc(fn ($driver) => (float) ($driver->total ?? 0))
-            ->values();
+        $sortBy = request()->query('sort_by', 'name');
+        $drivers = $this->sortCompanyReportDrivers($results['drivers'], $sortBy);
 
         return view('admin.companyReports.index')->with([
             'company_id' => $company_id,
@@ -70,7 +69,21 @@ class CompanyReportController extends Controller
             'totals' => $results['totals'],
             'mileageCount' => $mileageCount,
             'importState' => $importState,
+            'sortBy' => $sortBy,
         ]);
+    }
+
+    protected function sortCompanyReportDrivers($drivers, string $sortBy)
+    {
+        $collection = collect($drivers);
+
+        return match ($sortBy) {
+            'total' => $collection->sortByDesc(fn ($driver) => (float) ($driver->total ?? 0))->values(),
+            'weekly_km' => $collection->sortByDesc(fn ($driver) => (float) ($driver->weekly_km ?? 0))->values(),
+            'percent_value' => $collection->sortByDesc(fn ($driver) => (float) data_get($driver, 'earnings.percent_value', 0))->values(),
+            'car_hire' => $collection->sortByDesc(fn ($driver) => (float) data_get($driver, 'earnings.car_hire', 0))->values(),
+            default => $collection->sortBy(fn ($driver) => mb_strtolower((string) ($driver->name ?? '')))->values(),
+        };
     }
 
     public function pdf(Request $request, $download = null)
@@ -87,9 +100,8 @@ class CompanyReportController extends Controller
         $company = Company::find($company_id);
         $main_company = Company::where('main', true)->first();
 
-        $drivers = collect($results['drivers'])
-            ->sortByDesc(fn ($driver) => (float) ($driver->total ?? 0))
-            ->values();
+        $sortBy = $request->query('sort_by', 'name');
+        $drivers = $this->sortCompanyReportDrivers($results['drivers'], $sortBy);
 
         $pdf = Pdf::loadView('admin.companyReports.pdf', [
             'company' => $company,
@@ -141,7 +153,7 @@ class CompanyReportController extends Controller
         }
 
         return redirect()->back()
-            ->with('message', sprintf('Importados %d registos de quilómetros com sucesso.', count($parsed['rows'])));
+            ->with('message', sprintf('Importados %d registos de quilÃƒÂ³metros com sucesso.', count($parsed['rows'])));
     }
 
     public function deleteMileage(Request $request)
@@ -163,29 +175,29 @@ class CompanyReportController extends Controller
 
         foreach ($request->data as $data) {
 
-            // 🔹 Função inline para normalizar valores vindos do front
+            // Ã°Å¸â€Â¹ FunÃƒÂ§ÃƒÂ£o inline para normalizar valores vindos do front
             $normalize = function ($value): float {
                 if (is_numeric($value)) {
-                    return (float) $value; // já é número limpo
+                    return (float) $value; // jÃƒÂ¡ ÃƒÂ© nÃƒÂºmero limpo
                 }
-                $v = str_replace(' ', '', (string) $value);   // remove espaços normais
+                $v = str_replace(' ', '', (string) $value);   // remove espaÃƒÂ§os normais
                 $v = str_replace("\xc2\xa0", '', $v);         // remove NBSP (utf-8)
                 $v = str_replace('.', '', $v);                // tira separador de milhar
-                $v = str_replace(',', '.', $v);               // vírgula → ponto decimal
+                $v = str_replace(',', '.', $v);               // vÃƒÂ­rgula Ã¢â€ â€™ ponto decimal
                 return (float) $v;
             };
 
-            // 🔹 Normaliza o total do motorista
+            // Ã°Å¸â€Â¹ Normaliza o total do motorista
             $total = $normalize($data['driver']['total']);
 
-            // 🔹 Registo da conta corrente
+            // Ã°Å¸â€Â¹ Registo da conta corrente
             $current_account = new CurrentAccount;
             $current_account->tvde_week_id = $data['tvde_week_id'];
             $current_account->driver_id    = $data['driver']['id'];
             $current_account->data         = json_encode($this->buildCurrentAccountPayload($data['driver']));
             $current_account->save();
 
-            // 🔹 Último saldo
+            // Ã°Å¸â€Â¹ ÃƒÅ¡ltimo saldo
             $last_balance = DriversBalance::where('driver_id', $data['driver']['id'])
                 ->where('tvde_week_id', '!=', $data['tvde_week_id'])
                 ->orderBy('tvde_week_id', 'desc')
@@ -194,7 +206,7 @@ class CompanyReportController extends Controller
             $last_balance = $last_balance ? (float) $last_balance->new_balance : 0.0;
             $new_balance = $last_balance + $total;
 
-            // 🔹 Novo saldo
+            // Ã°Å¸â€Â¹ Novo saldo
             $driver_balance = new DriversBalance;
             $driver_balance->driver_id       = $data['driver']['id'];
             $driver_balance->tvde_week_id    = $data['tvde_week_id'];
@@ -321,11 +333,11 @@ class CompanyReportController extends Controller
                 'tvde_week_id' => $week->id,
             ])->latest()->first();
 
-            // ➜ Devoluções validadas (motorista → empresa) nesta semana
+            // Ã¢Å¾Å“ DevoluÃƒÂ§ÃƒÂµes validadas (motorista Ã¢â€ â€™ empresa) nesta semana
             $reimbursed = Reimbursement::where([
                 'driver_id'    => $driver_id,
                 'tvde_week_id' => $week->id,
-                'verified'     => 1,                 // só as validadas
+                'verified'     => 1,                 // sÃƒÂ³ as validadas
             ])->sum('value');
 
             $data = $account ? json_decode($account->data) : null;
@@ -371,7 +383,7 @@ class CompanyReportController extends Controller
             return $this->readXlsxRows($path);
         }
 
-        throw new \RuntimeException('Formato de ficheiro de quilómetros nao suportado.');
+        throw new \RuntimeException('Formato de ficheiro de quilÃƒÂ³metros nao suportado.');
     }
 
     protected function parseMileageRows(array $rows, int $weekId): array
@@ -597,7 +609,7 @@ class CompanyReportController extends Controller
         exec($command, $output, $exitCode);
 
         if ($exitCode !== 0 || !file_exists($targetPath)) {
-            throw new \RuntimeException('Nao foi possivel converter o ficheiro XLSX de quilómetros para CSV.');
+            throw new \RuntimeException('Nao foi possivel converter o ficheiro XLSX de quilÃƒÂ³metros para CSV.');
         }
     }
 
@@ -896,3 +908,4 @@ class CompanyReportController extends Controller
         return $negative ? 0 - $number : $number;
     }
 }
+
