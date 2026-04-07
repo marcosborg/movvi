@@ -423,10 +423,10 @@ class VehicleProfitabilityService
             }
 
             if ($category === Adjustment::CATEGORY_MINIMUM_BILLING_DIFFERENCE) {
-                return $adjustment->type === 'deduct' ? $amount : -$amount;
+                return $adjustment->type === 'deduct' ? -$amount : $amount;
             }
 
-            return $adjustment->type === 'deduct' ? $amount : -$amount;
+            return $adjustment->type === 'deduct' ? -$amount : $amount;
         });
     }
 
