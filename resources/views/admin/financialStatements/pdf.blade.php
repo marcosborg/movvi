@@ -71,7 +71,10 @@
                     </p>
                 </td>
                 <td style="vertical-align: top; width: 50%;">
-                    <h1>{{ $tvde_week->start_date }} a {{ $tvde_week->end_date }}</h1>
+                    <h1>Extrato da semana {{ $tvde_week->display_number ?? $tvde_week->number }}/{{ $tvde_week->display_year ?? '-' }}</h1>
+                    <p style="margin: 0 0 8px 0;">
+                        Periodo: {{ \Carbon\Carbon::parse($tvde_week->start_date)->format('d/m/Y') }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d/m/Y') }}
+                    </p>
                     <p>
                         <strong>{{ $driver->name }}</strong><br>
                         {{ $driver->address != null ?? $driver->address . ',' . $driver->zip . '<br>'}}
