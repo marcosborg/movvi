@@ -138,7 +138,7 @@
         </div>
         <div class="btn-group btn-group-justified" role="group" style="margin-top: 5px;">
             @foreach ($tvde_weeks as $tvde_week)
-                <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana {{ $tvde_week->display_number ?? $tvde_week->number }}/{{ $tvde_week->display_year ?? '-' }} Ã‚Â· {{ \Carbon\Carbon::parse($tvde_week->start_date)->format('d/m') }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d/m') }}</a>
+                <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana {{ $tvde_week->display_number ?? $tvde_week->number }}/{{ $tvde_week->display_year ?? '-' }} · {{ \Carbon\Carbon::parse($tvde_week->start_date)->format('d/m') }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d/m') }}</a>
             @endforeach
         </div>
         @include('admin.partials.weekQuickSelect', ['tvde_weeks' => $tvde_weeks, 'tvde_week_id' => $tvde_week_id])
@@ -149,7 +149,7 @@
                     <div class="panel-heading">Duplo check OK</div>
                     <div class="panel-body">
                         <h3 style="margin: 0;">{{ $totals['receipt_check_match_count'] ?? 0 }}</h3>
-                        <small>Sem diferenÃƒÆ’Ã‚Â§a entre Uber/Bolt e valor recebido</small>
+                        <small>Sem diferenca entre Uber/Bolt e valor recebido</small>
                     </div>
                 </div>
             </div>
@@ -157,7 +157,7 @@
                 <div class="panel panel-default">
                     <div class="panel-heading">Total motoristas</div>
                     <div class="panel-body">
-                        <h3 style="margin: 0;">{{ number_format($totals['total_drivers'] ?? 0, 2) }} <small>Ã¢â€šÂ¬</small></h3>
+                        <h3 style="margin: 0;">{{ number_format($totals['total_drivers'] ?? 0, 2) }} <small>€</small></h3>
                         <small>Valor final semanal validado</small>
                     </div>
                 </div>
@@ -166,7 +166,7 @@
                 <div class="panel panel-default">
                     <div class="panel-heading">Alugueres recebidos</div>
                     <div class="panel-body">
-                        <h3 style="margin: 0;">{{ number_format($totals['total_car_hire'] ?? 0, 2) }} <small>Ã¢â€šÂ¬</small></h3>
+                        <h3 style="margin: 0;">{{ number_format($totals['total_car_hire'] ?? 0, 2) }} <small>€</small></h3>
                         <small>Total de aluguer efetivo da semana</small>
                     </div>
                 </div>
@@ -175,7 +175,7 @@
                 <div class="panel panel-default">
                     <div class="panel-heading">Percentuais recebidos</div>
                     <div class="panel-body">
-                        <h3 style="margin: 0;">{{ number_format($totals['total_percent_value'] ?? 0, 2) }} <small>Ã¢â€šÂ¬</small></h3>
+                        <h3 style="margin: 0;">{{ number_format($totals['total_percent_value'] ?? 0, 2) }} <small>€</small></h3>
                         <small>Total de percentagem cobrada</small>
                     </div>
                 </div>
@@ -184,7 +184,7 @@
                 <div class="panel panel-default">
                     <div class="panel-heading">Receita operacional</div>
                     <div class="panel-body">
-                        <h3 style="margin: 0;">{{ number_format(($totals['total_car_hire'] ?? 0) + ($totals['total_percent_value'] ?? 0) + ($totals['total_adjustments'] ?? 0), 2) }} <small>Ã¢â€šÂ¬</small></h3>
+                        <h3 style="margin: 0;">{{ number_format(($totals['total_car_hire'] ?? 0) + ($totals['total_percent_value'] ?? 0) + ($totals['total_adjustments'] ?? 0), 2) }} <small>€</small></h3>
                         <small>Aluguer + percentagem + ajustes operacionais</small>
                     </div>
                 </div>
@@ -192,7 +192,7 @@
         </div>
         <div class="panel panel-default" style="margin-top: 20px;">
             <div class="panel-heading">
-                ImportaÃƒÂ§ÃƒÂµes da semana
+                Importações da semana
             </div>
             <div class="panel-body" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                 @if ($importState['uber'])
@@ -201,7 +201,7 @@
                         <input type="hidden" name="week_filter" value="{{ $tvde_week_id }}">
                         <input type="hidden" name="company_filter" value="{{ $company_id }}">
                         <input type="hidden" name="platform" value="uber">
-                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Tem a certeza que pretende eliminar a importaÃƒÂ§ÃƒÂ£o Uber desta semana?')">Eliminar Uber</button>
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Tem a certeza que pretende eliminar a importação Uber desta semana?')">Eliminar Uber</button>
                     </form>
                 @else
                     <form action="{{ route('admin.tvde-activities.uploadPlatformCsv') }}" method="POST" enctype="multipart/form-data" class="inline-upload-form" style="margin:0;">
@@ -220,7 +220,7 @@
                         <input type="hidden" name="week_filter" value="{{ $tvde_week_id }}">
                         <input type="hidden" name="company_filter" value="{{ $company_id }}">
                         <input type="hidden" name="platform" value="bolt">
-                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Tem a certeza que pretende eliminar a importaÃƒÂ§ÃƒÂ£o Bolt desta semana?')">Eliminar Bolt</button>
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Tem a certeza que pretende eliminar a importação Bolt desta semana?')">Eliminar Bolt</button>
                     </form>
                 @else
                     <form action="{{ route('admin.tvde-activities.uploadPlatformCsv') }}" method="POST" enctype="multipart/form-data" class="inline-upload-form" style="margin:0;">
@@ -267,14 +267,14 @@
                     <form action="{{ route('admin.company-reports.delete-mileage') }}" method="POST" style="margin:0;">
                         @csrf
                         <input type="hidden" name="tvde_week_id" value="{{ $tvde_week_id }}">
-                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Tem a certeza que pretende eliminar os quilÃƒÂ³metros importados desta semana?')">Eliminar QuilÃƒÂ³metros</button>
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Tem a certeza que pretende eliminar os quilómetros importados desta semana?')">Eliminar Quilómetros</button>
                     </form>
                 @else
                     <form action="{{ route('admin.company-reports.upload-mileage') }}" method="POST" enctype="multipart/form-data" class="inline-upload-form" style="margin:0;">
                         @csrf
                         <input type="hidden" name="tvde_week_id" value="{{ $tvde_week_id }}">
                         <input type="file" name="mileage_file" id="mileageFile" accept=".csv,.txt,.xlsx" style="display:none;" required>
-                        <button type="button" class="btn btn-default btn-sm js-inline-upload-trigger" data-file-input="mileageFile">QuilÃƒÂ³metros</button>
+                        <button type="button" class="btn btn-default btn-sm js-inline-upload-trigger" data-file-input="mileageFile">Quilómetros</button>
                     </form>
                 @endif
             </div>
@@ -282,12 +282,12 @@
 
         <div class="panel panel-default" style="margin-top: 20px;">
             <div class="panel-heading">
-                FaturaÃƒÂ§ÃƒÂ£o
+                Faturação
                 <span class="label label-default" style="margin-left: 8px;">KM importados: {{ $mileageCount }}</span>
                 <a class="btn btn-info btn-sm pull-right" style="margin-left:10px" href="{{ route('admin.company-reports.pdf', ['download' => 1, 'sort_by' => $sortBy ?? 'name']) }}" target="_blank">Gerar PDF</a>
                 <button class="btn btn-success btn-sm pull-right" onclick="validateData()" id="validateData" disabled>Validar selecionados</button>
                 <button class="btn btn-primary btn-sm pull-right" onclick="selectAll()" id="selectAll">Selecionar todos</button>
-                <button class="btn btn-primary btn-sm pull-right" onclick="unselectAll()" id="unselectAll" style="display: none;">Remover seleÃƒÂ§ÃƒÂ£o</button>
+                <button class="btn btn-primary btn-sm pull-right" onclick="unselectAll()" id="unselectAll" style="display: none;">Remover seleção</button>
             </div>
             <div class="panel-body" style="border-bottom: 1px solid #f4f4f4;">
                 <div class="report-toolbar">
@@ -321,13 +321,13 @@
                             <th style="text-align: right; background: #eeeeee; display: none;">Bruto Uber</th>
                             <th style="text-align: right; background: #eeeeee; display: none;">Bruto Bolt</th>
                             <th style="text-align: right; background: #eeeeee; display: none;">Bruto operadores</th>
-                            <th style="text-align: right;">LÃƒÂ­quido Uber</th>
-                            <th style="text-align: right;">LÃƒÂ­quido Bolt</th>
+                            <th style="text-align: right;">Líquido Uber</th>
+                            <th style="text-align: right;">Líquido Bolt</th>
                             <th style="text-align: right;">Recebido conta</th>
                             <th style="text-align: right;">Dif. conta</th>
                             <th style="text-align: right;">KM</th>
-                            <th style="text-align: right;">Ã¢â€šÂ¬/km</th>
-                            <th style="text-align: right; display: none;">LÃƒÂ­quido operadores</th>
+                            <th style="text-align: right;">€/km</th>
+                            <th style="text-align: right; display: none;">Líquido operadores</th>
                             <th style="text-align: right;">Gorjetas</th>
                             <th style="text-align: right;">Taxa 6%</th>
                             <th style="text-align: right; display: none;">Depois da taxa 6%</th>
@@ -337,7 +337,7 @@
                             <th style="text-align: right;">Percentagem</th>
                             <th style="text-align: right;">Aluguer</th>
                             <th style="text-align: right">Valor da semana</th>
-                            <th style="text-align: right">ÃƒÅ¡ltimo saldo</th>
+                            <th style="text-align: right">Último saldo</th>
                             <th style="text-align: right">Novo saldo</th>
                             <th style="text-align: center">Estado</th>
                             <th style="text-align: right">Validar</th>
@@ -357,14 +357,14 @@
                                 >
                                     <td>{{ $driver->name }}</td>
                                     <td>{{ $driver->license_plate ?? '-' }}</td>
-                                    <td style="text-align: right; background: #eeeeee; display: none;">{{ number_format($driver->earnings['uber']['uber_gross'] ?? 0, 2) }} <small>Ã¢â€šÂ¬</small></td>
-                                    <td style="text-align: right; background: #eeeeee; display: none;">{{ number_format($driver->earnings['bolt']['bolt_gross'] ?? 0, 2) }} <small>Ã¢â€šÂ¬</small></td>
-                                    <td style="text-align: right; background: #eeeeee; display: none;">{{ number_format($driver->earnings['total_gross'] ?? 0, 2) }} <small>Ã¢â€šÂ¬</small></td>
-                                    <td style="text-align: right">{{ number_format($driver->earnings['uber']['uber_net'] ?? 0, 2) }}<small> Ã¢â€šÂ¬</small></td>
-                                    <td style="text-align: right">{{ number_format($driver->earnings['bolt']['bolt_net'] ?? 0, 2) }} <small>Ã¢â€šÂ¬</small></td>
+                                    <td style="text-align: right; background: #eeeeee; display: none;">{{ number_format($driver->earnings['uber']['uber_gross'] ?? 0, 2) }} <small>€</small></td>
+                                    <td style="text-align: right; background: #eeeeee; display: none;">{{ number_format($driver->earnings['bolt']['bolt_gross'] ?? 0, 2) }} <small>€</small></td>
+                                    <td style="text-align: right; background: #eeeeee; display: none;">{{ number_format($driver->earnings['total_gross'] ?? 0, 2) }} <small>€</small></td>
+                                    <td style="text-align: right">{{ number_format($driver->earnings['uber']['uber_net'] ?? 0, 2) }}<small> €</small></td>
+                                    <td style="text-align: right">{{ number_format($driver->earnings['bolt']['bolt_net'] ?? 0, 2) }} <small>€</small></td>
                                     <td style="text-align: right" class="receipt-check-cell">
                                         @if(($driver->receipt_check['received_in_account'] ?? null) !== null)
-                                            {{ number_format($driver->receipt_check['received_in_account'], 2) }} <small>ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬</small>
+                                            {{ number_format($driver->receipt_check['received_in_account'], 2) }} <small>&euro;</small>
                                         @else
                                             <span class="text-muted">Sem recibo validado</span>
                                         @endif
@@ -373,7 +373,7 @@
                                         @if(($driver->receipt_check['difference'] ?? null) !== null)
                                             @php $receiptDifference = $driver->receipt_check['difference']; @endphp
                                             <strong class="{{ abs($receiptDifference) <= 0.01 ? 'text-success' : 'text-danger' }}">
-                                                {{ number_format($receiptDifference, 2) }} <small>ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬</small>
+                                                {{ number_format($receiptDifference, 2) }} <small>&euro;</small>
                                             </strong>
                                             <br>
                                             <span class="label {{ abs($receiptDifference) <= 0.01 ? 'label-success' : 'label-danger' }}">
@@ -384,27 +384,27 @@
                                         @endif
                                     </td>
                                     <td style="text-align: right">{{ number_format($driver->weekly_km ?? 0, 1) }} <small>km</small></td>
-                                    <td style="text-align: right">{{ number_format($driver->earnings_per_km ?? 0, 3) }} <small>Ã¢â€šÂ¬</small></td>
-                                    <td style="text-align: right; display: none;">{{ number_format($driver->earnings['total_net'] ?? 0, 2) }} <small>Ã¢â€šÂ¬</small></td>
-                                    <td style="text-align: right;">{{ number_format($driver->earnings['tips_total'], 2) }} <small>Ã¢â€šÂ¬</small></td>
-                                    <td style="text-align: right; color: red;">{{ number_format($driver->earnings['iva_value'], 2) }} <small>Ã¢â€šÂ¬</small></td>
-                                    <td style="text-align: right; display: none;">{{ number_format($driver->earnings['total_after_vat'], 2) }} <small>Ã¢â€šÂ¬</small></td>
-                                    <td style="text-align: right;">-{{ number_format($driver->fuel, 2) }} <small>Ã¢â€šÂ¬</small></td>
-                                    <td style="text-align: right">{{ number_format($driver->adjustments, 2) }} <small>Ã¢â€šÂ¬</small><button class="btn btn-sm" data-toggle="popover" title="Movimentos" data-html="true" data-content="
+                                    <td style="text-align: right">{{ number_format($driver->earnings_per_km ?? 0, 3) }} <small>€</small></td>
+                                    <td style="text-align: right; display: none;">{{ number_format($driver->earnings['total_net'] ?? 0, 2) }} <small>€</small></td>
+                                    <td style="text-align: right;">{{ number_format($driver->earnings['tips_total'], 2) }} <small>€</small></td>
+                                    <td style="text-align: right; color: red;">{{ number_format($driver->earnings['iva_value'], 2) }} <small>€</small></td>
+                                    <td style="text-align: right; display: none;">{{ number_format($driver->earnings['total_after_vat'], 2) }} <small>€</small></td>
+                                    <td style="text-align: right;">-{{ number_format($driver->fuel, 2) }} <small>€</small></td>
+                                    <td style="text-align: right">{{ number_format($driver->adjustments, 2) }} <small>€</small><button class="btn btn-sm" data-toggle="popover" title="Movimentos" data-html="true" data-content="
                                         @foreach($driver->earnings['adjustments_array'] as $adjustment)
-                                            <strong>{{ $adjustment['name'] }} ({{ $adjustment['category_label'] ?? ($adjustment['category'] ?? 'geral') }}): </strong>{{ $adjustment['type'] == 'deduct' ? '-' : '' }}{{ $adjustment['amount'] }}Ã¢â€šÂ¬<br>
+                                            <strong>{{ $adjustment['name'] }} ({{ $adjustment['category_label'] ?? ($adjustment['category'] ?? 'geral') }}): </strong>{{ $adjustment['type'] == 'deduct' ? '-' : '' }}{{ $adjustment['amount'] }}€<br>
                                         @endforeach
                                         "><i class="fa-fw fas fa-eye"></i></button></td>
-                                    <td style="text-align: right">{{ number_format($driver->earnings['car_track'], 2) }} <small>Ã¢â€šÂ¬</small></td>
-                                    <td style="text-align: right; color: red;">{{ number_format($driver->earnings['percent_value'], 2) }} <small>Ã¢â€šÂ¬</small></td>
-                                    <td style="text-align: right">-{{ number_format($driver->earnings['car_hire'], 2) }} <small>Ã¢â€šÂ¬</small>
+                                    <td style="text-align: right">{{ number_format($driver->earnings['car_track'], 2) }} <small>€</small></td>
+                                    <td style="text-align: right; color: red;">{{ number_format($driver->earnings['percent_value'], 2) }} <small>€</small></td>
+                                    <td style="text-align: right">-{{ number_format($driver->earnings['car_hire'], 2) }} <small>€</small>
                                         @if(($driver->earnings['abatimento_aluguer'] ?? 0) > 0)
-                                            <br><small class="text-success">abatimento: {{ number_format($driver->earnings['abatimento_aluguer'], 2) }} Ã¢â€šÂ¬</small>
+                                            <br><small class="text-success">abatimento: {{ number_format($driver->earnings['abatimento_aluguer'], 2) }} €</small>
                                         @endif
                                     </td>
-                                    <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>Ã¢â€šÂ¬</small></td>
-                                    <td style="text-align: right">{{ number_format($driver->last_balance, 2) }} <small>Ã¢â€šÂ¬</small></td>
-                                    <td style="text-align: right">{{ number_format($driver->new_balance, 2) }} <small>Ã¢â€šÂ¬</small></td>
+                                    <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>€</small></td>
+                                    <td style="text-align: right">{{ number_format($driver->last_balance, 2) }} <small>€</small></td>
+                                    <td style="text-align: right">{{ number_format($driver->new_balance, 2) }} <small>€</small></td>
                                     <td style="text-align: center">
                                         @if($driver->balance_manual_status_label)
                                             <span class="label label-primary">{{ $driver->balance_manual_status_label }}</span>
@@ -433,30 +433,30 @@
                         <tr>
                             <th>Totais</th>
                             <th></th>
-                            <th style="text-align: right; background: #eeeeee; display: none;">{{ number_format($totals['gross_uber'], 2) }} <small>Ã¢â€šÂ¬</small></th>
-                            <th style="text-align: right; background: #eeeeee; display: none;">{{ number_format($totals['gross_bolt'], 2) }} <small>Ã¢â€šÂ¬</small></th>
-                            <th style="text-align: right; background: #eeeeee; display: none;">{{ number_format($totals['total_operators'], 2) }} <small>Ã¢â€šÂ¬</small></th>
-                            <th style="text-align: right;">{{ number_format($totals['net_uber'], 2) }} <small>Ã¢â€šÂ¬</small></th>
-                            <th style="text-align: right;">{{ number_format($totals['net_bolt'], 2) }} <small>Ã¢â€šÂ¬</small></th>
+                            <th style="text-align: right; background: #eeeeee; display: none;">{{ number_format($totals['gross_uber'], 2) }} <small>€</small></th>
+                            <th style="text-align: right; background: #eeeeee; display: none;">{{ number_format($totals['gross_bolt'], 2) }} <small>€</small></th>
+                            <th style="text-align: right; background: #eeeeee; display: none;">{{ number_format($totals['total_operators'], 2) }} <small>€</small></th>
+                            <th style="text-align: right;">{{ number_format($totals['net_uber'], 2) }} <small>€</small></th>
+                            <th style="text-align: right;">{{ number_format($totals['net_bolt'], 2) }} <small>€</small></th>
                             <th></th>
                             <th style="text-align: right;">
                                 @php $receiptDifferenceTotal = $totals['receipt_check_difference_total'] ?? 0; @endphp
                                 <span class="{{ abs($receiptDifferenceTotal) <= 0.01 ? 'text-success' : 'text-danger' }}">
-                                    {{ number_format($receiptDifferenceTotal, 2) }} <small>ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬</small>
+                                    {{ number_format($receiptDifferenceTotal, 2) }} <small>&euro;</small>
                                 </span>
                             </th>
                             <th style="text-align: right;">{{ number_format($totals['total_weekly_km'] ?? 0, 1) }} <small>km</small></th>
-                            <th style="text-align: right;">{{ number_format($totals['total_earnings_per_km'] ?? 0, 3) }} <small>Ã¢â€šÂ¬</small></th>
-                            <th style="text-align: right; display: none;">{{ number_format($totals['total_net_operators'], 2) }} <small>Ã¢â€šÂ¬</small></th>
-                            <th style="text-align: right;">{{ number_format($totals['tips_total'], 2) }} <small>Ã¢â€šÂ¬</small></th>
-                            <th style="text-align: right; color: red;">{{ number_format($totals['total_iva_value'], 2) }} <small>Ã¢â€šÂ¬</small></th>
-                            <th style="text-align: right; display: none;">{{ number_format($totals['total_earnings_after_vat'], 2) }} <small>Ã¢â€šÂ¬</small></th>
-                            <th style="text-align: right;">-{{ number_format($totals['total_fuel_transactions'], 2) }} <small>Ã¢â€šÂ¬</small></th>
-                            <th style="text-align: right;">{{ number_format($totals['total_adjustments'], 2) }} <small>Ã¢â€šÂ¬</small></th>
-                            <th style="text-align: right;">{{ number_format($totals['total_car_track'], 2) }} <small>Ã¢â€šÂ¬</small></th>
-                            <th style="text-align: right; color: red;">{{ number_format($totals['total_percent_value'], 2) }} <small>Ã¢â€šÂ¬</small></th>
-                            <th style="text-align: right;">-{{ number_format($totals['total_car_hire'], 2) }} <small>Ã¢â€šÂ¬</small></th>
-                            <th style="text-align: right;">{{ number_format($totals['total_drivers'], 2) }} <small>Ã¢â€šÂ¬</small></th>
+                            <th style="text-align: right;">{{ number_format($totals['total_earnings_per_km'] ?? 0, 3) }} <small>€</small></th>
+                            <th style="text-align: right; display: none;">{{ number_format($totals['total_net_operators'], 2) }} <small>€</small></th>
+                            <th style="text-align: right;">{{ number_format($totals['tips_total'], 2) }} <small>€</small></th>
+                            <th style="text-align: right; color: red;">{{ number_format($totals['total_iva_value'], 2) }} <small>€</small></th>
+                            <th style="text-align: right; display: none;">{{ number_format($totals['total_earnings_after_vat'], 2) }} <small>€</small></th>
+                            <th style="text-align: right;">-{{ number_format($totals['total_fuel_transactions'], 2) }} <small>€</small></th>
+                            <th style="text-align: right;">{{ number_format($totals['total_adjustments'], 2) }} <small>€</small></th>
+                            <th style="text-align: right;">{{ number_format($totals['total_car_track'], 2) }} <small>€</small></th>
+                            <th style="text-align: right; color: red;">{{ number_format($totals['total_percent_value'], 2) }} <small>€</small></th>
+                            <th style="text-align: right;">-{{ number_format($totals['total_car_hire'], 2) }} <small>€</small></th>
+                            <th style="text-align: right;">{{ number_format($totals['total_drivers'], 2) }} <small>€</small></th>
                             <th></th>
                             <th></th>
                             <th></th>
@@ -476,23 +476,23 @@
                     <tbody>
                         <tr>
                             <th>Ajustes gerais / manuais</th>
-                            <td style="text-align: right;">{{ number_format($totals['total_general_adjustments'] ?? 0, 2) }} <small>Ã¢â€šÂ¬</small></td>
+                            <td style="text-align: right;">{{ number_format($totals['total_general_adjustments'] ?? 0, 2) }} <small>€</small></td>
                         </tr>
                         <tr>
                             <th>Abatimento de aluguer</th>
-                            <td style="text-align: right;">{{ number_format($totals['total_rent_discounts'] ?? 0, 2) }} <small>Ã¢â€šÂ¬</small></td>
+                            <td style="text-align: right;">{{ number_format($totals['total_rent_discounts'] ?? 0, 2) }} <small>€</small></td>
                         </tr>
                         <tr>
-                            <th>DiferenÃƒÂ§a de faturaÃƒÂ§ÃƒÂ£o mÃƒÂ­nima</th>
-                            <td style="text-align: right;">{{ number_format($totals['total_minimum_billing_difference'] ?? 0, 2) }} <small>Ã¢â€šÂ¬</small></td>
+                            <th>Diferença de faturação mínima</th>
+                            <td style="text-align: right;">{{ number_format($totals['total_minimum_billing_difference'] ?? 0, 2) }} <small>€</small></td>
                         </tr>
                         <tr>
-                            <th>CauÃƒÂ§ÃƒÂ£o recebida</th>
-                            <td style="text-align: right;">{{ number_format($totals['total_caution_received'] ?? 0, 2) }} <small>Ã¢â€šÂ¬</small></td>
+                            <th>Caução recebida</th>
+                            <td style="text-align: right;">{{ number_format($totals['total_caution_received'] ?? 0, 2) }} <small>€</small></td>
                         </tr>
                         <tr>
-                            <th>CauÃƒÂ§ÃƒÂ£o devolvida</th>
-                            <td style="text-align: right;">{{ number_format($totals['total_caution_returned'] ?? 0, 2) }} <small>Ã¢â€šÂ¬</small></td>
+                            <th>Caução devolvida</th>
+                            <td style="text-align: right;">{{ number_format($totals['total_caution_returned'] ?? 0, 2) }} <small>€</small></td>
                         </tr>
                     </tbody>
                 </table>
@@ -565,7 +565,7 @@
     function deleteData(tvde_week_id, driver_id) {
         Swal.fire({
             title: 'Tem a certeza?',
-            text: 'Isto irÃƒÂ¡ remover os dados do extrato deste condutor para esta semana.',
+            text: 'Isto irá remover os dados do extrato deste condutor para esta semana.',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#3085d6',
@@ -593,4 +593,3 @@
     }
 </script>
 @endsection
-
