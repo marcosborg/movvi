@@ -284,7 +284,7 @@
             <div class="panel-heading">
                 Faturação
                 <span class="label label-default" style="margin-left: 8px;">KM importados: {{ $mileageCount }}</span>
-                <a class="btn btn-info btn-sm pull-right" style="margin-left:10px" href="{{ route('admin.company-reports.pdf', ['download' => 1, 'sort_by' => $sortBy ?? 'name']) }}" target="_blank">Gerar PDF</a>
+                <a class="btn btn-info btn-sm pull-right" style="margin-left:10px" href="{{ route('admin.company-reports.pdf', ['download' => 1, 'sort_by' => $sortBy ?? 'name', 'sort_direction' => $sortDirection ?? 'asc']) }}" target="_blank">Gerar PDF</a>
                 <button class="btn btn-success btn-sm pull-right" onclick="validateData()" id="validateData" disabled>Validar selecionados</button>
                 <button class="btn btn-primary btn-sm pull-right" onclick="selectAll()" id="selectAll">Selecionar todos</button>
                 <button class="btn btn-primary btn-sm pull-right" onclick="unselectAll()" id="unselectAll" style="display: none;">Remover seleção</button>
@@ -296,8 +296,13 @@
                         <option value="name" {{ ($sortBy ?? 'name') === 'name' ? 'selected' : '' }}>Ordenar por nome</option>
                         <option value="total" {{ ($sortBy ?? 'name') === 'total' ? 'selected' : '' }}>Ordenar por faturacao</option>
                         <option value="weekly_km" {{ ($sortBy ?? 'name') === 'weekly_km' ? 'selected' : '' }}>Ordenar por km</option>
+                        <option value="earnings_per_km" {{ ($sortBy ?? 'name') === 'earnings_per_km' ? 'selected' : '' }}>Ordenar por euro/km</option>
                         <option value="percent_value" {{ ($sortBy ?? 'name') === 'percent_value' ? 'selected' : '' }}>Ordenar por percentagem</option>
                         <option value="car_hire" {{ ($sortBy ?? 'name') === 'car_hire' ? 'selected' : '' }}>Ordenar por aluguer</option>
+                    </select>
+                    <select id="reportSortDirection" class="form-control">
+                        <option value="asc" {{ ($sortDirection ?? 'asc') === 'asc' ? 'selected' : '' }}>Ascendente</option>
+                        <option value="desc" {{ ($sortDirection ?? 'asc') === 'desc' ? 'selected' : '' }}>Descendente</option>
                     </select>
                     <select id="reportValidationFilter" class="form-control">
                         <option value="all">Todos os estados de validacao</option>
@@ -528,15 +533,20 @@
 
         const searchInput = document.getElementById('reportSearch');
         const sortByFilter = document.getElementById('reportSortBy');
+        const sortDirectionFilter = document.getElementById('reportSortDirection');
         const validationFilter = document.getElementById('reportValidationFilter');
         const receiptCheckFilter = document.getElementById('reportReceiptCheckFilter');
         const rows = Array.from(document.querySelectorAll('.report-driver-row'));
 
-        sortByFilter?.addEventListener('change', () => {
+        const updateSortParams = () => {
             const url = new URL(window.location.href);
             url.searchParams.set('sort_by', sortByFilter.value || 'name');
+            url.searchParams.set('sort_direction', sortDirectionFilter?.value || 'asc');
             window.location.href = url.toString();
-        });
+        };
+
+        sortByFilter?.addEventListener('change', updateSortParams);
+        sortDirectionFilter?.addEventListener('change', updateSortParams);
 
         const applyReportFilters = () => {
             const search = (searchInput?.value || '').trim().toLowerCase();

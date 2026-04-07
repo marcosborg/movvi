@@ -55,7 +55,8 @@ class CompanyReportController extends Controller
         ];
 
         $sortBy = request()->query('sort_by', 'name');
-        $drivers = $this->sortCompanyReportDrivers($results['drivers'], $sortBy);
+        $sortDirection = request()->query('sort_direction', 'asc');
+        $drivers = $this->sortCompanyReportDrivers($results['drivers'], $sortBy, $sortDirection);
 
         return view('admin.companyReports.index')->with([
             'company_id' => $company_id,
@@ -70,20 +71,37 @@ class CompanyReportController extends Controller
             'mileageCount' => $mileageCount,
             'importState' => $importState,
             'sortBy' => $sortBy,
+            'sortDirection' => $sortDirection,
         ]);
     }
 
-    protected function sortCompanyReportDrivers($drivers, string $sortBy)
+    protected function sortCompanyReportDrivers($drivers, string $sortBy, string $sortDirection = 'asc')
     {
         $collection = collect($drivers);
+        $descending = $sortDirection === 'desc';
 
-        return match ($sortBy) {
-            'total' => $collection->sortByDesc(fn ($driver) => (float) ($driver->total ?? 0))->values(),
-            'weekly_km' => $collection->sortByDesc(fn ($driver) => (float) ($driver->weekly_km ?? 0))->values(),
-            'percent_value' => $collection->sortByDesc(fn ($driver) => (float) data_get($driver, 'earnings.percent_value', 0))->values(),
-            'car_hire' => $collection->sortByDesc(fn ($driver) => (float) data_get($driver, 'earnings.car_hire', 0))->values(),
-            default => $collection->sortBy(fn ($driver) => mb_strtolower((string) ($driver->name ?? '')))->values(),
+        $sorted = match ($sortBy) {
+            'total' => $descending
+                ? $collection->sortByDesc(fn ($driver) => (float) ($driver->total ?? 0))
+                : $collection->sortBy(fn ($driver) => (float) ($driver->total ?? 0)),
+            'weekly_km' => $descending
+                ? $collection->sortByDesc(fn ($driver) => (float) ($driver->weekly_km ?? 0))
+                : $collection->sortBy(fn ($driver) => (float) ($driver->weekly_km ?? 0)),
+            'earnings_per_km' => $descending
+                ? $collection->sortByDesc(fn ($driver) => (float) ($driver->earnings_per_km ?? 0))
+                : $collection->sortBy(fn ($driver) => (float) ($driver->earnings_per_km ?? 0)),
+            'percent_value' => $descending
+                ? $collection->sortByDesc(fn ($driver) => (float) data_get($driver, 'earnings.percent_value', 0))
+                : $collection->sortBy(fn ($driver) => (float) data_get($driver, 'earnings.percent_value', 0)),
+            'car_hire' => $descending
+                ? $collection->sortByDesc(fn ($driver) => (float) data_get($driver, 'earnings.car_hire', 0))
+                : $collection->sortBy(fn ($driver) => (float) data_get($driver, 'earnings.car_hire', 0)),
+            default => $descending
+                ? $collection->sortByDesc(fn ($driver) => mb_strtolower((string) ($driver->name ?? '')))
+                : $collection->sortBy(fn ($driver) => mb_strtolower((string) ($driver->name ?? ''))),
         };
+
+        return $sorted->values();
     }
 
     public function pdf(Request $request, $download = null)
@@ -101,7 +119,8 @@ class CompanyReportController extends Controller
         $main_company = Company::where('main', true)->first();
 
         $sortBy = $request->query('sort_by', 'name');
-        $drivers = $this->sortCompanyReportDrivers($results['drivers'], $sortBy);
+        $sortDirection = $request->query('sort_direction', 'asc');
+        $drivers = $this->sortCompanyReportDrivers($results['drivers'], $sortBy, $sortDirection);
 
         $pdf = Pdf::loadView('admin.companyReports.pdf', [
             'company' => $company,
