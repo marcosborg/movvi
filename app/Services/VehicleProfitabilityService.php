@@ -102,16 +102,17 @@ class VehicleProfitabilityService
                 ? ($usageSeconds / $driverTotalUsageSeconds)
                 : 0.0;
             $account = $accounts->get($driverId);
-            $fallbackAdjustments = self::calculateDriverAdjustmentsForWeek(
+            $profitabilityAdjustments = self::calculateDriverProfitabilityAdjustmentBreakdownForWeek(
                 $driverId,
                 $week,
-                (int) $vehicle->company_id,
-                true
+                (int) $vehicle->company_id
             );
 
             if (!$account) {
                 $missingAccounts[] = $driverId;
-                $allocatedFallbackAdjustments = $fallbackAdjustments * $allocationRatio;
+                $allocatedGeneralAdjustments = $profitabilityAdjustments['general_adjustments_total'] * $allocationRatio;
+                $allocatedMinimumBillingDifference = $profitabilityAdjustments['minimum_billing_difference_total'] * $allocationRatio;
+                $allocatedProfitabilityAdjustments = $profitabilityAdjustments['total'] * $allocationRatio;
                 $drivers[] = [
                     'id' => $driverId,
                     'name' => $driverNames[$driverId] ?? null,
@@ -120,9 +121,9 @@ class VehicleProfitabilityService
                     'type' => 'unknown',
                     'rental' => 0.0,
                     'commission' => 0.0,
-                    'adjustments' => $allocatedFallbackAdjustments,
-                    'general_adjustments' => $allocatedFallbackAdjustments,
-                    'minimum_billing_difference' => 0.0,
+                    'adjustments' => $allocatedProfitabilityAdjustments,
+                    'general_adjustments' => $allocatedGeneralAdjustments,
+                    'minimum_billing_difference' => $allocatedMinimumBillingDifference,
                     'has_current_account' => false,
                 ];
                 continue;
@@ -131,15 +132,11 @@ class VehicleProfitabilityService
             $earnings = json_decode($account->data, true) ?? [];
             $rental = (float) ($earnings['car_hire'] ?? 0);
             $commission = (float) ($earnings['percent_value'] ?? 0);
-            $generalAdjustments = array_key_exists('general_adjustments', $earnings)
-                ? (float) ($earnings['general_adjustments'] ?? 0)
-                : (float) ($earnings['adjustments'] ?? 0);
-            $minimumBillingDifference = 0 - (float) ($earnings['diferenca_faturacao_minima'] ?? 0);
             $allocatedRental = $rental * $allocationRatio;
             $allocatedCommission = $commission * $allocationRatio;
-            $allocatedGeneralAdjustments = $generalAdjustments * $allocationRatio;
-            $allocatedMinimumBillingDifference = $minimumBillingDifference * $allocationRatio;
-            $adjustments = $allocatedGeneralAdjustments + $allocatedMinimumBillingDifference;
+            $allocatedGeneralAdjustments = $profitabilityAdjustments['general_adjustments_total'] * $allocationRatio;
+            $allocatedMinimumBillingDifference = $profitabilityAdjustments['minimum_billing_difference_total'] * $allocationRatio;
+            $adjustments = $profitabilityAdjustments['total'] * $allocationRatio;
 
             $type = 'unknown';
             if ($rental > 0 && $commission <= 0) {
@@ -309,27 +306,23 @@ class VehicleProfitabilityService
                     ? ($seconds / $driverTotalUsageSeconds)
                     : 0.0;
                 $earnings = $decoded[(int) $driverId] ?? null;
-                $fallbackAdjustments = self::calculateDriverAdjustmentsForWeek(
+                $profitabilityAdjustments = self::calculateDriverProfitabilityAdjustmentBreakdownForWeek(
                     (int) $driverId,
                     $week,
-                    (int) $vehicle->company_id,
-                    true
+                    (int) $vehicle->company_id
                 );
 
                 if ($earnings === null) {
-                    $generalAdjustmentsTotal += $fallbackAdjustments * $allocationRatio;
+                    $generalAdjustmentsTotal += $profitabilityAdjustments['general_adjustments_total'] * $allocationRatio;
+                    $minimumBillingDifferenceTotal += $profitabilityAdjustments['minimum_billing_difference_total'] * $allocationRatio;
                     $missingAccountsCount++;
                     continue;
                 }
 
                 $rentalTotal += (float) ($earnings['car_hire'] ?? 0) * $allocationRatio;
                 $commissionTotal += (float) ($earnings['percent_value'] ?? 0) * $allocationRatio;
-                $generalAdjustmentsTotal += (
-                    array_key_exists('general_adjustments', $earnings)
-                        ? (float) ($earnings['general_adjustments'] ?? 0)
-                        : (float) ($earnings['adjustments'] ?? 0)
-                ) * $allocationRatio;
-                $minimumBillingDifferenceTotal += (0 - (float) ($earnings['diferenca_faturacao_minima'] ?? 0)) * $allocationRatio;
+                $generalAdjustmentsTotal += $profitabilityAdjustments['general_adjustments_total'] * $allocationRatio;
+                $minimumBillingDifferenceTotal += $profitabilityAdjustments['minimum_billing_difference_total'] * $allocationRatio;
             }
 
             $adjustmentsTotal = $generalAdjustmentsTotal + $minimumBillingDifferenceTotal;
@@ -376,14 +369,17 @@ class VehicleProfitabilityService
         ];
     }
 
-    private static function calculateDriverAdjustmentsForWeek(
+    private static function calculateDriverProfitabilityAdjustmentBreakdownForWeek(
         int $driverId,
         TvdeWeek $week,
-        ?int $companyId = null,
-        bool $onlyVehicleProfitability = false
-    ): float {
-        if ($onlyVehicleProfitability && ! self::hasVehicleProfitabilityAdjustmentsColumn()) {
-            return 0.0;
+        ?int $companyId = null
+    ): array {
+        if (! self::hasVehicleProfitabilityAdjustmentsColumn()) {
+            return [
+                'general_adjustments_total' => 0.0,
+                'minimum_billing_difference_total' => 0.0,
+                'total' => 0.0,
+            ];
         }
 
         $query = Adjustment::query()
@@ -403,11 +399,14 @@ class VehicleProfitabilityService
             $query->where('company_id', $companyId);
         }
 
-        if ($onlyVehicleProfitability) {
-            $query->where('affects_vehicle_profitability', true);
-        }
+        $query->where('affects_vehicle_profitability', true);
 
-        return (float) $query->get()->sum(function (Adjustment $adjustment) {
+        $breakdown = [
+            'general_adjustments_total' => 0.0,
+            'minimum_billing_difference_total' => 0.0,
+        ];
+
+        $query->get()->each(function (Adjustment $adjustment) use (&$breakdown) {
             $amount = (float) ($adjustment->amount ?? 0);
             $category = $adjustment->category ?? Adjustment::CATEGORY_GENERAL;
 
@@ -415,19 +414,26 @@ class VehicleProfitabilityService
                 Adjustment::CATEGORY_CAUTION_RECEIVED,
                 Adjustment::CATEGORY_CAUTION_RETURNED,
             ], true)) {
-                return 0.0;
+                return;
             }
 
             if ($category === Adjustment::CATEGORY_RENT_DISCOUNT) {
-                return 0.0;
+                return;
             }
+
+            $signedAmount = $adjustment->type === 'deduct' ? $amount : -$amount;
 
             if ($category === Adjustment::CATEGORY_MINIMUM_BILLING_DIFFERENCE) {
-                return $adjustment->type === 'deduct' ? -$amount : $amount;
+                $breakdown['minimum_billing_difference_total'] += $signedAmount;
+                return;
             }
 
-            return $adjustment->type === 'deduct' ? -$amount : $amount;
+            $breakdown['general_adjustments_total'] += $signedAmount;
         });
+
+        $breakdown['total'] = $breakdown['general_adjustments_total'] + $breakdown['minimum_billing_difference_total'];
+
+        return $breakdown;
     }
 
     private static function hasVehicleProfitabilityAdjustmentsColumn(): bool
