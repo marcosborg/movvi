@@ -594,6 +594,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
             ->name('vehicle-profitabilities.index');
         Route::get('week', [App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'week'])
             ->name('vehicle-profitabilities.week');
+        Route::get('week-pdf', [App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'weekPdf'])
+            ->name('vehicle-profitabilities.week-pdf');
         Route::post('export-conta-azul', [App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'exportContaAzul'])
             ->name('vehicle-profitabilities.export-conta-azul');
         Route::get('set-vehicle-item-id/{vehicle_item_id}', [\App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'setVehicleItemId']);

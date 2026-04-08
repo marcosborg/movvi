@@ -21,9 +21,9 @@
                     Voltar
                 </a>
                 @if($result)
-                    <button class="btn btn-default" type="button" style="margin-left: 10px;" onclick="window.print()">
-                        Imprimir
-                    </button>
+                    <a class="btn btn-default" style="margin-left: 10px;" href="{{ route('admin.vehicle-profitabilities.week-pdf', ['tvde_week_id' => $weekId]) }}" target="_blank">
+                        Imprimir PDF
+                    </a>
                 @endif
             </form>
 

@@ -186,6 +186,33 @@ class VehicleProfitabilityController extends Controller
         ])->stream('vehicle-profitability.pdf');
     }
 
+    public function weekPdf(Request $request)
+    {
+        abort_if(Gate::denies('vehicle_profitability_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $weekId = (int) $request->input('tvde_week_id');
+        $companyId = $this->selectedCompanyId();
+
+        if (! $weekId) {
+            abort(422, 'Selecione uma semana para exportar o PDF.');
+        }
+
+        $week = TvdeWeek::find($weekId);
+        if (! $week) {
+            abort(422, 'Selecione uma semana valida para exportar o PDF.');
+        }
+
+        $result = VehicleProfitabilityService::makeWeek($weekId, $companyId);
+        $company = $companyId ? Company::find($companyId) : null;
+
+        return Pdf::loadView('admin.vehicleProfitability.week-pdf', [
+            'result' => $result,
+            'company' => $company,
+        ])->setOption([
+            'isRemoteEnabled' => true,
+        ])->setPaper('a4', 'landscape')->stream('vehicle-profitability-week.pdf');
+    }
+
     protected function selectedCompanyId(): ?int
     {
         $companyId = session('company_id');
