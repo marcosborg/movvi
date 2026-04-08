@@ -17,9 +17,14 @@
     </style>
 </head>
 <body>
+    @php
+        $weekStart = optional($tvde_week)->start_date ? \Carbon\Carbon::parse($tvde_week->start_date) : null;
+        $weekNumber = optional($tvde_week)->display_number ?? optional($tvde_week)->number ?? ($weekStart ? $weekStart->isoWeek() : '-');
+        $weekYear = optional($tvde_week)->display_year ?? ($weekStart ? $weekStart->isoWeekYear() : '-');
+    @endphp
     <h2>Extrato de Condutores</h2>
     <h4>Empresa: {{ $company->name ?? 'Empresa' }}</h4>
-    <h4>Semana: {{ optional($tvde_week)->start_date }} a {{ optional($tvde_week)->end_date }}</h4>
+    <h4>Semana: {{ optional($tvde_week)->start_date }} a {{ optional($tvde_week)->end_date }} (Semana {{ $weekNumber }}/{{ $weekYear }})</h4>
 
     <table>
         <colgroup>

@@ -132,7 +132,11 @@ class CompanyReportController extends Controller
             'isRemoteEnabled' => true,
         ]);
 
-        $filename = strtolower(str_replace(' ', '_', preg_replace('/[^A-Za-z0-9\-]/', '', ($company->name ?? 'empresa') . '-' . ($tvde_week->start_date ?? 'semana')))) . '.pdf';
+        $weekNumber = $tvde_week
+            ? ($tvde_week->display_number ?? $tvde_week->number ?? Carbon::parse($tvde_week->start_date)->isoWeek())
+            : 'semana';
+
+        $filename = strtolower(str_replace(' ', '_', preg_replace('/[^A-Za-z0-9\-]/', '', ($company->name ?? 'empresa') . '-' . ($tvde_week->start_date ?? 'semana') . '-week-' . $weekNumber))) . '.pdf';
 
         if ($download) {
             return $pdf->download($filename);
