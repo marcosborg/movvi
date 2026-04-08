@@ -210,7 +210,7 @@ class VehicleProfitabilityController extends Controller
             'company' => $company,
         ])->setOption([
             'isRemoteEnabled' => true,
-        ])->setPaper('a4', 'landscape')->stream('vehicle-profitability-week.pdf');
+        ])->setPaper('a4', 'landscape')->stream(sprintf('vehicle-profitability-week-%d.pdf', $weekId));
     }
 
     protected function selectedCompanyId(): ?int

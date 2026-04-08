@@ -44,6 +44,7 @@ class ContaAzulConnection extends Model
         'last_error',
         'receivable_contact_id',
         'receivable_financial_account_id',
+        'receivable_category_id',
         'receivable_payment_method',
     ];
 

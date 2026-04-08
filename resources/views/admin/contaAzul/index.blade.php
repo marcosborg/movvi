@@ -115,6 +115,24 @@
                             @endif
                         </div>
                         <div class="form-group">
+                            <label for="receivable_category_id">Categoria financeira</label>
+                            <select
+                                class="form-control"
+                                id="receivable_category_id"
+                                name="receivable_category_id"
+                            >
+                                <option value="">Selecionar categoria</option>
+                                @foreach($categoryOptions as $option)
+                                    <option value="{{ $option['id'] }}" {{ old('receivable_category_id', $company->conta_azul_connection->receivable_category_id ?? '') == $option['id'] ? 'selected' : '' }}>
+                                        {{ $option['label'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @if(empty($categoryOptions))
+                                <p class="help-block">As categorias financeiras serao carregadas automaticamente quando a ligacao estiver operacional.</p>
+                            @endif
+                        </div>
+                        <div class="form-group">
                             <label for="receivable_payment_method">Metodo de pagamento</label>
                             <select
                                 class="form-control"

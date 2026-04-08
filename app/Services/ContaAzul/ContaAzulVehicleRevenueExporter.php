@@ -20,8 +20,12 @@ class ContaAzulVehicleRevenueExporter
     {
         $connection = $this->client->requireConnectionForCompany($company);
 
-        if (!filled($connection->receivable_contact_id) || !filled($connection->receivable_financial_account_id)) {
-            throw new \RuntimeException('Configure o contacto e a conta financeira da Conta Azul antes de exportar receitas da viatura.');
+        if (
+            ! filled($connection->receivable_contact_id)
+            || ! filled($connection->receivable_financial_account_id)
+            || ! filled($connection->receivable_category_id)
+        ) {
+            throw new \RuntimeException('Configure o contacto, a conta financeira e a categoria financeira da Conta Azul antes de exportar receitas da viatura.');
         }
 
         $snapshot = VehicleProfitabilityService::makeWeek($week->id, $company->id);
@@ -72,7 +76,7 @@ class ContaAzulVehicleRevenueExporter
 
             try {
                 $event = $this->client->createReceivableEvent($company, $payload);
-                $eventId = (string) ($event['id'] ?? $event['uuid'] ?? '');
+                $eventId = (string) ($event['id'] ?? $event['uuid'] ?? $event['protocolId'] ?? '');
 
                 $installment = null;
                 $acquittance = null;
@@ -81,7 +85,7 @@ class ContaAzulVehicleRevenueExporter
                     $installments = $this->client->listEventInstallments($company, $eventId);
                     $installment = collect($installments)->first();
 
-                    if (!empty($installment['id'])) {
+                    if (! empty($installment['id'])) {
                         $acquittance = $this->client->createAcquittance($company, (string) $installment['id'], [
                             'data_pagamento' => Carbon::parse($week->end_date)->toDateString(),
                             'valor' => round((float) $row['total_revenue'], 2),
@@ -162,16 +166,28 @@ class ContaAzulVehicleRevenueExporter
     protected function buildReceivablePayload($connection, TvdeWeek $week, array $row): array
     {
         $amount = round((float) $row['total_revenue'], 2);
+        $description = sprintf('Receita %s [%s]', $row['license_plate'], $week->id);
+        $note = sprintf('Receita da viatura %s referente a semana %s a %s', $row['license_plate'], $week->start_date, $week->end_date);
 
         return [
-            'descricao' => sprintf('Receita %s [%s]', $row['license_plate'], $week->id),
+            'descricao' => $description,
             'contato' => $connection->receivable_contact_id,
             'data_competencia' => Carbon::parse($week->end_date)->toDateString(),
+            'valor' => $amount,
             'conta_financeira' => $connection->receivable_financial_account_id,
+            'rateio' => [
+                [
+                    'id_categoria' => $connection->receivable_category_id,
+                    'valor' => $amount,
+                ],
+            ],
             'condicao_pagamento' => [
                 'parcelas' => [
                     [
+                        'descricao' => $description,
                         'data_vencimento' => Carbon::parse($week->end_date)->toDateString(),
+                        'nota' => $note,
+                        'conta_financeira' => $connection->receivable_financial_account_id,
                         'detalhe_valor' => [
                             'valor_bruto' => $amount,
                             'valor_liquido' => $amount,
@@ -179,12 +195,7 @@ class ContaAzulVehicleRevenueExporter
                     ],
                 ],
             ],
-            'observacao' => sprintf(
-                'Receita por matrícula %s referente à semana %s a %s',
-                $row['license_plate'],
-                $week->start_date,
-                $week->end_date
-            ),
+            'observacao' => $note,
         ];
     }
 }

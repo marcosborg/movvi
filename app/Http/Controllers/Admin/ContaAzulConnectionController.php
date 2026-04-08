@@ -24,12 +24,17 @@ class ContaAzulConnectionController extends Controller
 
         $contactOptions = [];
         $accountOptions = [];
+        $categoryOptions = [];
         $optionsError = null;
 
         if ($company->conta_azul_connection?->access_token) {
             try {
                 $contacts = $this->fetchAllContaAzulPeople($company);
                 $accounts = $this->fetchAllContaAzulFinancialAccounts($company);
+                $categories = $this->client->listCategories($company, [
+                    'pagina' => 1,
+                    'tamanho_pagina' => 200,
+                ]);
 
                 $contactOptions = collect($contacts['items'] ?? [])
                     ->map(function (array $item) {
@@ -60,6 +65,21 @@ class ContaAzulConnectionController extends Controller
                     ->sortBy('label', SORT_NATURAL | SORT_FLAG_CASE)
                     ->values()
                     ->all();
+
+                $categoryOptions = collect($categories['itens'] ?? $categories['items'] ?? [])
+                    ->map(function (array $item) {
+                        $name = $item['nome'] ?? $item['name'] ?? 'Categoria';
+                        $code = $item['codigo'] ?? $item['code'] ?? null;
+
+                        return [
+                            'id' => $item['id'] ?? null,
+                            'label' => trim(implode(' · ', array_filter([$name, $code]))),
+                        ];
+                    })
+                    ->filter(fn (array $item) => filled($item['id']) && filled($item['label']))
+                    ->sortBy('label', SORT_NATURAL | SORT_FLAG_CASE)
+                    ->values()
+                    ->all();
             } catch (\Throwable $exception) {
                 $optionsError = $exception->getMessage();
             }
@@ -72,6 +92,7 @@ class ContaAzulConnectionController extends Controller
             'redirectUri' => $this->oauthService->resolveRedirectUri(),
             'contactOptions' => $contactOptions,
             'accountOptions' => $accountOptions,
+            'categoryOptions' => $categoryOptions,
             'optionsError' => $optionsError,
         ]);
     }
@@ -136,6 +157,7 @@ class ContaAzulConnectionController extends Controller
         $request->validate([
             'receivable_contact_id' => ['required', 'string', 'max:255'],
             'receivable_financial_account_id' => ['required', 'string', 'max:255'],
+            'receivable_category_id' => ['required', 'string', 'max:255'],
             'receivable_payment_method' => ['required', 'string', 'max:255'],
         ]);
 
@@ -150,6 +172,7 @@ class ContaAzulConnectionController extends Controller
         $connection->update($request->only([
             'receivable_contact_id',
             'receivable_financial_account_id',
+            'receivable_category_id',
             'receivable_payment_method',
         ]));
 
