@@ -20,6 +20,7 @@ class Adjustment extends Model
     public const CATEGORY_RENT_DISCOUNT = 'abatimento_aluguer';
     public const CATEGORY_MINIMUM_BILLING_DIFFERENCE = 'diferenca_faturacao_minima';
     public const CATEGORY_MANUAL = 'ajuste_manual';
+    public const CATEGORY_COMPANY_ENERGY = 'energia_paga_empresa';
 
     public const TYPE_RADIO = [
         'deduct' => 'Deduct',
@@ -33,6 +34,7 @@ class Adjustment extends Model
         self::CATEGORY_RENT_DISCOUNT => 'Abatimento de aluguer',
         self::CATEGORY_MINIMUM_BILLING_DIFFERENCE => 'Diferenca de faturacao minima',
         self::CATEGORY_MANUAL => 'Ajuste manual',
+        self::CATEGORY_COMPANY_ENERGY => 'Energia paga pela empresa',
     ];
 
     protected $dates = [
