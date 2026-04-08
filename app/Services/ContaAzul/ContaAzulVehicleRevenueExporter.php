@@ -115,6 +115,7 @@ class ContaAzulVehicleRevenueExporter
                     'event_payload' => $event,
                     'installment_payload' => $installment,
                     'acquittance_payload' => $acquittance,
+                    'error_message' => null,
                     'exported_at' => now(),
                     'exported_by' => $userId,
                 ]);

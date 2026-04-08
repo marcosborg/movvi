@@ -266,7 +266,7 @@ class ContaAzulController extends Controller
             'amount' => (float) ($item->amount ?? 0),
             'description' => $item->description,
             'status' => $item->status,
-            'error_message' => $item->error_message,
+            'error_message' => $item->status === ContaAzulVehicleRevenueExport::STATUS_ERROR ? $item->error_message : null,
             'conta_azul_event_id' => $item->conta_azul_event_id,
             'conta_azul_installment_id' => $item->conta_azul_installment_id,
             'conta_azul_acquittance_id' => $item->conta_azul_acquittance_id,
