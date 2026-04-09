@@ -347,9 +347,9 @@ trait Reports
             $base_after_company = $base_after_iva - $percent_value;
             $expenses_total = $rent_value + $driver->fuel + $car_track + $fleet_management;
 
-            // Final driver total: base after taxes/percent - expenses + adjustments + tips.
+            // Final driver total: base after taxes/percent - expenses + adjustments + caution movements + tips.
             $subtotal_after_tips = $base_after_company - $expenses_total;
-            $final_total = $subtotal_after_tips + $adjustments + $tips_total;
+            $final_total = $subtotal_after_tips + $adjustments + $caution_received + $caution_returned + $tips_total;
             $earnings_per_km = $driver->weekly_km > 0
                 ? round($net_total / $driver->weekly_km, 6)
                 : 0.0;
