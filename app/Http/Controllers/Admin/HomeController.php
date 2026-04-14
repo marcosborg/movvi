@@ -2,19 +2,18 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Traits\Reports;
-use App\Models\CurrentAccount;
-use App\Models\DriversBalance;
-use Gate;
-use Symfony\Component\HttpFoundation\Response;
 use App\Http\Controllers\Traits\MediaUploadingTrait;
-use Illuminate\Http\Request;
-use App\Models\CompanyInvoice;
+use App\Http\Controllers\Traits\Reports;
 use App\Models\CompanyData;
+use App\Models\CompanyInvoice;
+use App\Models\CurrentAccount;
 use App\Models\Driver;
+use App\Models\DriversBalance;
 use App\Models\ExpenseReceipt;
 use App\Models\TvdeWeek;
-use App\Models\CombustionTransaction;
+use Gate;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class HomeController
 {
@@ -104,10 +103,10 @@ class HomeController
                 - ($results->car_track ?? 0)
                 + ($results->adjustments ?? 0));
 
-        // === Abastecimentos: cartões do driver e unidades ===
+        // === Abastecimentos: cartoes do driver e unidades ===
         $driver->load(['cards:id,code,type']);
 
-        // mapear unidades por cartão (kWh para tipos "eletric/electric"; senão L)
+        // mapear unidades por cartao (kWh para tipos "eletric/electric"; senao L)
         $cardUnits = [];
         foreach ($driver->cards as $c) {
             $type = strtolower($c->type ?? '');
@@ -116,28 +115,25 @@ class HomeController
         }
         $cardCodes = collect($cardUnits)->keys();
 
-        // Normalização preventiva de amounts 1000x (com base no €/unidade)
-        CombustionTransaction::query()
-            ->where('tvde_week_id', $tvde_week_id)
-            ->when($cardCodes->isNotEmpty(), fn ($q) => $q->whereIn('card', $cardCodes))
-            ->orderBy('id') // necessário para chunkById
-            ->chunkById(500, function ($rows) {
-                foreach ($rows as $t) {
-                    if ($t->amount > 200 && $t->total > 0) {
-                        $ppu = $t->total / $t->amount; // €/kWh ou €/L
-                        if ($ppu < 0.10) {            // amount provavelmente 1000x
-                            $t->amount = $t->amount / 1000;
-                            $t->save();
-                        }
-                    }
-                }
-            });
-
-        // Carregar abastecimentos normalizados, removendo duplicados na importacao.
+        // Carrega abastecimentos sem writes no request. A normalizacao e feita
+        // apenas em memoria para evitar timeouts no dashboard.
         $combustion_transactions = $this->uniqueCombustionTransactions(
             $tvde_week_id,
             $cardCodes->isNotEmpty() ? $cardCodes->all() : []
-        );
+        )->map(function ($transaction) {
+            $amount = (float) $transaction->amount;
+            $total = (float) $transaction->total;
+
+            if ($amount > 200 && $total > 0) {
+                $pricePerUnit = $total / $amount;
+
+                if ($pricePerUnit < 0.10) {
+                    $transaction->amount = $amount / 1000;
+                }
+            }
+
+            return $transaction;
+        });
 
         // Totais por unidade
         $total_liters = $combustion_transactions
@@ -263,7 +259,7 @@ class HomeController
 
         if ($company->suspended) {
             session()->flush();
-            return redirect('/login')->with('message', 'A sua conta está suspensa. Entre em contacto com a ' . env('APP_NAME'));
+            return redirect('/login')->with('message', 'A sua conta esta suspensa. Entre em contacto com a ' . env('APP_NAME'));
         }
 
         return view('admin.companyInvoiceDashboard.index', compact('company'));
@@ -279,11 +275,11 @@ class HomeController
         return redirect()->back();
     }
 
-    // Útil se receberes strings com vírgulas/nbspace
+    // Util se receberes strings com virgulas/nbspace
     function parsePtNumber(string $s): float
     {
-        $s = str_replace(["\xC2\xA0", ' '], '', $s); // remove espaços e NBSP
-        $s = str_replace(',', '.', $s);               // vírgula -> ponto
+        $s = str_replace(["\xC2\xA0", ' '], '', $s); // remove espacos e NBSP
+        $s = str_replace(',', '.', $s);               // virgula -> ponto
         return (float) $s;
     }
 }
