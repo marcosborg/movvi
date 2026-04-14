@@ -59,19 +59,21 @@
                     </table>
                 </div>
             </div>
+            {{--
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    Taxa das atividades por operador
+                    Imposto das atividades por operador
                 </div>
                 <div class="panel-body">
                     <table class="table table-striped">
                         <tr>
-                            <th>Taxa</th>
+                            <th>Imposto</th>
                             <td style="color: red;">- {{ number_format($vat_value, 2) }}€</td>
                         </tr>
                     </table>
                 </div>
             </div>
+            --}}
             <div class="panel panel-default">
                 <div class="panel-heading">
                     Totais
@@ -122,12 +124,14 @@
                             </tr>
                             @endforeach
                             @endif
+                            {{--
                             <tr>
-                                <th>Taxa</th>
+                                <th>Imposto</th>
                                 <td></td>
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
                             </tr>
+                            --}}
                             @php
                                 if ($adjustments && $adjustments > 0) {
                                     $total_net = $total_net + $adjustments;
@@ -247,10 +251,12 @@
                                 <th>Saldo atual</th>
                                 <td>{{ $driver_balance->new_balance ?? 0 }}€</td>
                             </tr>
+                            {{--
                             <tr>
-                                <th>Taxa:</th>
+                                <th>Imposto:</th>
                                 <td>{{ $driver_balance->iva ?? 0 }}€</td>
                             </tr>
+                            --}}
                             <tr>
                                 <th>Retenção na fonte</th>
                                 <td>{{ $driver_balance->rf ?? 0 }}€</td>

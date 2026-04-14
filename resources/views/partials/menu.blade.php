@@ -1,5 +1,13 @@
 <aside class="main-sidebar">
     <section class="sidebar" style="height: auto;">
+        @if(auth()->check())
+            <div class="sidebar-user-panel">
+                <div class="sidebar-user-label">Utilizador</div>
+                <div class="sidebar-user-name" title="{{ auth()->user()->name }}">
+                    {{ auth()->user()->name }}
+                </div>
+            </div>
+        @endif
         <ul class="sidebar-menu tree" data-widget="tree">
             <li>
                 <a href="{{ route("admin.home") }}">
