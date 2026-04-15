@@ -103,23 +103,53 @@ class HomeController
                 - ($results->car_track ?? 0)
                 + ($results->adjustments ?? 0));
 
-        // === Abastecimentos: cartoes do driver e unidades ===
-        $driver->load(['cards:id,code,type']);
+        // === Abastecimentos: cartoes do driver e dos veiculos em uso na semana ===
+        $driver->load([
+            'card:id,code,type',
+            'cards:id,code,type',
+        ]);
+
+        $weekStart = $current_week->getRawOriginal('start_date');
+        $weekEnd = $current_week->getRawOriginal('end_date');
+
+        $activeVehicleUsages = $driver->vehicleUsages()
+            ->with('vehicle_item.cards:id,code,type,vehicle_item_id')
+            ->where('start_date', '<=', $weekEnd)
+            ->where(function ($query) use ($weekStart) {
+                $query->whereNull('end_date')
+                    ->orWhere('end_date', '>=', $weekStart);
+            })
+            ->where(function ($query) {
+                $query->whereNull('usage_exceptions')
+                    ->orWhere('usage_exceptions', 'usage');
+            })
+            ->get();
+
+        $cards = collect()
+            ->when($driver->card, fn ($collection) => $collection->push($driver->card))
+            ->merge($driver->cards)
+            ->merge($activeVehicleUsages->flatMap(function ($usage) {
+                return optional($usage->vehicle_item)->cards ?? collect();
+            }))
+            ->filter(fn ($card) => filled($card->code ?? null))
+            ->unique(fn ($card) => trim((string) $card->code))
+            ->values();
 
         // mapear unidades por cartao (kWh para tipos "eletric/electric"; senao L)
         $cardUnits = [];
-        foreach ($driver->cards as $c) {
-            $type = strtolower($c->type ?? '');
+        foreach ($cards as $card) {
+            $type = strtolower($card->type ?? '');
             $isElectric = str_contains($type, 'eletric') || str_contains($type, 'electric') || str_contains($type, 'ev');
-            $cardUnits[$c->code] = $isElectric ? 'kWh' : 'L';
+            $cardUnits[trim((string) $card->code)] = $isElectric ? 'kWh' : 'L';
         }
-        $cardCodes = collect($cardUnits)->keys();
+        $cardCodes = collect($cardUnits)->keys()->values();
 
         // Carrega abastecimentos sem writes no request. A normalizacao e feita
         // apenas em memoria para evitar timeouts no dashboard.
-        $combustion_transactions = $this->uniqueCombustionTransactions(
+        $combustion_transactions = $this->uniqueCombustionTransactionsForDriver(
             $tvde_week_id,
-            $cardCodes->isNotEmpty() ? $cardCodes->all() : []
+            $driver,
+            $cardCodes->all()
         )->map(function ($transaction) {
             $amount = (float) $transaction->amount;
             $total = (float) $transaction->total;
