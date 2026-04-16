@@ -368,7 +368,7 @@
                                     <i class="fa-fw fas fa-bolt">
 
                                     </i>
-                                    <span>Carregamentos Tesla</span>
+                                    <span>Outros abastecimentos</span>
 
                                 </a>
                             </li>

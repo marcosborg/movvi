@@ -59,6 +59,10 @@ class TeslaChargingController extends Controller
                 return $row->datetime ? $row->datetime : '';
             });
 
+            $table->editColumn('card_type', function ($row) {
+                return $row->card_type ? TeslaCharging::CARD_TYPE_SELECT[$row->card_type] ?? $row->card_type : '';
+            });
+
             $table->rawColumns(['actions', 'placeholder']);
 
             return $table->make(true);
@@ -71,7 +75,9 @@ class TeslaChargingController extends Controller
     {
         abort_if(Gate::denies('tesla_charging_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        return view('admin.teslaChargings.create');
+        $cardTypes = TeslaCharging::CARD_TYPE_SELECT;
+
+        return view('admin.teslaChargings.create', compact('cardTypes'));
     }
 
     public function store(StoreTeslaChargingRequest $request)
@@ -85,7 +91,9 @@ class TeslaChargingController extends Controller
     {
         abort_if(Gate::denies('tesla_charging_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        return view('admin.teslaChargings.edit', compact('teslaCharging'));
+        $cardTypes = TeslaCharging::CARD_TYPE_SELECT;
+
+        return view('admin.teslaChargings.edit', compact('teslaCharging', 'cardTypes'));
     }
 
     public function update(UpdateTeslaChargingRequest $request, TeslaCharging $teslaCharging)
@@ -98,8 +106,6 @@ class TeslaChargingController extends Controller
     public function show(TeslaCharging $teslaCharging)
     {
         abort_if(Gate::denies('tesla_charging_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
-
-        $teslaCharging->load('tvde_week');
 
         return view('admin.teslaChargings.show', compact('teslaCharging'));
     }

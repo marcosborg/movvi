@@ -43,10 +43,18 @@
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.teslaCharging.fields.tvde_week') }}
+                                        {{ trans('cruds.teslaCharging.fields.datetime') }}
                                     </th>
                                     <td>
-                                        {{ $teslaCharging->tvde_week->start_date ?? '' }}
+                                        {{ $teslaCharging->datetime ?? '' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        {{ trans('cruds.teslaCharging.fields.card_type') }}
+                                    </th>
+                                    <td>
+                                        {{ \App\Models\TeslaCharging::CARD_TYPE_SELECT[$teslaCharging->card_type] ?? $teslaCharging->card_type }}
                                     </td>
                                 </tr>
                             </tbody>

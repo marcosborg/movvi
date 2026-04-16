@@ -13,6 +13,12 @@ class TeslaCharging extends Model
 
     public $table = 'tesla_chargings';
 
+    public const CARD_TYPE_SELECT = [
+        'Tesla' => 'Tesla',
+        'Continente' => 'Continente',
+        'Auchan' => 'Auchan',
+    ];
+
     protected $dates = [
         'created_at',
         'updated_at',
@@ -23,6 +29,7 @@ class TeslaCharging extends Model
         'value',
         'license',
         'datetime',
+        'card_type',
         'created_at',
         'updated_at',
         'deleted_at',

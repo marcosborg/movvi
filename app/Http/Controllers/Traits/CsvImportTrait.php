@@ -112,6 +112,13 @@ trait CsvImportTrait
             }
         }
 
+        if ($modelName === 'TeslaCharging') {
+            $row = $this->normalizeTimestampFields($row, ['datetime', 'created_at', 'updated_at']);
+            if (!isset($row['card_type']) || trim((string) $row['card_type']) === '') {
+                $row['card_type'] = 'Tesla';
+            }
+        }
+
         return $row;
     }
 
@@ -223,6 +230,8 @@ trait CsvImportTrait
                 return ['tvde_week_id', 'card', 'total', 'created_at'];
             case 'CarTrack':
                 return ['tvde_week_id', 'license_plate', 'date', 'value'];
+            case 'TeslaCharging':
+                return ['license', 'datetime', 'value', 'card_type'];
             default:
                 return [];
         }

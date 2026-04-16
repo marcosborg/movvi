@@ -148,24 +148,33 @@
                     Abastecimentos
                 </div>
                 <div class="panel-body">
-                    @if(($driver_card_codes ?? collect())->isEmpty())
-                        <div class="alert alert-info">Sem cart√µes associados ao motorista.</div>
-                    @elseif(($combustion_transactions ?? collect())->isEmpty())
+                    @php
+                        $hasCombustionTransactions = ($combustion_transactions ?? collect())->isNotEmpty();
+                        $hasOtherFuelTransactions = ($other_fuel_transactions ?? collect())->isNotEmpty();
+                    @endphp
+                    @if(($driver_card_codes ?? collect())->isEmpty() && !$hasOtherFuelTransactions)
+                        <div class="alert alert-info">Sem cartıes associados ao motorista.</div>
+                    @elseif(!$hasCombustionTransactions && !$hasOtherFuelTransactions)
                         <div class="alert alert-info">
                             Sem registos para a semana selecionada.
+                            @if(($driver_card_codes ?? collect())->isNotEmpty())
                             <br>
-                            <small>Cart√µes considerados: {{ $driver_card_codes->join(', ') }}</small>
+                            <small>Cartıes considerados: {{ $driver_card_codes->join(', ') }}</small>
+                            @endif
                         </div>
                     @else
-                        <p><small>Cart√µes considerados: {{ $driver_card_codes->join(', ') }}</small></p>
+                        @if(($driver_card_codes ?? collect())->isNotEmpty())
+                        <p><small>Cartıes considerados: {{ $driver_card_codes->join(', ') }}</small></p>
+                        @endif
 
+                        @if($hasCombustionTransactions)
                         <table class="table table-striped">
                             <thead>
                                 <tr>
                                     <th style="text-align:left;">Data</th>
-                                    <th style="text-align:left;">Cart√£o</th>
+                                    <th style="text-align:left;">Cart„o</th>
                                     <th style="text-align:right;">Quantidade</th>
-                                    <th style="text-align:right;">Custo (‚Ç¨)</th>
+                                    <th style="text-align:right;">Custo (Ä)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -179,7 +188,7 @@
                                         </td>
                                         <td style="text-align:left;">{{ $tx->card }}</td>
                                         <td>{{ number_format((float)$tx->amount, 2, ',', ' ') }} {{ $unit }}</td>
-                                        <td>{{ number_format((float)$tx->total, 2, ',', ' ') }}‚Ç¨</td>
+                                        <td>{{ number_format((float)$tx->total, 2, ',', ' ') }}Ä</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -199,6 +208,33 @@
                                 </tr>
                             </tfoot>
                         </table>
+                        @endif
+
+                        @if($hasOtherFuelTransactions)
+                            <h5>Outros abastecimentos</h5>
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th style="text-align:left;">Data</th>
+                                        <th style="text-align:left;">MatrÌcula</th>
+                                        <th style="text-align:left;">Tipo de cart„o</th>
+                                        <th style="text-align:right;">Custo (Ä)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($other_fuel_transactions as $tx)
+                                        <tr>
+                                            <td style="text-align:left;">
+                                                {{ $tx->datetime ? \Carbon\Carbon::parse($tx->datetime)->format('d-m-Y H:i') : '-' }}
+                                            </td>
+                                            <td style="text-align:left;">{{ $tx->license ?? '-' }}</td>
+                                            <td style="text-align:left;">{{ $tx->card_type ?? 'Tesla' }}</td>
+                                            <td>{{ number_format((float)$tx->value, 2, ',', ' ') }}Ä</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        @endif
                     @endif
                 </div>
             </div>

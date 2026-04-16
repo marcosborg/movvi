@@ -126,11 +126,6 @@ trait Reports
                 ? implode(', ', $driver->license_plates)
                 : null;
             $driver->weekly_km = (float) ($mileageAllocation['kilometers'][$driver->id] ?? 0);
-            $driverNormalizedPlates = collect($driver->license_plates)
-                ->map(fn ($plate) => $this->normalizeReportPlate($plate))
-                ->filter()
-                ->values()
-                ->all();
 
             // ---------- Atividades UBER ----------
             $uber_activities = TvdeActivity::where([
@@ -208,38 +203,12 @@ trait Reports
                 $fuel_transactions = $fuel_transactions / 2;
             }
 
-            // ---------- TESLA ----------
-            $tesla_total = 0.0;
-
-            $tesla_chargings = TeslaCharging::whereBetween('datetime', [$tvde_week->start_date, $tvde_week->end_date])->get();
-
-            foreach ($tesla_chargings as $charging) {
-                if (!empty($driverNormalizedPlates)) {
-                    $charging_plate = $this->normalizeReportPlate((string) $charging->license);
-                    if (!$charging_plate || !in_array($charging_plate, $driverNormalizedPlates, true)) {
-                        continue;
-                    }
-                }
-
-                $usage = VehicleUsage::whereHas('vehicle_item', function ($query) use ($charging) {
-                    $query->whereRaw('REPLACE(UPPER(license_plate), "-", "") = ?', [
-                        str_replace('-', '', strtoupper($charging->license))
-                    ]);
-                })
-                    ->where('start_date', '<=', $charging->datetime)
-                    ->where(function ($query) use ($charging) {
-                        $query->where('end_date', '>=', $charging->datetime)
-                            ->orWhereNull('end_date');
-                    })
-                    ->first();
-
-                if ($usage && $usage->driver_id === $driver->id) {
-                    $tesla_total += (float) $charging->value;
-                }
-            }
+            // ---------- OUTROS ABASTECIMENTOS ----------
+            $other_fuel_total = (float) $this->otherFuelTransactionsForDriver($tvde_week, $driver)
+                ->sum('value');
 
             // Garantir número em fuel
-            $driver->fuel = (float) $fuel_transactions + (float) $tesla_total;
+            $driver->fuel = (float) $fuel_transactions + $other_fuel_total;
             $total_fuel_transactions[] = $driver->fuel;
 
             // ---------- CAR HIRE ----------
@@ -737,6 +706,87 @@ trait Reports
         $normalized = strtoupper(str_replace(['-', ' '], '', trim((string) $plate)));
 
         return $normalized !== '' ? $normalized : null;
+    }
+
+    protected function otherFuelTransactionsForDriver(TvdeWeek $tvdeWeek, Driver $driver)
+    {
+        $weekStart = Carbon::parse($tvdeWeek->getRawOriginal('start_date'))->startOfDay();
+        $weekEnd = Carbon::parse($tvdeWeek->getRawOriginal('end_date'))->endOfDay();
+
+        $usageIntervals = $driver->vehicleUsages()
+            ->with('vehicle_item:id,license_plate')
+            ->where('start_date', '<=', $weekEnd->toDateTimeString())
+            ->where(function ($query) use ($weekStart) {
+                $query->whereNull('end_date')
+                    ->orWhere('end_date', '>=', $weekStart->toDateTimeString());
+            })
+            ->where(function ($query) {
+                $query->whereNull('usage_exceptions')
+                    ->orWhere('usage_exceptions', 'usage');
+            })
+            ->get();
+
+        if ($usageIntervals->isEmpty()) {
+            return collect();
+        }
+
+        $normalizedPlates = $usageIntervals
+            ->map(function ($usage) {
+                return $this->normalizeReportPlate(optional($usage->vehicle_item)->license_plate);
+            })
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($normalizedPlates->isEmpty()) {
+            return collect();
+        }
+
+        return TeslaCharging::whereBetween('datetime', [
+            $weekStart->toDateTimeString(),
+            $weekEnd->toDateTimeString(),
+        ])
+            ->get()
+            ->filter(function ($charging) use ($normalizedPlates, $usageIntervals, $weekStart, $weekEnd) {
+                $chargingPlate = $this->normalizeReportPlate((string) $charging->license);
+                if (!$chargingPlate || !$normalizedPlates->contains($chargingPlate)) {
+                    return false;
+                }
+
+                $chargingMoment = $charging->datetime
+                    ? Carbon::parse($charging->datetime)
+                    : null;
+
+                if (!$chargingMoment) {
+                    return false;
+                }
+
+                foreach ($usageIntervals as $usage) {
+                    $usagePlate = $this->normalizeReportPlate(optional($usage->vehicle_item)->license_plate);
+                    if ($usagePlate !== $chargingPlate) {
+                        continue;
+                    }
+
+                    $usageStart = $usage->getRawOriginal('start_date')
+                        ? Carbon::parse($usage->getRawOriginal('start_date'))
+                        : $weekStart->copy();
+                    $usageEnd = $usage->getRawOriginal('end_date')
+                        ? Carbon::parse($usage->getRawOriginal('end_date'))
+                        : $weekEnd->copy();
+
+                    if ($chargingMoment->between($usageStart, $usageEnd, true)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            })
+            ->map(function ($charging) {
+                $charging->card_type = $charging->card_type ?: 'Tesla';
+                return $charging;
+            })
+            ->sortBy('datetime')
+            ->values();
     }
 
     public function getDriverWeekReport($driver_id, $company_id, $tvde_week_id)

@@ -165,6 +165,8 @@ class HomeController
             return $transaction;
         });
 
+        $other_fuel_transactions = $this->otherFuelTransactionsForDriver($current_week, $driver);
+
         // Totais por unidade
         $total_liters = $combustion_transactions
             ->filter(fn ($t) => ($cardUnits[$t->card] ?? 'L') === 'L')
@@ -206,6 +208,7 @@ class HomeController
             // dados novos/ajustados
             'driver_balance_last_week'  => $driver_balance_last_week ?? null,
             'combustion_transactions'   => $combustion_transactions,
+            'other_fuel_transactions'   => $other_fuel_transactions,
             'driver_card_codes'         => $cardCodes,
             'card_units'                => $cardUnits,
             'total_liters'              => $total_liters,

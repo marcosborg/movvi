@@ -2440,17 +2440,19 @@ return [
         ],
     ],
     'teslaCharging' => [
-        'title'          => 'Carregamentos Tesla',
-        'title_singular' => 'Carregamento Tesla',
+        'title'          => 'Outros abastecimentos',
+        'title_singular' => 'Outro abastecimento',
         'fields'         => [
             'id'                => 'ID',
             'id_helper'         => ' ',
             'value'             => 'Valor',
             'value_helper'      => ' ',
-            'license'            => 'MatrÃ­cula',
-            'license_helper'     => ' ',
-            'datetime'         => 'Data',
-            'datetime_helper'  => ' ',
+            'license'           => 'Matrícula',
+            'license_helper'    => ' ',
+            'datetime'          => 'Data',
+            'datetime_helper'   => ' ',
+            'card_type'         => 'Tipo de cartão',
+            'card_type_helper'  => ' ',
             'created_at'        => 'Created at',
             'created_at_helper' => ' ',
             'updated_at'        => 'Updated at',
@@ -2532,6 +2534,5 @@ return [
         ],
     ],
 ];
-
 
 

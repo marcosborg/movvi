@@ -36,6 +36,19 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.teslaCharging.fields.datetime_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('card_type') ? 'has-error' : '' }}">
+                            <label class="required" for="card_type">{{ trans('cruds.teslaCharging.fields.card_type') }}</label>
+                            <select class="form-control" name="card_type" id="card_type" required>
+                                <option value disabled>{{ trans('global.pleaseSelect') }}</option>
+                                @foreach($cardTypes as $key => $label)
+                                    <option value="{{ $key }}" {{ old('card_type', $teslaCharging->card_type) === (string) $key ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @if($errors->has('card_type'))
+                                <span class="help-block" role="alert">{{ $errors->first('card_type') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.teslaCharging.fields.card_type_helper') }}</span>
+                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}

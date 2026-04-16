@@ -19,6 +19,20 @@ class StoreTeslaChargingRequest extends FormRequest
         return [
             'value' => [
                 'required',
+                'numeric',
+            ],
+            'license' => [
+                'required',
+                'string',
+                'max:50',
+            ],
+            'datetime' => [
+                'required',
+                'date',
+            ],
+            'card_type' => [
+                'required',
+                'in:Tesla,Continente,Auchan',
             ],
         ];
     }
