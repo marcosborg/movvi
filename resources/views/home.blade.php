@@ -247,10 +247,12 @@
                                 <th>Saldo atual</th>
                                 <td>{{ $driver_balance->new_balance ?? 0 }}€</td>
                             </tr>
+                            {{--
                             <tr>
                                 <th>Taxa:</th>
                                 <td>{{ $driver_balance->iva ?? 0 }}€</td>
                             </tr>
+                            --}}
                             <tr>
                                 <th>Retenção na fonte</th>
                                 <td>{{ $driver_balance->rf ?? 0 }}€</td>
