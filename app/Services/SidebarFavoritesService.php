@@ -6,13 +6,10 @@ use App\Models\User;
 use App\Models\UserFavorite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
 class SidebarFavoritesService
 {
-    public const MAX_FAVORITES = 10;
-
     public function forUser(?User $user): Collection
     {
         if (!$user) {
@@ -22,7 +19,7 @@ class SidebarFavoritesService
         return $user->favorites()
             ->get()
             ->map(function (UserFavorite $favorite) {
-                $favorite->is_active = $this->isFavoriteActive($favorite);
+                $favorite->is_active = $this->normalizeUrl($favorite->url) === $this->normalizeUrl(request()->fullUrl());
                 $favorite->display_icon = $favorite->icon ?: 'fas fa-star';
 
                 return $favorite;
@@ -50,41 +47,22 @@ class SidebarFavoritesService
             return null;
         }
 
-        $route = $request->route();
-        $routeName = $route->getName();
-        $uri = trim($route->uri(), '/');
+        $uri = trim($request->route()->uri(), '/');
 
-        if (!$uri || in_array($routeName, ['admin.user-favorites.store', 'admin.user-favorites.destroy'], true)) {
+        if (!$uri || in_array($request->route()->getName(), ['admin.favorites.store', 'admin.favorites.destroy', 'admin.favorites.reorder'], true)) {
             return null;
         }
 
         return [
-            'label' => $this->guessLabel($routeName, $uri),
+            'label' => $this->guessLabel($request),
             'url' => $this->normalizeUrl($request->fullUrl()),
-            'route_name' => $routeName,
-            'route_params' => $route->parameters(),
-            'active_pattern' => $this->buildActivePattern($uri),
-            'icon' => $this->guessIcon($routeName, $uri),
+            'icon' => $this->guessIcon($uri),
         ];
     }
 
-    public function canAdd(User $user): bool
+    public function canAdd(?User $user): bool
     {
-        return $user->favorites()->count() < self::MAX_FAVORITES;
-    }
-
-    public function nextSortOrder(User $user): int
-    {
-        return (int) $user->favorites()->max('sort_order') + 1;
-    }
-
-    protected function isFavoriteActive(UserFavorite $favorite): bool
-    {
-        if ($favorite->active_pattern && request()->is($favorite->active_pattern)) {
-            return true;
-        }
-
-        return $this->normalizeUrl($favorite->url) === $this->normalizeUrl(request()->fullUrl());
+        return $user ? $user->favorites()->count() < 10 : false;
     }
 
     protected function normalizeUrl(string $url): string
@@ -92,64 +70,40 @@ class SidebarFavoritesService
         return rtrim($url, '/');
     }
 
-    protected function buildActivePattern(string $uri): string
+    protected function guessLabel(Request $request): string
     {
-        if ($uri === 'admin') {
-            return 'admin';
+        $title = trim((string) $request->input('page_title', ''));
+        if ($title !== '') {
+            return Str::limit($title, 255, '');
         }
 
-        if (preg_match('/\{[^}]+\}/', $uri)) {
-            $segments = explode('/', $uri);
-            $stableSegments = [];
-
-            foreach ($segments as $segment) {
-                if (Str::startsWith($segment, '{')) {
-                    break;
-                }
-
-                $stableSegments[] = $segment;
-            }
-
-            $base = implode('/', $stableSegments);
-
-            return $base !== '' ? $base . '*' : 'admin*';
-        }
-
-        return $uri . '*';
-    }
-
-    protected function guessLabel(?string $routeName, string $uri): string
-    {
+        $routeName = (string) optional($request->route())->getName();
         if ($routeName === 'admin.home') {
             return 'Dashboard';
         }
 
-        $segments = explode('.', (string) $routeName);
-        $resource = $segments[1] ?? basename($uri);
+        $segments = explode('.', $routeName);
+        $resource = $segments[1] ?? basename((string) optional($request->route())->uri());
         $resource = str_replace('-', ' ', $resource);
         $resource = Str::singular($resource);
 
         return Str::title($resource);
     }
 
-    protected function guessIcon(?string $routeName, string $uri): string
+    protected function guessIcon(string $uri): string
     {
-        $map = [
-            'admin.home' => 'fas fa-tachometer-alt',
-            'admin.users.index' => 'fas fa-user',
-            'admin.drivers.index' => 'fas fa-address-card',
-            'admin.combustion-transactions.index' => 'fas fa-gas-pump',
-            'admin.electric-transactions.index' => 'fas fa-bolt',
-            'admin.vehicle-usages.index' => 'fas fa-calendar-plus',
-            'admin.vehicle-items.index' => 'fas fa-car',
-            'admin.company-reports.index' => 'fas fa-file-alt',
-            'admin.financial-statements.index' => 'fas fa-file-invoice-dollar',
-        ];
-
-        if ($routeName && isset($map[$routeName])) {
-            return $map[$routeName];
+        if (Str::contains($uri, 'report')) {
+            return 'fas fa-file-alt';
         }
 
-        return Str::contains($uri, 'report') ? 'fas fa-star' : 'far fa-star';
+        if (Str::contains($uri, 'driver')) {
+            return 'fas fa-address-card';
+        }
+
+        if (Str::contains($uri, 'vehicle')) {
+            return 'fas fa-car';
+        }
+
+        return 'fas fa-star';
     }
 }

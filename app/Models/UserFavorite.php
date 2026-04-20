@@ -16,15 +16,8 @@ class UserFavorite extends Model
         'user_id',
         'label',
         'url',
-        'route_name',
-        'route_params',
-        'active_pattern',
         'icon',
-        'sort_order',
-    ];
-
-    protected $casts = [
-        'route_params' => 'array',
+        'order',
     ];
 
     public function user()

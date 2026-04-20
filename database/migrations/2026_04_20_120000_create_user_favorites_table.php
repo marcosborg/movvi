@@ -13,14 +13,11 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('label');
             $table->string('url');
-            $table->string('route_name')->nullable();
-            $table->json('route_params')->nullable();
-            $table->string('active_pattern')->nullable();
             $table->string('icon')->nullable();
-            $table->unsignedInteger('sort_order')->default(0);
+            $table->unsignedInteger('order')->nullable();
             $table->timestamps();
 
-            $table->index(['user_id', 'sort_order']);
+            $table->index(['user_id', 'order']);
             $table->unique(['user_id', 'url']);
         });
     }

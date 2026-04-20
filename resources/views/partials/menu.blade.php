@@ -18,7 +18,7 @@
                 </a>
             </li>
             @if(($sidebarFavorites ?? collect())->isNotEmpty())
-            <li class="header">Favorites</li>
+            <li class="header">Favoritos</li>
             @foreach($sidebarFavorites as $favorite)
             <li class="{{ $favorite->is_active ? 'active' : '' }}">
                 <a href="{{ $favorite->url }}">

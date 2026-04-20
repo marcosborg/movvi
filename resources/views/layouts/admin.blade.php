@@ -119,28 +119,21 @@
                         @if(auth()->check() && ($favoriteCandidate ?? null))
                         <li>
                             @if($currentFavorite)
-                            <form class="favorite-nav-form" method="POST" action="{{ route('admin.user-favorites.destroy', $currentFavorite) }}">
+                            <form class="favorite-nav-form" method="POST" action="{{ route('admin.favorites.destroy', $currentFavorite) }}">
                                 @method('DELETE')
                                 @csrf
                                 <button type="submit" class="favorite-nav-button" title="Remove from favorites">
-                                    <i class="fas fa-star"></i> Remove favorite
+                                    ★ Remove favorite
                                 </button>
                             </form>
                             @else
-                            <form class="favorite-nav-form" method="POST" action="{{ route('admin.user-favorites.store') }}">
+                            <form class="favorite-nav-form" method="POST" action="{{ route('admin.favorites.store') }}">
                                 @csrf
-                                <input type="hidden" name="label" value="{{ $favoriteCandidate['label'] }}">
+                                <input type="hidden" name="label" value="{{ $favoriteCandidate['label'] }}" data-favorite-title>
                                 <input type="hidden" name="url" value="{{ $favoriteCandidate['url'] }}">
-                                <input type="hidden" name="route_name" value="{{ $favoriteCandidate['route_name'] }}">
-                                @foreach(($favoriteCandidate['route_params'] ?? []) as $key => $value)
-                                    @if(is_scalar($value))
-                                <input type="hidden" name="route_params[{{ $key }}]" value="{{ $value }}">
-                                    @endif
-                                @endforeach
-                                <input type="hidden" name="active_pattern" value="{{ $favoriteCandidate['active_pattern'] }}">
                                 <input type="hidden" name="icon" value="{{ $favoriteCandidate['icon'] }}">
                                 <button type="submit" class="favorite-nav-button" title="{{ $favoritesMaxReached ? 'Favorites limit reached' : 'Add to favorites' }}" {{ $favoritesMaxReached ? 'disabled' : '' }}>
-                                    <i class="far fa-star"></i> Add favorite
+                                    ⭐ Add to favorites
                                 </button>
                             </form>
                             @endif
@@ -397,6 +390,15 @@
     });
 });
 
+    </script>
+    <script>
+        $(function () {
+            const titleInput = document.querySelector('[data-favorite-title]');
+
+            if (titleInput && document.title) {
+                titleInput.value = document.title.trim().substring(0, 255);
+            }
+        });
     </script>
     @yield('scripts')
 </body>

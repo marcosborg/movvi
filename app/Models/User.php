@@ -150,6 +150,6 @@ class User extends Authenticatable
 
     public function favorites()
     {
-        return $this->hasMany(UserFavorite::class)->orderBy('sort_order');
+        return $this->hasMany(UserFavorite::class)->orderBy('order');
     }
 }

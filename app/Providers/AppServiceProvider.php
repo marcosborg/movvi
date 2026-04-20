@@ -37,7 +37,7 @@ class AppServiceProvider extends ServiceProvider
             $view->with('sidebarFavorites', $favoritesService->forUser($user));
             $view->with('currentFavorite', $favoritesService->currentFavorite($user, request()));
             $view->with('favoriteCandidate', $favoritesService->buildCandidate(request()));
-            $view->with('favoritesMaxReached', $user ? !$favoritesService->canAdd($user) : false);
+            $view->with('favoritesMaxReached', !$favoritesService->canAdd($user));
         });
     }
 }
