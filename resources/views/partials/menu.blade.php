@@ -19,15 +19,15 @@
             </li>
             @if(($sidebarFavorites ?? collect())->isNotEmpty())
             <li class="header">Favoritos</li>
-            @foreach($sidebarFavorites as $favorite)
-            <li class="{{ $favorite->is_active ? 'active' : '' }}">
-                <a href="{{ $favorite->url }}">
-                    <i class="fa-fw {{ $favorite->display_icon }}"></i>
-                    <span>{{ $favorite->label }}</span>
-                </a>
-            </li>
-            @endforeach
-            @endif
+    @foreach($sidebarFavorites as $favorite)
+    <li class="{{ $favorite->is_active ? 'active' : '' }}">
+        <a href="{{ $favorite->url }}">
+            <i class="fa-fw {{ $favorite->display_icon }}"></i>
+            <span>{{ $favorite->display_label }}</span>
+        </a>
+    </li>
+    @endforeach
+    @endif
             @can('user_management_access')
             <li class="treeview">
                 <a href="#">

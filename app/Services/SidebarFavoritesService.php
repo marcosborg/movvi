@@ -21,6 +21,7 @@ class SidebarFavoritesService
             ->map(function (UserFavorite $favorite) {
                 $favorite->is_active = $this->normalizeUrl($favorite->url) === $this->normalizeUrl(request()->fullUrl());
                 $favorite->display_icon = $favorite->icon ?: 'fas fa-star';
+                $favorite->display_label = $this->resolveFavoriteLabel($favorite);
 
                 return $favorite;
             });
@@ -86,6 +87,31 @@ class SidebarFavoritesService
         $resource = $segments[1] ?? basename((string) optional($request->route())->uri());
         $resource = str_replace('-', ' ', $resource);
         $resource = Str::singular($resource);
+
+        return Str::title($resource);
+    }
+
+    protected function resolveFavoriteLabel(UserFavorite $favorite): string
+    {
+        $label = trim((string) $favorite->label);
+
+        if ($label !== '' && mb_strtolower($label) !== mb_strtolower((string) trans('panel.site_title'))) {
+            return $label;
+        }
+
+        $path = trim((string) parse_url($favorite->url, PHP_URL_PATH), '/');
+
+        if ($path === 'admin' || $path === 'admin/') {
+            return 'Dashboard';
+        }
+
+        $segments = explode('/', $path);
+        $resource = $segments[1] ?? $segments[0] ?? '';
+        $resource = str_replace('-', ' ', $resource);
+
+        if ($resource === '') {
+            return 'Favorito';
+        }
 
         return Str::title($resource);
     }

@@ -391,15 +391,6 @@
 });
 
     </script>
-    <script>
-        $(function () {
-            const titleInput = document.querySelector('[data-favorite-title]');
-
-            if (titleInput && document.title) {
-                titleInput.value = document.title.trim().substring(0, 255);
-            }
-        });
-    </script>
     @yield('scripts')
 </body>
 
