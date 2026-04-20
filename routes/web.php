@@ -29,6 +29,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::get('company-dashboard', 'HomeController@companyDashboard');
     Route::get('company-invoice-dashboard', 'HomeController@companyInvoiceDashboard');
     Route::post('company-invoice-upload-media', 'HomeController@companyInvoiceUploadMedia')->name('company-invoice-upload-media');
+    Route::post('user-favorites', 'UserFavoriteController@store')->name('user-favorites.store');
+    Route::delete('user-favorites/{userFavorite}', 'UserFavoriteController@destroy')->name('user-favorites.destroy');
 
     Route::get('/select-company/{company_id}', 'HomeController@selectCompany');
 

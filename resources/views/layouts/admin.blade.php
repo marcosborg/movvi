@@ -27,6 +27,29 @@
     <link href="{{ asset('assets/admin/css/custom.css') }}" rel="stylesheet" />
     @yield('styles')
     <style>
+        .favorite-nav-form {
+            display: inline-block;
+            margin: 0;
+        }
+
+        .favorite-nav-button {
+            background: transparent;
+            border: 0;
+            color: #fff;
+            padding: 15px;
+            line-height: 20px;
+        }
+
+        .favorite-nav-button:hover,
+        .favorite-nav-button:focus {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .favorite-nav-button[disabled] {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
         /* Garante que elementos acima não cortam o sticky */
         .content, .content-wrapper, .panel-body {
             overflow: visible !important;
@@ -93,6 +116,36 @@
                         <li class="nav-item">
                             <a class="nav-link" aria-current="page" href="/" target="_new">Website</a>
                         </li>
+                        @if(auth()->check() && ($favoriteCandidate ?? null))
+                        <li>
+                            @if($currentFavorite)
+                            <form class="favorite-nav-form" method="POST" action="{{ route('admin.user-favorites.destroy', $currentFavorite) }}">
+                                @method('DELETE')
+                                @csrf
+                                <button type="submit" class="favorite-nav-button" title="Remove from favorites">
+                                    <i class="fas fa-star"></i> Remove favorite
+                                </button>
+                            </form>
+                            @else
+                            <form class="favorite-nav-form" method="POST" action="{{ route('admin.user-favorites.store') }}">
+                                @csrf
+                                <input type="hidden" name="label" value="{{ $favoriteCandidate['label'] }}">
+                                <input type="hidden" name="url" value="{{ $favoriteCandidate['url'] }}">
+                                <input type="hidden" name="route_name" value="{{ $favoriteCandidate['route_name'] }}">
+                                @foreach(($favoriteCandidate['route_params'] ?? []) as $key => $value)
+                                    @if(is_scalar($value))
+                                <input type="hidden" name="route_params[{{ $key }}]" value="{{ $value }}">
+                                    @endif
+                                @endforeach
+                                <input type="hidden" name="active_pattern" value="{{ $favoriteCandidate['active_pattern'] }}">
+                                <input type="hidden" name="icon" value="{{ $favoriteCandidate['icon'] }}">
+                                <button type="submit" class="favorite-nav-button" title="{{ $favoritesMaxReached ? 'Favorites limit reached' : 'Add to favorites' }}" {{ $favoritesMaxReached ? 'disabled' : '' }}>
+                                    <i class="far fa-star"></i> Add favorite
+                                </button>
+                            </form>
+                            @endif
+                        </li>
+                        @endif
                         @if(file_exists(app_path('Http/Controllers/Auth/ChangePasswordController.php')))
                         @can('profile_password_edit')
                         <li

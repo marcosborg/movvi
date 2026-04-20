@@ -9,7 +9,7 @@
             </div>
         @endif
         <ul class="sidebar-menu tree" data-widget="tree">
-            <li>
+            <li class="{{ request()->is('admin') || request()->is('admin/') ? 'active' : '' }}">
                 <a href="{{ route("admin.home") }}">
                     <i class="fas fa-fw fa-tachometer-alt">
 
@@ -17,6 +17,17 @@
                     {{ trans('global.dashboard') }}
                 </a>
             </li>
+            @if(($sidebarFavorites ?? collect())->isNotEmpty())
+            <li class="header">Favorites</li>
+            @foreach($sidebarFavorites as $favorite)
+            <li class="{{ $favorite->is_active ? 'active' : '' }}">
+                <a href="{{ $favorite->url }}">
+                    <i class="fa-fw {{ $favorite->display_icon }}"></i>
+                    <span>{{ $favorite->label }}</span>
+                </a>
+            </li>
+            @endforeach
+            @endif
             @can('user_management_access')
             <li class="treeview">
                 <a href="#">

@@ -147,4 +147,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(Company::class);
     }
+
+    public function favorites()
+    {
+        return $this->hasMany(UserFavorite::class)->orderBy('sort_order');
+    }
 }
