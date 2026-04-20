@@ -2,13 +2,6 @@
 
 use App\Http\Controllers\WebsiteController;
 
-Route::get('/tmp-clear-cache-20260420', function () {
-    \Illuminate\Support\Facades\Artisan::call('optimize:clear');
-
-    return response('Cache limpa com sucesso.', 200)
-        ->header('Content-Type', 'text/plain; charset=UTF-8');
-});
-
 //Route::redirect('/', '/admin');
 
 Route::get('/', [WebsiteController::class, 'index']);
