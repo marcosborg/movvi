@@ -18,6 +18,7 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('calendar:check')->hourly();
         $schedule->command('driver-alerts:check')->daily();
+        $schedule->command('conta-azul:sync-expenses')->daily();
     }
 
     /**
