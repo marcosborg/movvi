@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdatePasswordRequest;
 use App\Http\Requests\UpdateProfileRequest;
 use Gate;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -45,5 +46,14 @@ class ChangePasswordController extends Controller
         $user->delete();
 
         return redirect()->route('login')->with('message', __('global.delete_account_success'));
+    }
+
+    public function clearCache(Request $request)
+    {
+        abort_if(Gate::denies('profile_password_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        Artisan::call('optimize:clear');
+
+        return redirect()->route('profile.password.edit')->with('message', 'Cache limpa com sucesso.');
     }
 }

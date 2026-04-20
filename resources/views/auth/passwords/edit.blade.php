@@ -85,6 +85,23 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Limpar cache
+                </div>
+                <div class="panel-body">
+                    <form method="POST" action="{{ route('profile.password.clear-cache') }}">
+                        @csrf
+                        <div class="form-group">
+                            <button class="btn btn-warning" type="submit" onclick="return confirm('Executar limpeza de cache agora?')">
+                                Limpar cache
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
     </div>
 </div>
