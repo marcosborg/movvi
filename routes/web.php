@@ -272,6 +272,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::get('receipts/checkVerified/{receipt_id}/{receipt_value}/{amount_transferred}', 'ReceiptController@checkVerified');
     Route::get('receipts/paid', 'ReceiptController@index');
     Route::resource('receipts', 'ReceiptController');
+    Route::get('driver-alerts', 'DriverAlertController@index')->name('driver-alerts.index');
 
     // Inspections
     Route::delete('inspections/destroy', 'InspectionController@massDestroy')->name('inspections.massDestroy');
@@ -301,6 +302,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::get('my-documents', 'MyDocumentController@index')->name('my-documents.index');
     Route::post('my-documents/media', 'MyDocumentController@storeMedia')->name('my-documents.storeMedia');
     Route::post('my-documents/update/{id}', 'MyDocumentController@update')->name('my-documents.update');
+    Route::get('driver-documents', 'DriverDocumentController@index')->name('driver-documents.index');
+    Route::post('driver-documents', 'DriverDocumentController@store')->name('driver-documents.store');
+    Route::delete('driver-documents/{driverDocument}', 'DriverDocumentController@destroy')->name('driver-documents.destroy');
+    Route::get('driver-documents/{driverDocument}/download', 'DriverDocumentController@download')->name('driver-documents.download');
 
     // Financial Statement
     Route::prefix('financial-statements')->group(function () {

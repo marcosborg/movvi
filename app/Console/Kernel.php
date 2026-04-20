@@ -17,6 +17,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('calendar:check')->hourly();
+        $schedule->command('driver-alerts:check')->daily();
     }
 
     /**

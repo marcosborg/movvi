@@ -325,6 +325,13 @@
                             <span class="badge badge-danger">{{ \App\Models\Receipt::where('verified_value', NULL)->count() }}</span>
                         </a>
                     </li>
+                    <li class="{{ request()->is("admin/driver-alerts") || request()->is("admin/driver-alerts/*") ? "active" : "" }}">
+                        <a href="{{ route("admin.driver-alerts.index") }}">
+                            <i class="fa-fw fas fa-exclamation-triangle"></i>
+                            <span>Alertas de recibos</span>
+                            <span class="badge badge-danger">{{ \App\Models\DriverAlert::whereNull('resolved_at')->count() }}</span>
+                        </a>
+                    </li>
                     @endcan
                     @can('reimbursement_access')
                     <li class="{{ request()->is("admin/reimbursements") || request()->is("admin/reimbursements/*") ? "active" : "" }}">
@@ -624,6 +631,12 @@
                 </a>
             </li>
             @endcan
+            <li class="{{ request()->is("admin/driver-documents") || request()->is("admin/driver-documents/*") ? "active" : "" }}">
+                <a href="{{ route("admin.driver-documents.index") }}">
+                    <i class="fa-fw fas fa-folder-open"></i>
+                    <span>Documentos do motorista</span>
+                </a>
+            </li>
             @can('user_alert_access')
             <li class="{{ request()->is("admin/user-alerts") || request()->is("admin/user-alerts/*") ? "active" : ""
                 }}">

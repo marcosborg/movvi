@@ -70,9 +70,19 @@ class Driver extends Model
         return $this->hasMany(Document::class, 'driver_id', 'id');
     }
 
+    public function uploadedDriverDocuments()
+    {
+        return $this->hasMany(DriverDocument::class, 'driver_id', 'id');
+    }
+
     public function driverReceipts()
     {
         return $this->hasMany(Receipt::class, 'driver_id', 'id');
+    }
+
+    public function alerts()
+    {
+        return $this->hasMany(DriverAlert::class, 'driver_id', 'id');
     }
 
     public function user()
