@@ -12,10 +12,11 @@
         "laravel/sanctum": "^2.14",
         "laravel/tinker": "^2.7",
         "laraveldaily/laravel-charts": "^0.1.29",
+        "maatwebsite/excel": "3.1.67",
         "nuovo/spreadsheet-reader": "^0.5.11",
         "spatie/laravel-medialibrary": "^10.0.7",
-        "yajra/laravel-datatables-oracle": "^9.19",
-        "symfony/intl": "^5.3"
+        "symfony/intl": "^5.3",
+        "yajra/laravel-datatables-oracle": "^9.19"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9.1",

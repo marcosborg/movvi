@@ -29,6 +29,14 @@
     .report-toolbar .form-control {
         max-width: 260px;
     }
+
+    .report-toolbar form {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        width: 100%;
+    }
 </style>
 @endsection
 @section('content')
@@ -66,17 +74,21 @@
         </div>
         <div class="panel-body" style="border-bottom: 1px solid #f4f4f4;">
             <div class="report-toolbar">
-                <input type="text" id="historyReportSearch" class="form-control" placeholder="Filtrar por condutor ou matricula">
+                <form method="GET" action="{{ route('admin.company-reports-history.index') }}">
+                    <input type="date" name="from_date" class="form-control" value="{{ $from_date }}">
+                    <input type="date" name="to_date" class="form-control" value="{{ $to_date }}">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ route('admin.company-reports-history.index') }}" class="btn btn-default">Limpar</a>
+                    <a href="{{ route('admin.company-reports-history.export-excel', request()->query()) }}" class="btn btn-success">Export Excel</a>
+                    <a href="{{ route('admin.company-reports-history.export-pdf', request()->query()) }}" class="btn btn-danger">Export PDF</a>
+                    <input type="text" id="historyReportSearch" class="form-control" placeholder="Filtrar por condutor ou matricula">
+                </form>
             </div>
         </div>
         <div class="table-sticky-container">
             <table class="table table-bordered table-striped table-sm">
                 <thead>
-                    <tr
-                        class="history-driver-row"
-                        data-driver="{{ mb_strtolower($driver->name ?? '') }}"
-                        data-plate="{{ mb_strtolower($driver->license_plate ?? '') }}"
-                    >
+                    <tr>
                         <th>Condutor</th>
                         <th>Matricula</th>
                         <th style="text-align: right; background: #eeeeee; display: none;">Bruto Uber</th>
@@ -101,7 +113,7 @@
                 <tbody>
                     @foreach ($drivers as $driver)
                     @if ($driver->earnings)
-                    <tr>
+                    <tr class="history-driver-row" data-driver="{{ mb_strtolower($driver->name ?? '') }}" data-plate="{{ mb_strtolower($driver->license_plate ?? '') }}">
                         <td>{{ $driver->name }}</td>
                         <td>{{ $driver->license_plate ?? '-' }}</td>
                         <td style="text-align: right; background: #eeeeee; display: none;">{{

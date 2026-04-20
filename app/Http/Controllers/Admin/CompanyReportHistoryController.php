@@ -2,24 +2,52 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\CompanyReportHistoryExport;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\Reports;
 use App\Models\CurrentAccount;
 use App\Models\DriversBalance;
-use App\Models\VehicleUsage;
 use App\Models\TvdeWeek;
+use App\Models\VehicleUsage;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Gate;
+use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\Response;
 
 class CompanyReportHistoryController extends Controller
 {
     use Reports;
 
-    public function index()
+    public function index(Request $request)
     {
         abort_if(Gate::denies('company_report_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        return view('admin.companyReports.history')->with($this->buildHistoryReportData($request));
+    }
+
+    public function exportExcel(Request $request)
+    {
+        abort_if(Gate::denies('company_report_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        return Excel::download(
+            new CompanyReportHistoryExport($this->buildHistoryReportData($request)),
+            'company-report-history-' . now()->format('Ymd-His') . '.xlsx'
+        );
+    }
+
+    public function exportPdf(Request $request)
+    {
+        abort_if(Gate::denies('company_report_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        return Pdf::loadView('admin.companyReports.historyPdf', $this->buildHistoryReportData($request))
+            ->setPaper('a4', 'landscape')
+            ->download('company-report-history-' . now()->format('Ymd-His') . '.pdf');
+    }
+
+    protected function buildHistoryReportData(Request $request): array
+    {
         $filter = $this->filter();
         $company_id = $filter['company_id'];
         $tvde_week_id = $filter['tvde_week_id'];
@@ -28,6 +56,8 @@ class CompanyReportHistoryController extends Controller
         $tvde_months = $filter['tvde_months'];
         $tvde_month_id = $filter['tvde_month_id'];
         $tvde_weeks = $filter['tvde_weeks'];
+        $from_date = $request->query('from_date');
+        $to_date = $request->query('to_date');
 
         $tvde_week = TvdeWeek::find($tvde_week_id);
         $week_start = $tvde_week ? Carbon::parse($tvde_week->getRawOriginal('start_date'))->startOfDay() : null;
@@ -39,6 +69,18 @@ class CompanyReportHistoryController extends Controller
                 $query->whereHas('driver', function ($driver) use ($company_id) {
                     $driver->where('company_id', $company_id);
                 });
+            })
+            ->when($from_date && $to_date, function ($query) use ($from_date, $to_date) {
+                $query->whereBetween('created_at', [
+                    Carbon::parse($from_date)->startOfDay(),
+                    Carbon::parse($to_date)->endOfDay(),
+                ]);
+            })
+            ->when($from_date && !$to_date, function ($query) use ($from_date) {
+                $query->where('created_at', '>=', Carbon::parse($from_date)->startOfDay());
+            })
+            ->when(!$from_date && $to_date, function ($query) use ($to_date) {
+                $query->where('created_at', '<=', Carbon::parse($to_date)->endOfDay());
             })
             ->get();
 
@@ -98,7 +140,7 @@ class CompanyReportHistoryController extends Controller
             'total_drivers' => $drivers->sum(fn ($d) => (float) ($d->total ?? 0)),
         ]);
 
-        return view('admin.companyReports.history')->with([
+        return [
             'company_id' => $company_id,
             'tvde_years' => $tvde_years,
             'tvde_year_id' => $tvde_year_id,
@@ -106,8 +148,10 @@ class CompanyReportHistoryController extends Controller
             'tvde_month_id' => $tvde_month_id,
             'tvde_weeks' => $tvde_weeks,
             'tvde_week_id' => $tvde_week_id,
+            'from_date' => $from_date,
+            'to_date' => $to_date,
             'drivers' => $drivers,
             'totals' => $totals,
-        ]);
+        ];
     }
 }

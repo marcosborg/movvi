@@ -465,6 +465,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
         Route::get('driver-report-all-weeks/{driver_id?}/{state_id?}', 'CompanyReportController@driverReportAllWeeks')->name('company-reports.driver-report-all-weeks');
     });
     Route::get('company-reports-history', 'CompanyReportHistoryController@index')->name('company-reports-history.index');
+    Route::get('company-reports-history/export-excel', 'CompanyReportHistoryController@exportExcel')->name('company-reports-history.export-excel');
+    Route::get('company-reports-history/export-pdf', 'CompanyReportHistoryController@exportPdf')->name('company-reports-history.export-pdf');
 
     // Company Park
     Route::delete('company-parks/destroy', 'CompanyParkController@massDestroy')->name('company-parks.massDestroy');
