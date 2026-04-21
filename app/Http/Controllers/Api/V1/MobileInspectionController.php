@@ -223,12 +223,19 @@ class MobileInspectionController extends Controller
     public function createOptions(Request $request)
     {
         $this->ensureUserIsAdmin($request);
-        $showAll = $request->boolean('show_all');
+        $validated = $request->validate([
+            'show_all' => ['nullable', 'boolean'],
+        ]);
+
+        $showAll = filter_var($validated['show_all'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $now = now();
 
         $activeUsages = VehicleUsage::query()
             ->with('driver:id,name')
-            ->where(function ($query) {
-                $query->whereNull('end_date')->orWhere('end_date', '>=', now()->format('Y-m-d H:i:s'));
+            ->where('start_date', '<=', $now)
+            ->where(function ($query) use ($now) {
+                $query->whereNull('end_date')
+                    ->orWhere('end_date', '>=', $now);
             })
             ->orderByDesc('start_date')
             ->get();

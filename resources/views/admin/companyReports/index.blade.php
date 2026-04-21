@@ -387,21 +387,8 @@
                                             <br><small class="text-success">abatimento: {{ number_format($driver->earnings['abatimento_aluguer'], 2) }} €</small>
                                         @endif
                                     </td>
-                                    <td style="text-align: right">
-                                        @php
-                                            $driverCautionReceived = (float) ($driver->earnings['caucao_recebida'] ?? 0);
-                                            $driverCautionReturned = (float) ($driver->earnings['caucao_devolvida'] ?? 0);
-                                        @endphp
-                                        @if($driverCautionReceived == 0.0 && $driverCautionReturned == 0.0)
-                                            0.00 <small>&euro;</small>
-                                        @else
-                                            @if($driverCautionReceived != 0.0)
-                                                <div>+{{ number_format($driverCautionReceived, 2) }} <small>&euro;</small></div>
-                                            @endif
-                                            @if($driverCautionReturned != 0.0)
-                                                <div>-{{ number_format(abs($driverCautionReturned), 2) }} <small>&euro;</small></div>
-                                            @endif
-                                        @endif
+                                    <td style="text-align: right" title="{{ $driver->caution_tooltip ?? '' }}">
+                                        {{ $driver->caution_display ?? '0,00€' }}
                                     </td>
                                     <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>€</small></td>
                                     <td style="text-align: right">{{ number_format($driver->last_balance, 2) }} <small>€</small></td>
@@ -478,17 +465,8 @@
                             <th style="text-align: right;">{{ number_format($totals['total_car_track'], 2) }} <small>€</small></th>
                             <th style="text-align: right; color: red;">{{ number_format($totals['total_percent_value'], 2) }} <small>€</small></th>
                             <th style="text-align: right;">-{{ number_format($totals['total_car_hire'], 2) }} <small>€</small></th>
-                            <th style="text-align: right;">
-                                @if(($totals['total_caution_received'] ?? 0) == 0 && ($totals['total_caution_returned'] ?? 0) == 0)
-                                    0.00 <small>&euro;</small>
-                                @else
-                                    @if(($totals['total_caution_received'] ?? 0) != 0)
-                                        <div>+{{ number_format($totals['total_caution_received'], 2) }} <small>&euro;</small></div>
-                                    @endif
-                                    @if(($totals['total_caution_returned'] ?? 0) != 0)
-                                        <div>-{{ number_format(abs($totals['total_caution_returned']), 2) }} <small>&euro;</small></div>
-                                    @endif
-                                @endif
+                            <th style="text-align: right;" title="{{ $totals['caution_tooltip'] ?? '' }}">
+                                {{ $totals['caution_display'] ?? '0,00€' }}
                             </th>
                             <th style="text-align: right;">{{ number_format($totals['total_drivers'], 2) }} <small>€</small></th>
                             <th></th>

@@ -389,6 +389,8 @@ trait Reports
             $driver->refunds = $refunds;
             $driver->adjustments = $adjustments;
             $driver->fleet_management = $fleet_management;
+            $driver->caution_display = $this->formatCautionDisplay($caution_received, $caution_returned);
+            $driver->caution_tooltip = $this->formatCautionTooltip($caution_received, $caution_returned);
 
 
             // BALANCE
@@ -550,6 +552,15 @@ trait Reports
             'receipt_check_difference_total' => array_sum($receipt_check_difference_total),
         ]);
 
+        $totals['caution_display'] = $this->formatCautionDisplay(
+            (float) ($totals['total_caution_received'] ?? 0),
+            (float) ($totals['total_caution_returned'] ?? 0)
+        );
+        $totals['caution_tooltip'] = $this->formatCautionTooltip(
+            (float) ($totals['total_caution_received'] ?? 0),
+            (float) ($totals['total_caution_returned'] ?? 0)
+        );
+
         return [
             'drivers' => $drivers,
             'totals' => $totals,
@@ -617,6 +628,50 @@ trait Reports
         }
 
         return $breakdown;
+    }
+
+    protected function formatCautionDisplay(float $received, float $returned): string
+    {
+        $parts = [];
+
+        if (abs($received) > 0.00001) {
+            $parts[] = $this->formatSignedCurrency($received);
+        }
+
+        if (abs($returned) > 0.00001) {
+            $parts[] = $this->formatSignedCurrency($returned);
+        }
+
+        if (empty($parts)) {
+            return $this->formatUnsignedCurrency(0.0);
+        }
+
+        return implode(' ', $parts);
+    }
+
+    protected function formatCautionTooltip(float $received, float $returned): string
+    {
+        return sprintf(
+            'Caução recebida: %s | Caução devolvida: %s',
+            $this->formatSignedCurrency($received),
+            $this->formatSignedCurrency($returned)
+        );
+    }
+
+    protected function formatSignedCurrency(float $value): string
+    {
+        if (abs($value) <= 0.00001) {
+            return $this->formatUnsignedCurrency(0.0);
+        }
+
+        $sign = $value > 0 ? '+' : '-';
+
+        return $sign . $this->formatUnsignedCurrency(abs($value));
+    }
+
+    protected function formatUnsignedCurrency(float $value): string
+    {
+        return number_format($value, 2, ',', '.') . '€';
     }
 
     protected function buildWeeklyMileageAllocation($weekUsages, $mileages, Carbon $weekStart, Carbon $weekEnd): array

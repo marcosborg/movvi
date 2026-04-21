@@ -90,22 +90,7 @@
                             <br><small>abatimento: {{ number_format($driver->earnings['abatimento_aluguer'], 2) }} &euro;</small>
                         @endif
                     </td>
-                    <td class="nowrap">
-                        @php
-                            $driverCautionReceived = (float) ($driver->earnings['caucao_recebida'] ?? 0);
-                            $driverCautionReturned = (float) ($driver->earnings['caucao_devolvida'] ?? 0);
-                        @endphp
-                        @if($driverCautionReceived == 0.0 && $driverCautionReturned == 0.0)
-                            0.00 &euro;
-                        @else
-                            @if($driverCautionReceived != 0.0)
-                                <div>+{{ number_format($driverCautionReceived, 2) }} &euro;</div>
-                            @endif
-                            @if($driverCautionReturned != 0.0)
-                                <div>-{{ number_format(abs($driverCautionReturned), 2) }} &euro;</div>
-                            @endif
-                        @endif
-                    </td>
+                    <td class="nowrap">{{ $driver->caution_display ?? '0,00€' }}</td>
                     <td class="nowrap">{{ number_format($driver->total ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->last_balance ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->new_balance ?? 0, 2) }} &euro;</td>
@@ -128,18 +113,7 @@
                 <th>{{ number_format($totals['total_car_track'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_percent_value'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_car_hire'] ?? 0, 2) }} &euro;</th>
-                <th>
-                    @if(($totals['total_caution_received'] ?? 0) == 0 && ($totals['total_caution_returned'] ?? 0) == 0)
-                        0.00 &euro;
-                    @else
-                        @if(($totals['total_caution_received'] ?? 0) != 0)
-                            <div>+{{ number_format($totals['total_caution_received'], 2) }} &euro;</div>
-                        @endif
-                        @if(($totals['total_caution_returned'] ?? 0) != 0)
-                            <div>-{{ number_format(abs($totals['total_caution_returned']), 2) }} &euro;</div>
-                        @endif
-                    @endif
-                </th>
+                <th>{{ $totals['caution_display'] ?? '0,00€' }}</th>
                 <th>{{ number_format($totals['total_drivers'] ?? 0, 2) }} &euro;</th>
                 <th></th>
                 <th></th>
