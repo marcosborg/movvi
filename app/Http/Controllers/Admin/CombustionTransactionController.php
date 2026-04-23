@@ -185,7 +185,7 @@ class CombustionTransactionController extends Controller
 
         $validated = $request->validate([
             'tvde_week_id' => ['required', 'integer', 'exists:tvde_weeks,id'],
-            'supplier' => ['nullable', 'in:repsol,prio'],
+            'supplier' => ['nullable', 'in:repsol,prio,prio_combustao'],
             'supplier_file' => ['required', 'file', 'mimes:csv,txt,xlsx'],
         ]);
 
@@ -202,9 +202,11 @@ class CombustionTransactionController extends Controller
         }
 
         foreach ($rows as $index => $row) {
-            $transaction = $supplier === 'repsol'
-                ? $this->mapRepsolRow($row, $index, (int) $validated['tvde_week_id'])
-                : $this->mapPrioRow($row, $index, (int) $validated['tvde_week_id']);
+            $transaction = match ($supplier) {
+                'repsol' => $this->mapRepsolRow($row, $index, (int) $validated['tvde_week_id']),
+                'prio_combustao' => $this->mapPrioCombustaoRow($row, $index, (int) $validated['tvde_week_id']),
+                default => $this->mapPrioRow($row, $index, (int) $validated['tvde_week_id']),
+            };
 
             if (!$transaction) {
                 continue;
@@ -256,14 +258,20 @@ class CombustionTransactionController extends Controller
             $assignmentService->assign($created);
         }
 
+        $supplierLabel = match ($supplier) {
+            'prio_combustao' => 'PRIO COMBUSTAO',
+            default => strtoupper(str_replace('_', ' ', $supplier)),
+        };
+
         return redirect()->back()
-            ->with('message', sprintf('Importadas %d transacoes de %s com sucesso.', count($transactions), strtoupper($supplier)));
+            ->with('message', sprintf('Importadas %d transacoes de %s com sucesso.', count($transactions), $supplierLabel));
     }
 
     protected function detectSupplierFromRows(array $rows): ?string
     {
         $repsolMatches = 0;
         $prioMatches = 0;
+        $prioCombustaoMatches = 0;
 
         foreach ($rows as $index => $row) {
             if ($this->mapRepsolRow($row, $index, 1)) {
@@ -273,13 +281,25 @@ class CombustionTransactionController extends Controller
             if ($this->mapPrioRow($row, $index, 1)) {
                 $prioMatches++;
             }
+
+            if ($this->mapPrioCombustaoRow($row, $index, 1)) {
+                $prioCombustaoMatches++;
+            }
         }
 
-        if ($repsolMatches === 0 && $prioMatches === 0) {
+        $matches = [
+            'repsol' => $repsolMatches,
+            'prio' => $prioMatches,
+            'prio_combustao' => $prioCombustaoMatches,
+        ];
+
+        if (max($matches) === 0) {
             return null;
         }
 
-        return $repsolMatches >= $prioMatches ? 'repsol' : 'prio';
+        arsort($matches);
+
+        return array_key_first($matches);
     }
 
     protected function mapRepsolRow(array $row, int $index, int $weekId): ?array
@@ -316,6 +336,30 @@ class CombustionTransactionController extends Controller
         $amount = $this->normalizeImportedNumber($row[7] ?? null);
         $total = $this->normalizeImportedNumber($row[12] ?? null);
         $date = $this->normalizePrioDate($row[0] ?? null);
+
+        if ($card === '' || $amount === null || $total === null) {
+            return null;
+        }
+
+        return [
+            'tvde_week_id' => $weekId,
+            'card' => $card,
+            'amount' => $amount,
+            'total' => $total,
+            'date' => $date,
+        ];
+    }
+
+    protected function mapPrioCombustaoRow(array $row, int $index, int $weekId): ?array
+    {
+        if ($index < 4) {
+            return null;
+        }
+
+        $card = trim((string) ($row[5] ?? ''));
+        $amount = $this->normalizeImportedNumber($row[9] ?? null);
+        $total = $this->normalizeImportedNumber($row[18] ?? null);
+        $date = $this->normalizePrioCombustaoDate($row[3] ?? null, $row[4] ?? null);
 
         if ($card === '' || $amount === null || $total === null) {
             return null;
@@ -723,6 +767,34 @@ class CombustionTransactionController extends Controller
         ]);
     }
 
+    protected function normalizePrioCombustaoDate($dateValue, $timeValue): ?string
+    {
+        $date = $this->normalizeDateByFormats($dateValue, [
+            'j/n/y',
+            'j/n/Y',
+            'n/j/y',
+            'n/j/Y',
+            'd/m/Y',
+            'm/d/Y',
+            'Y-m-d',
+        ]);
+
+        if ($date === null) {
+            return null;
+        }
+
+        $baseDate = Carbon::parse($date);
+        $time = $this->normalizeTimeValue($timeValue);
+
+        if ($time === null) {
+            return $baseDate->startOfDay()->format('Y-m-d H:i:s');
+        }
+
+        return $baseDate
+            ->setTime($time['hour'], $time['minute'], $time['second'])
+            ->format('Y-m-d H:i:s');
+    }
+
     protected function normalizeDateByFormats($value, array $formats): ?string
     {
         if ($value === null) {
@@ -759,6 +831,55 @@ class CombustionTransactionController extends Controller
 
         try {
             return Carbon::parse($value)->format('Y-m-d H:i:s');
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    protected function normalizeTimeValue($value): ?array
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        $numericValue = str_replace(',', '.', $value);
+        if (is_numeric($numericValue)) {
+            $seconds = (int) round((((float) $numericValue) - floor((float) $numericValue)) * 86400);
+
+            return [
+                'hour' => (int) floor($seconds / 3600) % 24,
+                'minute' => (int) floor(($seconds % 3600) / 60),
+                'second' => $seconds % 60,
+            ];
+        }
+
+        foreach (['H:i:s', 'H:i'] as $format) {
+            try {
+                $time = Carbon::createFromFormat($format, $value);
+
+                return [
+                    'hour' => $time->hour,
+                    'minute' => $time->minute,
+                    'second' => $time->second,
+                ];
+            } catch (\Throwable $e) {
+            }
+        }
+
+        try {
+            $time = Carbon::parse($value);
+
+            return [
+                'hour' => $time->hour,
+                'minute' => $time->minute,
+                'second' => $time->second,
+            ];
         } catch (\Throwable $e) {
             return null;
         }

@@ -131,4 +131,17 @@ class ElectricTransactionController extends Controller
 
         return response(null, Response::HTTP_NO_CONTENT);
     }
+
+    public function deleteFilter(Request $request)
+    {
+        abort_if(Gate::denies('electric_transaction_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $validated = $request->validate([
+            'week_filter' => ['required', 'integer', 'exists:tvde_weeks,id'],
+        ]);
+
+        ElectricTransaction::where('tvde_week_id', $validated['week_filter'])->delete();
+
+        return redirect()->back()->with('message', 'Prio eletrico eliminado com sucesso');
+    }
 }

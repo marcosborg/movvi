@@ -18,6 +18,7 @@
                     <input type="file" name="supplier_file" id="combustionSupplierFile" accept=".csv,.txt,.xlsx" style="display: none;" required>
                     <button type="button" class="btn btn-danger js-combustion-upload" data-supplier="repsol">REPSOL</button>
                     <button type="button" class="btn btn-primary js-combustion-upload" data-supplier="prio">PRIO</button>
+                    <button type="button" class="btn btn-info js-combustion-upload" data-supplier="prio_combustao">Prio Combustão</button>
                 </form>
                 <form action="{{ route('admin.combustion-transactions.deleteFilter') }}" method="post" style="margin-top: 10px;">
                     @csrf

@@ -363,7 +363,7 @@
                             <i class="fa-fw fas fa-gas-pump">
 
                             </i>
-                            <span>Transacoes de combustao</span>
+                            <span>Abastecimentos</span>
 
                         </a>
                     </li>

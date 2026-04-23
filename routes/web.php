@@ -437,6 +437,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('electric-transactions/destroy', 'ElectricTransactionController@massDestroy')->name('electric-transactions.massDestroy');
     Route::post('electric-transactions/parse-csv-import', 'ElectricTransactionController@parseCsvImport')->name('electric-transactions.parseCsvImport');
     Route::post('electric-transactions/process-csv-import', 'ElectricTransactionController@processCsvImport')->name('electric-transactions.processCsvImport');
+    Route::post('electric-transactions/delete-filter', 'ElectricTransactionController@deleteFilter')->name('electric-transactions.deleteFilter');
     Route::resource('electric-transactions', 'ElectricTransactionController');
 
     // Adjustment

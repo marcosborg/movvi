@@ -243,8 +243,18 @@
                     <form action="{{ route('admin.combustion-transactions.uploadSupplierFile') }}" method="POST" enctype="multipart/form-data" class="inline-upload-form" style="margin:0;">
                         @csrf
                         <input type="hidden" name="tvde_week_id" value="{{ $tvde_week_id }}">
+                        <input type="hidden" name="supplier" value="" class="js-inline-upload-supplier">
                         <input type="file" name="supplier_file" id="fuelFile" accept=".csv,.txt,.xlsx" style="display:none;" required>
-                        <button type="button" class="btn btn-danger btn-sm js-inline-upload-trigger" data-file-input="fuelFile">Abastecimentos</button>
+                        <button type="button" class="btn btn-primary btn-sm js-inline-upload-trigger" data-file-input="fuelFile">Abastecimentos</button>
+                        <button type="button" class="btn btn-info btn-sm js-inline-upload-trigger" data-file-input="fuelFile" data-supplier="prio_combustao">Prio Combustão</button>
+                    </form>
+                @endif
+
+                @if ($importState['electric'])
+                    <form action="{{ route('admin.electric-transactions.deleteFilter') }}" method="post" style="margin:0;">
+                        @csrf
+                        <input type="hidden" name="week_filter" value="{{ $tvde_week_id }}">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Tem a certeza que pretende eliminar o Prio elétrico desta semana?')">Eliminar Prio Elétrico</button>
                     </form>
                 @endif
 
@@ -521,6 +531,12 @@
         document.querySelectorAll('.js-inline-upload-trigger').forEach((button) => {
             button.addEventListener('click', function () {
                 const fileInput = document.getElementById(this.dataset.fileInput);
+                const form = this.closest('form');
+                const supplierInput = form?.querySelector('.js-inline-upload-supplier');
+
+                if (supplierInput) {
+                    supplierInput.value = this.dataset.supplier || '';
+                }
 
                 if (fileInput) {
                     fileInput.click();

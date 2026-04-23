@@ -16,6 +16,7 @@ use App\Models\TvdeWeek;
 use App\Models\WeeklyVehicleMileage;
 use App\Models\TvdeActivity;
 use App\Models\CombustionTransaction;
+use App\Models\ElectricTransaction;
 use App\Models\CarTrack;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -50,6 +51,7 @@ class CompanyReportController extends Controller
                 ->where('tvde_operator_id', 2)
                 ->exists(),
             'fuel' => CombustionTransaction::where('tvde_week_id', $tvde_week_id)->exists(),
+            'electric' => ElectricTransaction::where('tvde_week_id', $tvde_week_id)->exists(),
             'via_verde' => CarTrack::where('tvde_week_id', $tvde_week_id)->exists(),
             'mileage' => $mileageCount > 0,
         ];
