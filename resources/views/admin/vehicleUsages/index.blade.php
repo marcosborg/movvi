@@ -5,7 +5,7 @@
         <div style="margin-bottom: 10px;" class="row">
             <div class="col-lg-12">
                 <a class="btn btn-success" href="{{ route('admin.vehicle-usages.create') }}">
-                    {{ trans('global.add') }} {{ trans('cruds.vehicleUsage.title_singular') }}
+                    Adicionar Utilização da viatura
                 </a>
                 <a class="btn btn-primary" href="{{ route('admin.vehicle-usage') }}">
                     Ver gráficos de utilização
@@ -17,7 +17,7 @@
         <div class="col-lg-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    {{ trans('cruds.vehicleUsage.title_singular') }} {{ trans('global.list') }}
+                    Utilização da viatura {{ trans('global.list') }}
                 </div>
                 <div class="panel-body">
                     <table class=" table table-bordered table-striped table-hover ajaxTable datatable datatable-VehicleUsage">
@@ -27,22 +27,22 @@
 
                                 </th>
                                 <th>
-                                    {{ trans('cruds.vehicleUsage.fields.id') }}
+                                    ID
                                 </th>
                                 <th>
-                                    {{ trans('cruds.vehicleUsage.fields.driver') }}
+                                    Motorista
                                 </th>
                                 <th>
-                                    {{ trans('cruds.vehicleUsage.fields.vehicle_item') }}
+                                    Viatura
                                 </th>
                                 <th>
-                                    {{ trans('cruds.vehicleUsage.fields.start_date') }}
+                                    Data de início
                                 </th>
                                 <th>
-                                    {{ trans('cruds.vehicleUsage.fields.end_date') }}
+                                    Data de fim
                                 </th>
                                 <th>
-                                    {{ trans('cruds.vehicleUsage.fields.usage_exceptions') }}
+                                    Exceções
                                 </th>
                                 <th>
                                     &nbsp;
@@ -52,9 +52,6 @@
                     </table>
                 </div>
             </div>
-
-
-
         </div>
     </div>
 </div>

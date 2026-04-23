@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\UserFavorite;
+use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -73,6 +75,10 @@ class SidebarFavoritesService
 
     protected function guessLabel(Request $request): string
     {
+        if ($translated = $this->resolveTranslatedLabelFromRoute($request->route())) {
+            return $translated;
+        }
+
         $title = trim((string) $request->input('page_title', ''));
         if ($title !== '') {
             return Str::limit($title, 255, '');
@@ -93,6 +99,10 @@ class SidebarFavoritesService
 
     protected function resolveFavoriteLabel(UserFavorite $favorite): string
     {
+        if ($translated = $this->resolveTranslatedLabelFromUrl((string) $favorite->url)) {
+            return $translated;
+        }
+
         $label = trim((string) $favorite->label);
 
         if ($label !== '' && mb_strtolower($label) !== mb_strtolower((string) trans('panel.site_title'))) {
@@ -114,6 +124,69 @@ class SidebarFavoritesService
         }
 
         return Str::title($resource);
+    }
+
+    protected function resolveTranslatedLabelFromUrl(string $url): ?string
+    {
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        if ($path === '') {
+            return null;
+        }
+
+        $query = (string) parse_url($url, PHP_URL_QUERY);
+
+        try {
+            $route = app('router')->getRoutes()->match(HttpRequest::create(
+                $path . ($query !== '' ? '?' . $query : ''),
+                'GET'
+            ));
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return $this->resolveTranslatedLabelFromRoute($route);
+    }
+
+    protected function resolveTranslatedLabelFromRoute(?Route $route): ?string
+    {
+        $routeName = (string) optional($route)->getName();
+        if ($routeName === '') {
+            return null;
+        }
+
+        foreach ($this->favoriteRouteLabelOverrides() as $prefix => $label) {
+            if (Str::startsWith($routeName, $prefix)) {
+                return $label;
+            }
+        }
+
+        if ($routeName === 'admin.home') {
+            return 'Dashboard';
+        }
+
+        $segments = explode('.', $routeName);
+        $resource = $segments[1] ?? null;
+        if (!$resource) {
+            return null;
+        }
+
+        $crudKey = Str::camel(Str::singular(str_replace('-', '_', $resource)));
+        $translation = trans('cruds.' . $crudKey . '.title');
+
+        if (is_string($translation) && $translation !== 'cruds.' . $crudKey . '.title') {
+            return $translation;
+        }
+
+        return null;
+    }
+
+    protected function favoriteRouteLabelOverrides(): array
+    {
+        return [
+            'admin.combustion-transactions.' => 'Abastecimentos',
+            'admin.company-reports.' => 'Faturação',
+            'admin.vehicle-usage' => 'Utilização da viatura',
+        ];
     }
 
     protected function guessIcon(string $uri): string

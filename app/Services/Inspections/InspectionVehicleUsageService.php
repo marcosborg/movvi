@@ -143,6 +143,7 @@ class InspectionVehicleUsageService
     private function applyPlanToVehicle(VehicleItem $vehicle, array $plan): void
     {
         $appliedAt = Carbon::now();
+        $closedAt = $appliedAt->copy()->subSecond();
         $activeUsages = VehicleUsage::query()
             ->where('vehicle_item_id', $vehicle->id)
             ->where(function ($query) use ($appliedAt) {
@@ -154,7 +155,7 @@ class InspectionVehicleUsageService
 
         foreach ($activeUsages as $usage) {
             $usage->update([
-                'end_date' => $appliedAt->format('Y-m-d H:i:s'),
+                'end_date' => $closedAt->format('Y-m-d H:i:s'),
             ]);
         }
 

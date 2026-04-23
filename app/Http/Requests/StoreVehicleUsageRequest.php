@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesVehicleUsageOverlap;
 use App\Models\VehicleUsage;
 use Gate;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,6 +10,8 @@ use Illuminate\Http\Response;
 
 class StoreVehicleUsageRequest extends FormRequest
 {
+    use ValidatesVehicleUsageOverlap;
+
     public function authorize()
     {
         return Gate::allows('vehicle_usage_create');
@@ -30,5 +33,12 @@ class StoreVehicleUsageRequest extends FormRequest
                 'nullable',
             ],
         ];
+    }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            $this->validateVehicleUsageOverlap($validator);
+        });
     }
 }

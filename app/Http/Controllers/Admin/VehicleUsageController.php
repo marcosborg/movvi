@@ -13,7 +13,6 @@ use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
-use Carbon\Carbon;
 
 class VehicleUsageController extends Controller
 {
@@ -78,29 +77,10 @@ class VehicleUsageController extends Controller
 
     public function store(StoreVehicleUsageRequest $request)
     {
-        // As datas estão validadas no formato Y-m-d H:i:s, podemos usá-las diretamente
-        $startDate = $request->start_date;
-        $endDate   = $request->end_date;
-
-        // Criar SEMPRE o novo registo
         $newUsage = VehicleUsage::create($request->all());
 
-        // Verificar sobreposição com outros registos (excluindo o registo recém-criado)
-        $hasOverlap = VehicleUsage::where('vehicle_item_id', $request->vehicle_item_id)
-            ->where('id', '!=', $newUsage->id)
-            ->where(function ($query) use ($startDate, $endDate) {
-                $query->where('start_date', '<=', $endDate)
-                      ->where('end_date', '>=', $startDate);
-            })
-            ->first();
-
-        if ($hasOverlap) {
-            return redirect()->route('admin.vehicle-usages.index')
-                ->with('error_message', "Utilização criada com sucesso (ID {$newUsage->id}), mas sobrepõe a utilização existente com ID {$hasOverlap->id}.");
-        }
-
         return redirect()->route('admin.vehicle-usages.index')
-            ->with('success', "Utilização criada com sucesso (ID {$newUsage->id}).");
+            ->with('success', "Utilizacao criada com sucesso (ID {$newUsage->id}).");
     }
 
     public function edit(VehicleUsage $vehicleUsage)
@@ -160,7 +140,7 @@ class VehicleUsageController extends Controller
         $grouped = $usages->groupBy('vehicle_item.license_plate');
         $occupancyStats = [];
         $monthlyStats = [];
-        $monthlyStackedStats = []; // para o gráfico
+        $monthlyStackedStats = [];
         $yearlyMap = [];
 
         foreach ($grouped as $plate => $usagesForVehicle) {
@@ -173,14 +153,14 @@ class VehicleUsageController extends Controller
                 try {
                     $start = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $startRaw);
                 } catch (\Exception $e) {
-                    \Log::error("Data inválida em VehicleUsage ID {$usage->id} (start_date): '{$startRaw}'");
+                    \Log::error("Data invalida em VehicleUsage ID {$usage->id} (start_date): '{$startRaw}'");
                     continue;
                 }
 
                 try {
                     $end = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $endRaw);
                 } catch (\Exception $e) {
-                    \Log::error("Data inválida em VehicleUsage ID {$usage->id} (end_date): '{$endRaw}'");
+                    \Log::error("Data invalida em VehicleUsage ID {$usage->id} (end_date): '{$endRaw}'");
                     continue;
                 }
 
@@ -192,7 +172,6 @@ class VehicleUsageController extends Controller
                     $month = $day->month;
                     $monthKey = sprintf("%s (%04d-%02d)", $plate, $year, $month);
 
-                    // Monthly simples (total de dias em qualquer estado)
                     if (!isset($monthlyStats[$monthKey])) {
                         $monthlyStats[$monthKey] = [
                             'label' => $monthKey,
@@ -204,7 +183,6 @@ class VehicleUsageController extends Controller
                     }
                     $monthlyStats[$monthKey]['days']++;
 
-                    // Monthly detalhado para stacked
                     if (!isset($monthlyStackedStats[$monthKey])) {
                         $monthlyStackedStats[$monthKey] = [
                             'label'       => $monthKey,
@@ -222,7 +200,6 @@ class VehicleUsageController extends Controller
                         $monthlyStackedStats[$monthKey][$exception]++;
                     }
 
-                    // Yearly
                     if (!isset($years[$year])) {
                         $years[$year] = [];
                     }
@@ -282,7 +259,6 @@ class VehicleUsageController extends Controller
         }
         ksort($availableYears);
 
-        // Reindexar para garantir ordem estável no @json da Blade
         $monthlyStackedStats = array_values($monthlyStackedStats);
 
         return view('admin.vehicleUsages.usage', compact(

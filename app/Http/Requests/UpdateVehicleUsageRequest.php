@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesVehicleUsageOverlap;
 use App\Models\VehicleUsage;
 use Gate;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,6 +10,8 @@ use Illuminate\Http\Response;
 
 class UpdateVehicleUsageRequest extends FormRequest
 {
+    use ValidatesVehicleUsageOverlap;
+
     public function authorize()
     {
         return Gate::allows('vehicle_usage_edit');
@@ -30,5 +33,15 @@ class UpdateVehicleUsageRequest extends FormRequest
                 'nullable',
             ],
         ];
+    }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            $currentUsage = $this->route('vehicle_usage') ?? $this->route('vehicleUsage');
+            $ignoreUsageId = $currentUsage instanceof VehicleUsage ? (int) $currentUsage->id : null;
+
+            $this->validateVehicleUsageOverlap($validator, $ignoreUsageId);
+        });
     }
 }

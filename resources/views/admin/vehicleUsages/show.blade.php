@@ -6,7 +6,7 @@
         <div class="col-lg-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    {{ trans('global.show') }} {{ trans('cruds.vehicleUsage.title') }}
+                    {{ trans('global.show') }} Utilização da viatura
                 </div>
                 <div class="panel-body">
                     <div class="form-group">
@@ -19,7 +19,7 @@
                             <tbody>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.vehicleUsage.fields.id') }}
+                                        ID
                                     </th>
                                     <td>
                                         {{ $vehicleUsage->id }}
@@ -27,7 +27,7 @@
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.vehicleUsage.fields.driver') }}
+                                        Motorista
                                     </th>
                                     <td>
                                         {{ $vehicleUsage->driver->name ?? '' }}
@@ -35,7 +35,7 @@
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.vehicleUsage.fields.vehicle_item') }}
+                                        Viatura
                                     </th>
                                     <td>
                                         {{ $vehicleUsage->vehicle_item->license_plate ?? '' }}
@@ -43,7 +43,7 @@
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.vehicleUsage.fields.start_date') }}
+                                        Data de início
                                     </th>
                                     <td>
                                         {{ $vehicleUsage->start_date }}
@@ -51,7 +51,7 @@
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.vehicleUsage.fields.end_date') }}
+                                        Data de fim
                                     </th>
                                     <td>
                                         {{ $vehicleUsage->end_date }}
@@ -59,7 +59,7 @@
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.vehicleUsage.fields.usage_exceptions') }}
+                                        Exceções
                                     </th>
                                     <td>
                                         {{ App\Models\VehicleUsage::USAGE_EXCEPTIONS_RADIO[$vehicleUsage->usage_exceptions] ?? '' }}
