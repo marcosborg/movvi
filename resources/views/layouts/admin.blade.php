@@ -50,6 +50,59 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
+
+        .impersonation-nav-item {
+            padding: 8px 10px;
+        }
+
+        .impersonation-form,
+        .impersonation-stop-form {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+        }
+
+        .impersonation-select {
+            min-width: 320px;
+        }
+
+        .impersonation-badge {
+            display: inline-flex;
+            align-items: center;
+            background: #f39c12;
+            color: #fff;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 12px;
+            line-height: 1.3;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .impersonation-stop-form .btn,
+        .impersonation-form .btn {
+            white-space: nowrap;
+        }
+
+        .select2-container--default .select2-selection--single {
+            height: 34px;
+            border-color: #d2d6de;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 32px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 32px;
+        }
+
+        @media (max-width: 1200px) {
+            .impersonation-select {
+                min-width: 220px;
+            }
+        }
         /* Garante que elementos acima não cortam o sticky */
         .content, .content-wrapper, .panel-body {
             overflow: visible !important;
@@ -113,6 +166,42 @@
                 <div class="navbar-custom-menu">
                     <ul class="nav navbar-nav">
                         <x-company-selector />
+                        @if(($impersonationState['can_use'] ?? false))
+                        <li class="impersonation-nav-item">
+                            <form id="driver-impersonation-form" class="impersonation-form" method="POST" action="{{ route('admin.impersonation.start') }}">
+                                @csrf
+                                <select
+                                    id="driver-impersonation-select"
+                                    name="driver_id"
+                                    class="form-control impersonation-select"
+                                    data-search-url="{{ route('admin.impersonation.drivers') }}"
+                                    data-placeholder="Selecionar motorista">
+                                    @if(($impersonationState['driver_option'] ?? null))
+                                    <option value="{{ $impersonationState['driver_option']['id'] }}" selected>{{ $impersonationState['driver_option']['text'] }}</option>
+                                    @endif
+                                </select>
+                                <button type="submit" class="btn btn-default btn-sm">
+                                    {{ ($impersonationState['is_active'] ?? false) ? 'Trocar motorista' : 'Entrar como motorista' }}
+                                </button>
+                            </form>
+                        </li>
+                        @if($impersonationState['is_active'] ?? false)
+                        <li class="impersonation-nav-item">
+                            <span class="impersonation-badge">
+                                Modo motorista: {{ $impersonationState['driver']->name ?? '' }}
+                                @if($impersonationState['admin_name'] ?? null)
+                                    | Admin: {{ $impersonationState['admin_name'] }}
+                                @endif
+                            </span>
+                        </li>
+                        <li class="impersonation-nav-item">
+                            <form class="impersonation-stop-form" method="POST" action="{{ route('admin.impersonation.stop') }}">
+                                @csrf
+                                <button type="submit" class="btn btn-danger btn-sm">Sair do modo motorista</button>
+                            </form>
+                        </li>
+                        @endif
+                        @endif
                         <li class="nav-item">
                             <a class="nav-link" aria-current="page" href="/" target="_new">Website</a>
                         </li>
@@ -390,6 +479,34 @@
     });
 });
 
+    </script>
+    <script>
+        $(function () {
+            var $driverSelect = $('#driver-impersonation-select');
+
+            if (!$driverSelect.length) {
+                return;
+            }
+
+            $driverSelect.select2({
+                width: '320px',
+                allowClear: true,
+                placeholder: $driverSelect.data('placeholder'),
+                ajax: {
+                    url: $driverSelect.data('search-url'),
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            q: params.term || ''
+                        };
+                    },
+                    processResults: function (data) {
+                        return data;
+                    }
+                }
+            });
+        });
     </script>
     @yield('scripts')
 </body>

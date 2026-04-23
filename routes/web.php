@@ -23,9 +23,12 @@ Route::get('db-copy/latest-500', 'DatabaseCopyController@copyLatest');
 
 Auth::routes(['register' => false]);
 
-Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'middleware' => ['auth']], function () {
+Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'middleware' => ['auth', 'prevent-writes-while-impersonating']], function () {
 
     Route::get('/', 'HomeController@index')->name('home');
+    Route::post('impersonation/start', 'AdminDriverImpersonationController@start')->name('impersonation.start');
+    Route::post('impersonation/stop', 'AdminDriverImpersonationController@stop')->name('impersonation.stop');
+    Route::get('impersonation/drivers', 'AdminDriverImpersonationController@drivers')->name('impersonation.drivers');
     Route::get('company-dashboard', 'HomeController@companyDashboard');
     Route::get('company-invoice-dashboard', 'HomeController@companyInvoiceDashboard');
     Route::post('company-invoice-upload-media', 'HomeController@companyInvoiceUploadMedia')->name('company-invoice-upload-media');
