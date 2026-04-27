@@ -9,6 +9,7 @@ use App\Http\Requests\StoreCombustionTransactionRequest;
 use App\Http\Requests\UpdateCombustionTransactionRequest;
 use App\Models\CombustionTransaction;
 use App\Models\TvdeWeek;
+use App\Models\VehicleItem;
 use App\Services\CombustionTransactionAssignmentService;
 use Carbon\Carbon;
 use Gate;
@@ -333,6 +334,7 @@ class CombustionTransactionController extends Controller
         }
 
         $card = trim((string) ($row[1] ?? ''));
+        $licensePlate = trim((string) ($row[4] ?? ''));
         $amount = $this->normalizeImportedNumber($row[7] ?? null);
         $total = $this->normalizeImportedNumber($row[12] ?? null);
         $date = $this->normalizePrioDate($row[0] ?? null);
@@ -347,6 +349,7 @@ class CombustionTransactionController extends Controller
             'amount' => $amount,
             'total' => $total,
             'date' => $date,
+            'vehicle_item_id' => $this->resolveVehicleItemIdFromPlate($licensePlate),
         ];
     }
 
@@ -718,15 +721,28 @@ class CombustionTransactionController extends Controller
 
     protected function convertExcelSerialDate(float $value): string
     {
-        $base = Carbon::create(1899, 12, 30, 0, 0, 0, 'UTC');
+        $timezone = config('app.timezone', 'UTC');
+        $base = Carbon::create(1899, 12, 30, 0, 0, 0, $timezone);
         $wholeDays = (int) floor($value);
         $seconds = (int) round(($value - $wholeDays) * 86400);
 
         return $base->copy()
             ->addDays($wholeDays)
             ->addSeconds($seconds)
-            ->setTimezone(config('app.timezone', 'UTC'))
             ->format('Y-m-d H:i:s');
+    }
+
+    protected function resolveVehicleItemIdFromPlate(?string $plate): ?int
+    {
+        $normalizedPlate = strtoupper(str_replace(['-', ' '], '', trim((string) $plate)));
+
+        if ($normalizedPlate === '') {
+            return null;
+        }
+
+        return VehicleItem::withTrashed()
+            ->whereRaw("REPLACE(REPLACE(UPPER(license_plate), '-', ''), ' ', '') = ?", [$normalizedPlate])
+            ->value('id');
     }
 
     protected function detectCsvDelimiter($handle): string

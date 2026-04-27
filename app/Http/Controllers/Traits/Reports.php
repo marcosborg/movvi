@@ -1141,6 +1141,7 @@ trait Reports
                 if (!empty($cardCodes)) {
                     $query->orWhere(function ($legacyQuery) use ($cardCodes) {
                         $legacyQuery->whereNull('driver_id')
+                            ->whereNull('vehicle_item_id')
                             ->whereIn('card', $cardCodes);
                     });
                 }

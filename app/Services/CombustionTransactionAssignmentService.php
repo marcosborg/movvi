@@ -23,7 +23,7 @@ class CombustionTransactionAssignmentService
             ? Card::query()->where('code', $transaction->card)->first()
             : null;
 
-        $vehicleItemId = $card?->vehicle_item_id;
+        $vehicleItemId = $card?->vehicle_item_id ?: $transaction->vehicle_item_id;
         $legacyDriverId = $card ? $this->resolveLegacyDriverFromCard($card->code) : null;
         $usageMatches = [];
 
@@ -87,14 +87,6 @@ class CombustionTransactionAssignmentService
         array $usageMatches,
         ?int $legacyDriverId
     ): array {
-        if (!$hasCard) {
-            return [
-                'status' => 'card_not_found',
-                'driver_id' => null,
-                'usage_ids' => [],
-            ];
-        }
-
         if (!$transactionAt) {
             return [
                 'status' => $legacyDriverId ? 'legacy_fallback' : 'no_timestamp',
@@ -105,7 +97,7 @@ class CombustionTransactionAssignmentService
 
         if (!$vehicleItemId) {
             return [
-                'status' => 'vehicle_not_mapped',
+                'status' => $hasCard ? 'vehicle_not_mapped' : 'card_not_found',
                 'driver_id' => null,
                 'usage_ids' => [],
             ];
