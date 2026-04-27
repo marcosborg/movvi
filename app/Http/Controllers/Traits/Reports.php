@@ -944,7 +944,7 @@ trait Reports
 
             $combustion_expenses = collect([
                 'amount' => number_format($combustion_transactions->sum('amount'), 2, '.', '') . ' L',
-                'total' => number_format($combustion_total, 2, '.', '') . ' �',
+                'total' => number_format($combustion_total, 2, '.', '') . ' €',
                 'value' => $combustion_total
             ]);
         }

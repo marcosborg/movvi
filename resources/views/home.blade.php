@@ -153,18 +153,18 @@
                         $hasOtherFuelTransactions = ($other_fuel_transactions ?? collect())->isNotEmpty();
                     @endphp
                     @if(($driver_card_codes ?? collect())->isEmpty() && !$hasOtherFuelTransactions)
-                        <div class="alert alert-info">Sem cartıes associados ao motorista.</div>
+                        <div class="alert alert-info">Sem cart√µes associados ao motorista.</div>
                     @elseif(!$hasCombustionTransactions && !$hasOtherFuelTransactions)
                         <div class="alert alert-info">
                             Sem registos para a semana selecionada.
                             @if(($driver_card_codes ?? collect())->isNotEmpty())
                             <br>
-                            <small>Cartıes considerados: {{ $driver_card_codes->join(', ') }}</small>
+                            <small>Cart√µes considerados: {{ $driver_card_codes->join(', ') }}</small>
                             @endif
                         </div>
                     @else
                         @if(($driver_card_codes ?? collect())->isNotEmpty())
-                        <p><small>Cartıes considerados: {{ $driver_card_codes->join(', ') }}</small></p>
+                        <p><small>Cart√µes considerados: {{ $driver_card_codes->join(', ') }}</small></p>
                         @endif
 
                         @if($hasCombustionTransactions)
@@ -172,9 +172,9 @@
                             <thead>
                                 <tr>
                                     <th style="text-align:left;">Data</th>
-                                    <th style="text-align:left;">Cart„o</th>
+                                    <th style="text-align:left;">Cart√£o</th>
                                     <th style="text-align:right;">Quantidade</th>
-                                    <th style="text-align:right;">Custo (Ä)</th>
+                                    <th style="text-align:right;">Custo (‚Ç¨)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -188,7 +188,7 @@
                                         </td>
                                         <td style="text-align:left;">{{ $tx->card }}</td>
                                         <td>{{ number_format((float)$tx->amount, 2, ',', ' ') }} {{ $unit }}</td>
-                                        <td>{{ number_format((float)$tx->total, 2, ',', ' ') }}Ä</td>
+                                        <td>{{ number_format((float)$tx->total, 2, ',', ' ') }}‚Ç¨</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -216,9 +216,9 @@
                                 <thead>
                                     <tr>
                                         <th style="text-align:left;">Data</th>
-                                        <th style="text-align:left;">MatrÌcula</th>
-                                        <th style="text-align:left;">Tipo de cart„o</th>
-                                        <th style="text-align:right;">Custo (Ä)</th>
+                                        <th style="text-align:left;">Matr√≠cula</th>
+                                        <th style="text-align:left;">Tipo de cart√£o</th>
+                                        <th style="text-align:right;">Custo (‚Ç¨)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -229,7 +229,7 @@
                                             </td>
                                             <td style="text-align:left;">{{ $tx->license ?? '-' }}</td>
                                             <td style="text-align:left;">{{ $tx->card_type ?? 'Tesla' }}</td>
-                                            <td>{{ number_format((float)$tx->value, 2, ',', ' ') }}Ä</td>
+                                            <td>{{ number_format((float)$tx->value, 2, ',', ' ') }}‚Ç¨</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

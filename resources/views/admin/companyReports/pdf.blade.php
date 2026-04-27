@@ -181,7 +181,7 @@
         </thead>
         <tbody>
             <tr>
-                <td>Sem diferenÃ§a</td>
+                <td>Sem diferença</td>
                 <td>{{ number_format($totals['receipt_check_match_count'] ?? 0, 0) }}</td>
             </tr>
             <tr>
