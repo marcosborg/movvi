@@ -99,6 +99,23 @@
                             </tr>
                         </thead>
                         <tbody>
+                            @if ($statement_results)
+                            <tr>
+                                <th style="text-align: left;">UBER</th>
+                                <td style="text-align: right;">{{ number_format($statement_uber_gross, 2) }}€</td>
+                                <td style="text-align: right;" colspan="2">{{ number_format($statement_uber_net, 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th style="text-align: left;">BOLT</th>
+                                <td style="text-align: right;">{{ number_format($statement_bolt_gross, 2) }}€</td>
+                                <td style="text-align: right;" colspan="2">{{ number_format($statement_bolt_net, 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th style="text-align: left;">Totais</th>
+                                <td style="text-align: right;">{{ number_format($statement_total_gross, 2) }}€</td>
+                                <td style="text-align: right;" colspan="2">{{ number_format($statement_total_net, 2) }}€</td>
+                            </tr>
+                            @else
                             <tr>
                                 <th style="text-align: left;">UBER</th>
                                 <td style="text-align: right;">{{ $total_earnings_uber }}€</td>
@@ -141,6 +158,7 @@
                                 <td style="text-align: right;">{{ $total_after_vat }}€</td>
                                 @endif
                             </tr>
+                            @endif
                         </tbody>
                     </table>
                     @if (($electric_expenses && $electric_expenses['value'] > 0) || ($combustion_expenses &&
@@ -191,6 +209,94 @@
                             </tr>
                         </thead>
                         <tbody>
+                            @if ($statement_results)
+                            <tr>
+                                <th></th>
+                                <th style="text-align: right;">Créditos</th>
+                                <th style="text-align: right;">Débitos</th>
+                                <th style="text-align: right;">Totais</th>
+                            </tr>
+                            <tr>
+                                <th style="text-align: left;">Ganhos</th>
+                                <td style="text-align: right;">{{ number_format($statement_total_net, 2) }}€</td>
+                                <td></td>
+                                <td style="text-align: right;">{{ number_format($statement_total_net, 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th style="text-align: left;">Aluguer</th>
+                                <td></td>
+                                <td style="text-align: right;">- {{ number_format($car_hire_base, 2) }}€</td>
+                                <td style="text-align: right;">- {{ number_format($car_hire_base, 2) }}€</td>
+                            </tr>
+                            @if (($rent_discount ?? 0) > 0)
+                            <tr>
+                                <th style="text-align: left;">Abatimento de aluguer</th>
+                                <td style="text-align: right;">{{ number_format($rent_discount, 2) }}€</td>
+                                <td></td>
+                                <td style="text-align: right;">{{ number_format($rent_discount, 2) }}€</td>
+                            </tr>
+                            @endif
+                            <tr>
+                                <th style="text-align: left;">Via Verde</th>
+                                <td></td>
+                                <td style="text-align: right;">- {{ number_format($car_track, 2) }}€</td>
+                                <td style="text-align: right;">- {{ number_format($car_track, 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th style="text-align: left;">Abastecimento</th>
+                                <td></td>
+                                <td style="text-align: right;">- {{ number_format($fuel_transactions, 2) }}€</td>
+                                <td style="text-align: right;">- {{ number_format($fuel_transactions, 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th style="text-align: left;">Acertos</th>
+                                <td style="text-align: right;">{{ $general_adjustments > 0 ? number_format($general_adjustments, 2) . '€' : '' }}</td>
+                                <td style="text-align: right;">{{ $general_adjustments < 0 ? number_format($general_adjustments, 2) . '€' : '' }}</td>
+                                <td style="text-align: right;">{{ number_format($general_adjustments, 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th style="text-align: left;">IVA</th>
+                                <td></td>
+                                <td style="text-align: right;">- {{ number_format($iva_value, 2) }}€</td>
+                                <td style="text-align: right;">- {{ number_format($iva_value, 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th style="text-align: left;">Percentagem</th>
+                                <td></td>
+                                <td style="text-align: right;">- {{ number_format($percent_value, 2) }}€</td>
+                                <td style="text-align: right;">- {{ number_format($percent_value, 2) }}€</td>
+                            </tr>
+                            @if (($minimum_billing_difference ?? 0) != 0)
+                            <tr>
+                                <th style="text-align: left;">Diferença de faturação mínima</th>
+                                <td style="text-align: right;">{{ $minimum_billing_difference > 0 ? number_format($minimum_billing_difference, 2) . '€' : '' }}</td>
+                                <td style="text-align: right;">{{ $minimum_billing_difference < 0 ? number_format($minimum_billing_difference, 2) . '€' : '' }}</td>
+                                <td style="text-align: right;">{{ number_format($minimum_billing_difference, 2) }}€</td>
+                            </tr>
+                            @endif
+                            @if (($caution_received ?? 0) != 0)
+                            <tr>
+                                <th style="text-align: left;">Caução recebida</th>
+                                <td style="text-align: right;">{{ number_format($caution_received, 2) }}€</td>
+                                <td></td>
+                                <td style="text-align: right;">Informativo</td>
+                            </tr>
+                            @endif
+                            @if (($caution_returned ?? 0) != 0)
+                            <tr>
+                                <th style="text-align: left;">Caução devolvida</th>
+                                <td style="text-align: right;">{{ number_format($caution_returned, 2) }}€</td>
+                                <td></td>
+                                <td style="text-align: right;">Informativo</td>
+                            </tr>
+                            @endif
+                            <tr>
+                                <th style="text-align: left;">Totais</th>
+                                <th style="text-align: right;">{{ number_format($statement_credits, 2) }}€</th>
+                                <th style="text-align: right;">{{ number_format($statement_debits, 2) }}€</th>
+                                <th style="text-align: right;">{{ number_format($statement_total, 2) }}€</th>
+                            </tr>
+                            @else
                             <tr>
                                 <th></th>
                                 <th style="text-align: right;">Créditos</th>
@@ -327,13 +433,14 @@
                                 <th style="text-align: right;">{{ number_format($final_total, 2) }}€</th>
                                 @endif
                             </tr>
+                            @endif
                         </tbody>
                     </table>
                     <table class="bordered" style="margin-top: 20px;">
                         <tbody>
                             <tr>
                                 <td style="text-align: center; background: #eeeeee;">
-                                    <h2>Valor a pagar: {{ number_format($final_total, 2) }}€</h2>
+                                    <h2>Valor a pagar: {{ number_format($statement_results ? $statement_total : $final_total, 2) }}€</h2>
                                 </td>
                             </tr>
                         </tbody>

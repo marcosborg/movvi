@@ -20,6 +20,7 @@ use App\Models\TvdeYear;
 use App\Models\CurrentAccount;
 use Gate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\Response;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -327,7 +328,10 @@ class FinancialStatementController extends Controller
         $total_earnings = $bolt_activities->sum('net') + $uber_activities->sum('net');
         $total_earnings_no_tip = ($bolt_activities->sum('net') - $bolt_activities->sum('gross')) + ($uber_activities->sum('net') - $uber_activities->sum('gross'));
 
-        $contract_type_ranks = $driver ? ContractTypeRank::where('contract_type_id', $driver->contract_type_id)->get() : [];
+        $contract_type_ranks = [];
+        if ($driver && !$statementResults && Schema::hasTable('contract_type_ranks')) {
+            $contract_type_ranks = ContractTypeRank::where('contract_type_id', $driver->contract_type_id)->get();
+        }
         $contract_type_rank = count($contract_type_ranks) > 0 ? $contract_type_ranks[0] : null;
         foreach ($contract_type_ranks as $value) {
             if ($value->from <= $total_earnings && $value->to >= $total_earnings) {
@@ -413,6 +417,23 @@ class FinancialStatementController extends Controller
             $earnings[] = $entry['earnings'];
         }
 
+        $statementTotalNet = $statementResults ? (float) ($statementResults->total_net ?? 0) : null;
+        $statementTotal = $statementResults ? (float) ($statementResults->driver_total ?? $statementResults->total ?? 0) : null;
+        $statementGeneralAdjustments = $statementResults ? (float) ($statementResults->general_adjustments ?? $statementResults->adjustments ?? 0) : 0;
+        $statementRentDiscount = $statementResults ? (float) ($statementResults->abatimento_aluguer ?? 0) : 0;
+        $statementMinimumBillingDifference = $statementResults ? (float) ($statementResults->diferenca_faturacao_minima ?? 0) : 0;
+        $statementCredits = $statementTotalNet ?? 0;
+
+        if ($statementGeneralAdjustments > 0) {
+            $statementCredits += $statementGeneralAdjustments;
+        }
+        if ($statementMinimumBillingDifference > 0) {
+            $statementCredits += $statementMinimumBillingDifference;
+        }
+        if ($statementRentDiscount > 0) {
+            $statementCredits += $statementRentDiscount;
+        }
+
         return [
             'company_id' => $company_id,
             'company' => $company,
@@ -436,12 +457,23 @@ class FinancialStatementController extends Controller
             'total_tip_after_vat' => $total_tip_after_vat,
             'adjustments' => $adjustments,
             'statement_results' => $statementResults,
+            'statement_uber_gross' => $statementResults ? (float) ($statementResults->uber->uber_gross ?? 0) : null,
+            'statement_uber_net' => $statementResults ? (float) ($statementResults->uber->uber_net ?? 0) : null,
+            'statement_bolt_gross' => $statementResults ? (float) ($statementResults->bolt->bolt_gross ?? 0) : null,
+            'statement_bolt_net' => $statementResults ? (float) ($statementResults->bolt->bolt_net ?? 0) : null,
+            'statement_total_gross' => $statementResults ? (float) ($statementResults->total_gross ?? 0) : null,
+            'statement_total_net' => $statementTotalNet,
+            'statement_total' => $statementTotal,
+            'statement_credits' => $statementResults ? $statementCredits : null,
+            'statement_debits' => $statementResults ? ($statementTotal - $statementCredits) : null,
             'general_adjustments' => $statementResults ? ($statementResults->general_adjustments ?? $statementResults->adjustments ?? 0) : 0,
             'rent_discount' => $statementResults ? ($statementResults->abatimento_aluguer ?? 0) : 0,
             'minimum_billing_difference' => $statementResults ? ($statementResults->diferenca_faturacao_minima ?? 0) : 0,
             'caution_received' => $statementResults ? ($statementResults->caucao_recebida ?? 0) : 0,
             'caution_returned' => $statementResults ? ($statementResults->caucao_devolvida ?? 0) : 0,
             'car_hire_base' => $statementResults ? ($statementResults->car_hire_base ?? $statementResults->car_hire ?? 0) : 0,
+            'car_track' => $statementResults ? ($statementResults->car_track ?? 0) : 0,
+            'fuel_transactions' => $statementResults ? ($statementResults->fuel_transactions ?? 0) : 0,
             'total_earnings' => $total_earnings,
             'total_earnings_no_tip' => $total_earnings_no_tip,
             'total' => $total,
