@@ -471,7 +471,7 @@
                 <table class="bordered">
                     <thead>
                         <tr style="text-align: left; text-transform: uppercase;">
-                            <th>Ranking de faturação semanal por motoristas</th>
+                            <th>Ranking €/km por motorista</th>
                         </tr>
                     </thead>
                     <tbody>

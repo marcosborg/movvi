@@ -382,31 +382,21 @@ class FinancialStatementController extends Controller
             $txt_admin = 0;
         }
 
-        $drivers = Driver::where('company_id', $company_id)->get();
+        $weekReport = $this->getWeekReport($company_id, $tvde_week_id);
+        $drivers = collect($weekReport['drivers'] ?? [])
+            ->filter(fn ($d) => !empty($d->earnings))
+            ->sortByDesc(fn ($d) => (float) ($d->earnings_per_km ?? 0))
+            ->values();
         $team_earnings = collect();
         $labels = [];
         $earnings = [];
 
         foreach ($drivers as $key => $d) {
-            $team_driver_bolt_earnings = TvdeActivity::where([
-                'tvde_week_id' => $tvde_week_id,
-                'tvde_operator_id' => 2,
-            ])
-                ->whereIn('driver_code', $d->boltIdentifiers())
-                ->get()->sum('net');
-
-            $team_driver_uber_earnings = TvdeActivity::where([
-                'tvde_week_id' => $tvde_week_id,
-                'tvde_operator_id' => 1,
-                'driver_code' => $d->uber_uuid,
-            ])->get()->sum('net');
-
-            $team_driver_earnings = $team_driver_bolt_earnings + $team_driver_uber_earnings;
             if ($driver) {
                 $entry = collect([
-                    'driver' => $driver->uber_uuid == $d->uber_uuid || !empty(array_intersect($driver->boltIdentifiers(), $d->boltIdentifiers())) ? $driver->name : 'Motorista ' . $key + 1,
-                    'earnings' => sprintf("%.2f", $team_driver_earnings),
-                    'own' => $driver->uber_uuid == $d->uber_uuid || !empty(array_intersect($driver->boltIdentifiers(), $d->boltIdentifiers())),
+                    'driver' => $driver->id === $d->id ? $driver->name : 'Motorista ' . ($key + 1),
+                    'earnings' => number_format((float) ($d->earnings_per_km ?? 0), 3, '.', ''),
+                    'own' => $driver->id === $d->id,
                 ]);
                 $team_earnings->add($entry);
             }
@@ -491,7 +481,7 @@ class FinancialStatementController extends Controller
             'percent_value' => $statementResults ? ($statementResults->percent_value ?? 0) : 0,
             'txt_admin' => $txt_admin,
             'team_earnings' => $team_earnings,
-            'chart1' => "https://quickchart.io/chart?c={type:'bar',data:{labels:" . json_encode($labels) . ",datasets:[{borderWidth: 1, label:'Valor faturado',data:" . json_encode($earnings) . "}]}}",
+            'chart1' => "https://quickchart.io/chart?c={type:'bar',data:{labels:" . json_encode($labels) . ",datasets:[{borderWidth: 1, label:'EUR/km',data:" . json_encode($earnings) . "}]}}",
             'chart2' => "https://quickchart.io/chart?c={type:'doughnut',data:{labels:['UBER', 'BOLT', 'GORJETAS'],datasets:[{label: 'Valor faturado', data: [" . $total_earnings_uber . ", " . $total_earnings_bolt . ", " . $total_tips . "]}]}}",
         ];
     }
