@@ -515,7 +515,7 @@
     </table>
     @endif
     <footer>
-        Tribos&Montanhas ©
+        Movvi ©
         <?php echo date("Y");?>
     </footer>
 </body>
