@@ -210,7 +210,19 @@ class VehicleProfitabilityController extends Controller
             'company' => $company,
         ])->setOption([
             'isRemoteEnabled' => true,
-        ])->setPaper('a4', 'landscape')->stream(sprintf('vehicle-profitability-week-%d.pdf', $weekId));
+        ])->setPaper('a4', 'landscape')->stream($this->weekPdfFilename($week));
+    }
+
+    protected function weekPdfFilename(TvdeWeek $week): string
+    {
+        $weekNumber = $week->display_number ?? $week->number ?? $week->id;
+        $weekYear = $week->display_year;
+
+        if ($weekYear) {
+            return sprintf('vehicle-profitability-week-%s-%s.pdf', $weekNumber, $weekYear);
+        }
+
+        return sprintf('vehicle-profitability-week-%s.pdf', $weekNumber);
     }
 
     protected function selectedCompanyId(): ?int
