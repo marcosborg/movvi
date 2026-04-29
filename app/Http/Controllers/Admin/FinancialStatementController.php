@@ -395,12 +395,14 @@ class FinancialStatementController extends Controller
         $team_earnings = collect();
         $labels = [];
         $earnings = [];
+        $barColors = [];
+        $barBorderColors = [];
 
         foreach ($drivers as $key => $d) {
             if ($driver) {
                 $entry = collect([
                     'driver' => $driver->id === $d->id ? $driver->name : 'Motorista ' . ($key + 1),
-                    'earnings' => number_format((float) ($d->earnings_per_km ?? 0), 3, '.', ''),
+                    'earnings' => round((float) ($d->earnings_per_km ?? 0), 3),
                     'own' => $driver->id === $d->id,
                 ]);
                 $team_earnings->add($entry);
@@ -410,6 +412,8 @@ class FinancialStatementController extends Controller
         foreach ($team_earnings as $entry) {
             $labels[] = $entry['driver'];
             $earnings[] = $entry['earnings'];
+            $barColors[] = $entry['own'] ? '#c15f45' : '#d6dce2';
+            $barBorderColors[] = $entry['own'] ? '#8e3f2c' : '#aeb7c1';
         }
 
         $statementTotalNet = $statementResults ? (float) ($statementResults->total_net ?? 0) : null;
@@ -448,6 +452,36 @@ class FinancialStatementController extends Controller
             max(0, round($chartUberEarnings, 2)),
             max(0, round($chartBoltEarnings, 2)),
             max(0, round($chartTips, 2)),
+        ];
+        $earningsPerKmChart = [
+            'type' => 'bar',
+            'data' => [
+                'labels' => $labels,
+                'datasets' => [[
+                    'borderWidth' => 2,
+                    'label' => 'EUR/km',
+                    'data' => $earnings,
+                    'backgroundColor' => $barColors,
+                    'borderColor' => $barBorderColors,
+                ]],
+            ],
+            'options' => [
+                'legend' => ['display' => false],
+                'plugins' => [
+                    'datalabels' => [
+                        'anchor' => 'end',
+                        'align' => 'top',
+                        'color' => '#1f2933',
+                    ],
+                ],
+                'scales' => [
+                    'yAxes' => [[
+                        'ticks' => [
+                            'beginAtZero' => true,
+                        ],
+                    ]],
+                ],
+            ],
         ];
 
         return [
@@ -507,7 +541,7 @@ class FinancialStatementController extends Controller
             'percent_value' => $statementResults ? ($statementResults->percent_value ?? 0) : 0,
             'txt_admin' => $txt_admin,
             'team_earnings' => $team_earnings,
-            'chart1' => "https://quickchart.io/chart?c={type:'bar',data:{labels:" . json_encode($labels) . ",datasets:[{borderWidth: 1, label:'EUR/km',data:" . json_encode($earnings) . "}]}}",
+            'chart1' => 'https://quickchart.io/chart?' . http_build_query(['c' => json_encode($earningsPerKmChart)]),
             'chart2' => "https://quickchart.io/chart?c={type:'doughnut',data:{labels:['UBER', 'BOLT', 'GORJETAS'],datasets:[{label: 'Valor faturado', data:" . json_encode($earningsSourceChartData) . "}]}}",
         ];
     }
