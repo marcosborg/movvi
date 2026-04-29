@@ -66,7 +66,7 @@
                 <div class="panel-body">
                     <table class="table table-striped">
                         <tr>
-                            <th>IVA</th>
+                            <th>Taxa 6%</th>
                             <td style="color: red;">- {{ number_format($iva_value ?? 0, 2) }}€</td>
                         </tr>
                         <tr>
@@ -127,7 +127,7 @@
                             @endforeach
                             @endif
                             <tr>
-                                <th>IVA</th>
+                                <th>Taxa 6%</th>
                                 <td></td>
                                 <td>- {{ number_format($iva_value ?? 0, 2) }}€</td>
                                 <td>- {{ number_format($iva_value ?? 0, 2) }}€</td>

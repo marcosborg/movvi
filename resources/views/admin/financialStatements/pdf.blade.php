@@ -255,7 +255,7 @@
                                 <td style="text-align: right;">{{ number_format($general_adjustments, 2) }}€</td>
                             </tr>
                             <tr>
-                                <th style="text-align: left;">IVA</th>
+                                <th style="text-align: left;">Taxa 6%</th>
                                 <td></td>
                                 <td style="text-align: right;">- {{ number_format($iva_value, 2) }}€</td>
                                 <td style="text-align: right;">- {{ number_format($iva_value, 2) }}€</td>
@@ -361,7 +361,7 @@
                             @endif
                             @if (($iva_value ?? 0) != 0)
                             <tr>
-                                <th style="text-align: left;">IVA</th>
+                                <th style="text-align: left;">Taxa 6%</th>
                                 <td></td>
                                 <td style="text-align: right;">- {{ number_format($iva_value, 2) }}€</td>
                                 <td></td>
