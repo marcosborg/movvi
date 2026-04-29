@@ -320,13 +320,18 @@ class FinancialStatementController extends Controller
             ]);
         }
 
-        $total_earnings_bolt = number_format($bolt_activities->sum('net') - $bolt_activities->sum('gross'), 2, '.', '');
-        $total_tips_bolt = number_format($bolt_activities->sum('gross'), 2);
-        $total_earnings_uber = number_format($uber_activities->sum('net') - $uber_activities->sum('gross'), 2, '.', '');
-        $total_tips_uber = number_format($uber_activities->sum('gross'), 2);
-        $total_tips = $total_tips_uber + $total_tips_bolt;
+        $total_tips_bolt_value = (float) $bolt_activities->sum('tips');
+        $total_tips_uber_value = (float) $uber_activities->sum('tips');
+        $total_earnings_bolt_value = (float) $bolt_activities->sum('net') - $total_tips_bolt_value;
+        $total_earnings_uber_value = (float) $uber_activities->sum('net') - $total_tips_uber_value;
+
+        $total_earnings_bolt = number_format($total_earnings_bolt_value, 2, '.', '');
+        $total_tips_bolt = number_format($total_tips_bolt_value, 2, '.', '');
+        $total_earnings_uber = number_format($total_earnings_uber_value, 2, '.', '');
+        $total_tips_uber = number_format($total_tips_uber_value, 2, '.', '');
+        $total_tips = $total_tips_uber_value + $total_tips_bolt_value;
         $total_earnings = $bolt_activities->sum('net') + $uber_activities->sum('net');
-        $total_earnings_no_tip = ($bolt_activities->sum('net') - $bolt_activities->sum('gross')) + ($uber_activities->sum('net') - $uber_activities->sum('gross'));
+        $total_earnings_no_tip = $total_earnings_bolt_value + $total_earnings_uber_value;
 
         $contract_type_ranks = [];
         if ($driver && !$statementResults && Schema::hasTable('contract_type_ranks')) {
@@ -339,8 +344,8 @@ class FinancialStatementController extends Controller
             }
         }
 
-        $total_bolt = number_format(($bolt_activities->sum('net') - $bolt_activities->sum('gross')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0), 2, '.', '');
-        $total_uber = number_format(($uber_activities->sum('net') - $uber_activities->sum('gross')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0), 2, '.', '');
+        $total_bolt = number_format($total_earnings_bolt_value * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0), 2, '.', '');
+        $total_uber = number_format($total_earnings_uber_value * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0), 2, '.', '');
         $total_earnings_after_vat = $total_bolt + $total_uber;
 
         $bolt_tip_percent = $driver ? 100 - $driver->contract_vat->tips : 100;
@@ -424,6 +429,27 @@ class FinancialStatementController extends Controller
             $statementCredits += $statementRentDiscount;
         }
 
+        $chartUberTips = $statementResults
+            ? (float) ($statementResults->uber->uber_tips ?? 0)
+            : $total_tips_uber_value;
+        $chartBoltTips = $statementResults
+            ? (float) ($statementResults->bolt->bolt_tips ?? 0)
+            : $total_tips_bolt_value;
+        $chartTips = $statementResults
+            ? (float) ($statementResults->tips_total ?? ($chartUberTips + $chartBoltTips))
+            : $total_tips;
+        $chartUberEarnings = $statementResults
+            ? (float) ($statementResults->uber->uber_net ?? 0) - $chartUberTips
+            : $total_earnings_uber_value;
+        $chartBoltEarnings = $statementResults
+            ? (float) ($statementResults->bolt->bolt_net ?? 0) - $chartBoltTips
+            : $total_earnings_bolt_value;
+        $earningsSourceChartData = [
+            max(0, round($chartUberEarnings, 2)),
+            max(0, round($chartBoltEarnings, 2)),
+            max(0, round($chartTips, 2)),
+        ];
+
         return [
             'company_id' => $company_id,
             'company' => $company,
@@ -482,7 +508,7 @@ class FinancialStatementController extends Controller
             'txt_admin' => $txt_admin,
             'team_earnings' => $team_earnings,
             'chart1' => "https://quickchart.io/chart?c={type:'bar',data:{labels:" . json_encode($labels) . ",datasets:[{borderWidth: 1, label:'EUR/km',data:" . json_encode($earnings) . "}]}}",
-            'chart2' => "https://quickchart.io/chart?c={type:'doughnut',data:{labels:['UBER', 'BOLT', 'GORJETAS'],datasets:[{label: 'Valor faturado', data: [" . $total_earnings_uber . ", " . $total_earnings_bolt . ", " . $total_tips . "]}]}}",
+            'chart2' => "https://quickchart.io/chart?c={type:'doughnut',data:{labels:['UBER', 'BOLT', 'GORJETAS'],datasets:[{label: 'Valor faturado', data:" . json_encode($earningsSourceChartData) . "}]}}",
         ];
     }
 
