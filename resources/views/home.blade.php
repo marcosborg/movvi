@@ -61,13 +61,17 @@
             </div>
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    Taxa das atividades por operador
+                    Retenções
                 </div>
                 <div class="panel-body">
                     <table class="table table-striped">
                         <tr>
-                            <th>Taxa</th>
-                            <td style="color: red;">- {{ number_format($vat_value, 2) }}€</td>
+                            <th>IVA</th>
+                            <td style="color: red;">- {{ number_format($iva_value ?? 0, 2) }}€</td>
+                        </tr>
+                        <tr>
+                            <th>Percentagem</th>
+                            <td style="color: red;">- {{ number_format($percent_value ?? 0, 2) }}€</td>
                         </tr>
                     </table>
                 </div>
@@ -123,10 +127,16 @@
                             @endforeach
                             @endif
                             <tr>
-                                <th>Taxa</th>
+                                <th>IVA</th>
                                 <td></td>
-                                <td>- {{ number_format($vat_value, 2) }}€</td>
-                                <td>- {{ number_format($vat_value, 2) }}€</td>
+                                <td>- {{ number_format($iva_value ?? 0, 2) }}€</td>
+                                <td>- {{ number_format($iva_value ?? 0, 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th>Percentagem</th>
+                                <td></td>
+                                <td>- {{ number_format($percent_value ?? 0, 2) }}€</td>
+                                <td>- {{ number_format($percent_value ?? 0, 2) }}€</td>
                             </tr>
                             @php
                                 if ($adjustments && $adjustments > 0) {

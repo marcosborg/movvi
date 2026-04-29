@@ -198,6 +198,8 @@ class HomeController
             'adjustments_array'         => isset($results) && isset($results->adjustments_array) ? $results->adjustments_array : 0,
             'total'                     => $total ?? 0,
             'vat_value'                 => isset($results) ? $results->vat_value : 0,
+            'iva_value'                 => isset($results) ? ($results->iva_value ?? $results->vat_value ?? 0) : 0,
+            'percent_value'             => isset($results) ? ($results->percent_value ?? 0) : 0,
             'car_track'                 => isset($results) ? $results->car_track : 0,
             'car_hire'                  => isset($results) ? $results->car_hire : 0,
             'fuel_transactions'         => isset($results) ? $results->fuel_transactions : 0,
