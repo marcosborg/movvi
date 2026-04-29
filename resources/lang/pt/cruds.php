@@ -1599,6 +1599,8 @@ return [
             'id_helper'         => ' ',
             'card'              => 'Card',
             'card_helper'       => ' ',
+            'supplier'          => 'Tipo de cartao',
+            'supplier_helper'   => ' ',
             'date'              => 'Date',
             'date_helper'       => ' ',
             'amount'            => 'Amount',
@@ -2534,5 +2536,4 @@ return [
         ],
     ],
 ];
-
 

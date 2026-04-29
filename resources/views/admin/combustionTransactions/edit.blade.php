@@ -32,6 +32,21 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.combustionTransaction.fields.card_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('supplier') ? 'has-error' : '' }}">
+                            <label class="required">{{ trans('cruds.combustionTransaction.fields.supplier') }}</label>
+                            @foreach($supplierOptions as $value => $label)
+                                <div class="radio">
+                                    <label>
+                                        <input type="radio" name="supplier" value="{{ $value }}" {{ old('supplier', $combustionTransaction->supplier) === $value ? 'checked' : '' }} required>
+                                        {{ $label }}
+                                    </label>
+                                </div>
+                            @endforeach
+                            @if($errors->has('supplier'))
+                                <span class="help-block" role="alert">{{ $errors->first('supplier') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.combustionTransaction.fields.supplier_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('date') ? 'has-error' : '' }}">
                             <label for="date">{{ trans('cruds.combustionTransaction.fields.date') }}</label>
                             <input class="form-control datetime" type="text" name="date" id="date" value="{{ old('date', $combustionTransaction->date) }}">

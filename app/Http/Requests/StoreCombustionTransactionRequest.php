@@ -25,6 +25,10 @@ class StoreCombustionTransactionRequest extends FormRequest
                 'string',
                 'required',
             ],
+            'supplier' => [
+                'required',
+                'in:repsol,prio,prio_combustao',
+            ],
             'date' => [
                 'nullable',
                 'date',

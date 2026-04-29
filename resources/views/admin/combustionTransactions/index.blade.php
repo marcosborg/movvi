@@ -42,6 +42,15 @@
                     {{ trans('cruds.combustionTransaction.title_singular') }} {{ trans('global.list') }}
                 </div>
                 <div class="panel-body">
+                    <div class="form-inline" style="margin-bottom: 15px;">
+                        <label for="supplier_filter" style="margin-right: 8px;">Tipo de cartao</label>
+                        <select id="supplier_filter" class="form-control" style="min-width: 180px;">
+                            <option value="">Todos</option>
+                            @foreach($supplierOptions as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <table class=" table table-bordered table-striped table-hover ajaxTable datatable datatable-CombustionTransaction">
                         <thead>
                             <tr>
@@ -56,6 +65,9 @@
                                 </th>
                                 <th>
                                     {{ trans('cruds.combustionTransaction.fields.card') }}
+                                </th>
+                                <th>
+                                    Tipo
                                 </th>
                                 <th>
                                     {{ trans('cruds.combustionTransaction.fields.date') }}
@@ -150,12 +162,18 @@
     serverSide: true,
     retrieve: true,
     aaSorting: [],
-    ajax: "{{ route('admin.combustion-transactions.index') }}",
+    ajax: {
+      url: "{{ route('admin.combustion-transactions.index') }}",
+      data: function (d) {
+        d.supplier_filter = $('#supplier_filter').val();
+      }
+    },
     columns: [
       { data: 'placeholder', name: 'placeholder' },
 { data: 'id', name: 'id' },
 { data: 'tvde_week_start_date', name: 'tvde_week.start_date' },
 { data: 'card', name: 'card' },
+{ data: 'supplier', name: 'supplier' },
 { data: 'date', name: 'date' },
 { data: 'exist', name: 'exist', orderable: false, searchable: false },
 { data: 'amount', name: 'amount' },
@@ -167,6 +185,9 @@
     pageLength: 100,
   };
   let table = $('.datatable-CombustionTransaction').DataTable(dtOverrideGlobals);
+  $('#supplier_filter').on('change', function () {
+    table.ajax.reload();
+  });
   $('a[data-toggle="tab"]').on('shown.bs.tab click', function(e){
       $($.fn.dataTable.tables(true)).DataTable()
           .columns.adjust();

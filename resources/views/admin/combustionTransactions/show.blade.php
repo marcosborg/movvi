@@ -43,6 +43,14 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        {{ trans('cruds.combustionTransaction.fields.supplier') }}
+                                    </th>
+                                    <td>
+                                        {{ $combustionTransaction->supplier_label }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.combustionTransaction.fields.date') }}
                                     </th>
                                     <td>

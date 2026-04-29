@@ -13,6 +13,16 @@ class CombustionTransaction extends Model
 
     public $table = 'combustion_transactions';
 
+    public const SUPPLIER_REPSOL = 'repsol';
+    public const SUPPLIER_PRIO = 'prio';
+    public const SUPPLIER_PRIO_COMBUSTAO = 'prio_combustao';
+
+    public const SUPPLIER_LABELS = [
+        self::SUPPLIER_REPSOL => 'Repsol',
+        self::SUPPLIER_PRIO => 'Prio',
+        self::SUPPLIER_PRIO_COMBUSTAO => 'Prio Combustao',
+    ];
+
     protected $dates = [
         'date',
         'created_at',
@@ -25,6 +35,7 @@ class CombustionTransaction extends Model
         'vehicle_item_id',
         'driver_id',
         'card',
+        'supplier',
         'amount',
         'total',
         'date',
@@ -60,6 +71,11 @@ class CombustionTransaction extends Model
         // local key = 'card' (código no abastecimento)
         // owner key = 'code' (código no cartão)
         return $this->belongsTo(Card::class, 'card', 'code')->withTrashed();
+    }
+
+    public function getSupplierLabelAttribute(): string
+    {
+        return self::SUPPLIER_LABELS[$this->supplier] ?? '';
     }
 
     /** Unidade calculada a partir do tipo do cartão (kWh ou L) */

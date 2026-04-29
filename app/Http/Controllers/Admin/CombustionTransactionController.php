@@ -27,6 +27,11 @@ class CombustionTransactionController extends Controller
 
         if ($request->ajax()) {
             $query = CombustionTransaction::with(['tvde_week'])->select(sprintf('%s.*', (new CombustionTransaction)->table));
+
+            if ($request->filled('supplier_filter')) {
+                $query->where('supplier', $request->supplier_filter);
+            }
+
             $table = Datatables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
@@ -56,6 +61,10 @@ class CombustionTransactionController extends Controller
 
             $table->editColumn('card', function ($row) {
                 return $row->card ? $row->card : '';
+            });
+
+            $table->editColumn('supplier', function ($row) {
+                return $row->supplier_label;
             });
 
             $table->editColumn('date', function ($row) {
@@ -100,8 +109,9 @@ class CombustionTransactionController extends Controller
         }
 
         $tvde_weeks = TvdeWeek::orderBy('start_date', 'desc')->get();
+        $supplierOptions = CombustionTransaction::SUPPLIER_LABELS;
 
-        return view('admin.combustionTransactions.index', compact('tvde_weeks'));
+        return view('admin.combustionTransactions.index', compact('tvde_weeks', 'supplierOptions'));
     }
 
     public function create()
@@ -110,7 +120,9 @@ class CombustionTransactionController extends Controller
 
         $tvde_weeks = TvdeWeek::orderBy('start_date', 'desc')->get()->pluck('start_date', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.combustionTransactions.create', compact('tvde_weeks'));
+        $supplierOptions = CombustionTransaction::SUPPLIER_LABELS;
+
+        return view('admin.combustionTransactions.create', compact('tvde_weeks', 'supplierOptions'));
     }
 
     public function store(StoreCombustionTransactionRequest $request, CombustionTransactionAssignmentService $assignmentService)
@@ -129,7 +141,9 @@ class CombustionTransactionController extends Controller
 
         $combustionTransaction->load('tvde_week');
 
-        return view('admin.combustionTransactions.edit', compact('combustionTransaction', 'tvde_weeks'));
+        $supplierOptions = CombustionTransaction::SUPPLIER_LABELS;
+
+        return view('admin.combustionTransactions.edit', compact('combustionTransaction', 'tvde_weeks', 'supplierOptions'));
     }
 
     public function update(UpdateCombustionTransactionRequest $request, CombustionTransaction $combustionTransaction, CombustionTransactionAssignmentService $assignmentService)
@@ -213,8 +227,11 @@ class CombustionTransactionController extends Controller
                 continue;
             }
 
+            $transaction['supplier'] = $supplier;
+
             $signature = implode('|', [
                 $transaction['tvde_week_id'],
+                $transaction['supplier'],
                 $transaction['card'],
                 $transaction['date'] ?? '',
                 $transaction['amount'],
@@ -233,6 +250,10 @@ class CombustionTransactionController extends Controller
         foreach ($transactions as $transaction) {
             $existing = CombustionTransaction::withTrashed()
                 ->where('tvde_week_id', $transaction['tvde_week_id'])
+                ->where(function ($query) use ($transaction) {
+                    $query->where('supplier', $transaction['supplier'])
+                        ->orWhereNull('supplier');
+                })
                 ->where('card', $transaction['card'])
                 ->where('amount', $transaction['amount'])
                 ->where('total', $transaction['total']);
@@ -248,6 +269,11 @@ class CombustionTransactionController extends Controller
             if ($existing) {
                 if ($existing->trashed()) {
                     $existing->restore();
+                }
+
+                if (!$existing->supplier) {
+                    $existing->supplier = $supplier;
+                    $existing->save();
                 }
 
                 $assignmentService->assign($existing);
