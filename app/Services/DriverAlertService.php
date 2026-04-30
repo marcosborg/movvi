@@ -2,69 +2,66 @@
 
 namespace App\Services;
 
-use App\Models\CurrentAccount;
 use App\Models\DriverAlert;
-use App\Models\Receipt;
 use Illuminate\Support\Carbon;
 
 class DriverAlertService
 {
+    public function __construct(protected ReceiptControlService $receiptControlService)
+    {
+    }
+
     public function checkMissingReceipts(): int
     {
-        $accounts = CurrentAccount::with(['driver', 'tvde_week'])
-            ->whereHas('driver')
-            ->get(['id', 'driver_id', 'tvde_week_id', 'data']);
-
-        if ($accounts->isEmpty()) {
-            return 0;
-        }
-
-        $receiptKeys = Receipt::whereIn('driver_id', $accounts->pluck('driver_id')->filter()->unique())
-            ->whereIn('tvde_week_id', $accounts->pluck('tvde_week_id')->filter()->unique())
-            ->get(['driver_id', 'tvde_week_id'])
-            ->map(fn ($receipt) => $receipt->driver_id . ':' . $receipt->tvde_week_id)
-            ->flip();
-
-        $existingAlerts = DriverAlert::whereIn('driver_id', $accounts->pluck('driver_id')->filter()->unique())
-            ->where('type', 'like', 'missing_receipt_week_%')
-            ->get()
-            ->keyBy(fn ($alert) => $alert->driver_id . ':' . $alert->type);
-
+        $rows = $this->receiptControlService->rows([
+            'status' => ReceiptControlService::STATUS_ALL,
+        ]);
         $now = Carbon::now();
         $alertCount = 0;
         $upserts = [];
         $resolveIds = [];
+        $driverIds = $rows->pluck('driver.id')->filter()->unique();
 
-        foreach ($accounts as $account) {
-            if (!$account->driver || !$account->tvde_week_id || !$this->hasIncome($account->data)) {
+        if ($driverIds->isEmpty()) {
+            return 0;
+        }
+
+        $existingAlerts = DriverAlert::whereIn('driver_id', $driverIds)
+            ->where('type', 'like', 'missing_receipt_week_%')
+            ->get()
+            ->keyBy(fn ($alert) => $alert->driver_id . ':' . $alert->type);
+
+        foreach ($rows as $row) {
+            $driver = $row['driver'];
+            $week = $row['week'];
+
+            if (!$driver || !$week) {
                 continue;
             }
 
-            $type = $this->buildAlertType((int) $account->tvde_week_id);
-            $alertKey = $account->driver_id . ':' . $type;
-            $receiptKey = $account->driver_id . ':' . $account->tvde_week_id;
+            $type = $this->buildAlertType((int) $week->id);
+            $alertKey = $driver->id . ':' . $type;
+            $existingAlert = $existingAlerts->get($alertKey);
 
-            if ($receiptKeys->has($receiptKey)) {
-                $existingAlert = $existingAlerts->get($alertKey);
-
+            if ($row['status'] !== ReceiptControlService::STATUS_MISSING) {
                 if ($existingAlert && $existingAlert->resolved_at === null) {
                     $resolveIds[] = $existingAlert->id;
                 }
-
                 continue;
             }
 
             $alertCount++;
             $upserts[] = [
-                'driver_id' => $account->driver_id,
+                'driver_id' => $driver->id,
                 'type' => $type,
                 'message' => sprintf(
-                    'O condutor %s tem rendimento na semana %s e nao tem recibo associado.',
-                    $account->driver->name,
-                    $account->tvde_week?->start_date . ' a ' . $account->tvde_week?->end_date
+                    'O condutor %s tem %.2f EUR a receber na semana %s e nao tem recibo associado.',
+                    $driver->name,
+                    (float) $row['required_value'],
+                    $week->start_date . ' a ' . $week->end_date
                 ),
                 'resolved_at' => null,
-                'created_at' => $existingAlerts->has($alertKey) ? $existingAlerts->get($alertKey)->created_at : $now,
+                'created_at' => $existingAlert ? $existingAlert->created_at : $now,
                 'updated_at' => $now,
             ];
         }
@@ -85,25 +82,6 @@ class DriverAlertService
         }
 
         return $alertCount;
-    }
-
-    protected function hasIncome(?string $data): bool
-    {
-        $earnings = json_decode($data ?? '', true) ?? [];
-
-        $candidates = [
-            $earnings['total_net'] ?? null,
-            $earnings['total_after_vat'] ?? null,
-            $earnings['total_gross'] ?? null,
-        ];
-
-        foreach ($candidates as $value) {
-            if ((float) $value > 0) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     protected function buildAlertType(int $tvdeWeekId): string

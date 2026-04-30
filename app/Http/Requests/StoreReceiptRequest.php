@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Receipt;
 use Gate;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Http\Response;
+use Illuminate\Validation\Rule;
 
 class StoreReceiptRequest extends FormRequest
 {
@@ -20,6 +19,16 @@ class StoreReceiptRequest extends FormRequest
             'driver_id' => [
                 'required',
                 'integer',
+                'exists:drivers,id',
+            ],
+            'tvde_week_id' => [
+                'required',
+                'integer',
+                'exists:tvde_weeks,id',
+                Rule::unique('receipts', 'tvde_week_id')
+                    ->where(fn ($query) => $query
+                        ->where('driver_id', $this->input('driver_id'))
+                        ->whereNull('deleted_at')),
             ],
             'value' => [
                 'required',
