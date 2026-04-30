@@ -322,7 +322,7 @@ class TvdeActivityController extends Controller
                 'driver_code_stable' => 0,
                 'gross' => 6,
                 'net' => 3,
-                'tips' => 19,
+                'tips' => 18,
             ];
         }
 
