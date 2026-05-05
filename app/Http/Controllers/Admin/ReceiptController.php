@@ -72,26 +72,29 @@ class ReceiptController extends Controller
                 return $row->value ? $row->value : '';
             });
             $table->editColumn('balance', function ($row) {
-                return $row->balance ? $row->balance : '';
+                return $this->receiptBalanceValue($row) ?? '';
             });
 
             $table->editColumn('iva', function ($row) {
                 $driver = Driver::find($row->driver->id)->load('contract_vat');
                 $factor = $driver->contract_vat->iva / 100;
-                $value = number_format(($row->balance * $factor), 2, '.');
+                $balance = (float) ($this->receiptBalanceValue($row) ?? 0);
+                $value = number_format(($balance * $factor), 2, '.');
                 return $driver ? $value : '';
             });
 
             $table->editColumn('rf', function ($row) {
                 $driver = Driver::find($row->driver->id)->load('contract_vat');
                 $factor = $driver->contract_vat->rf / 100;
-                $value = number_format(- ($row->balance * $factor), 2, '.');
+                $balance = (float) ($this->receiptBalanceValue($row) ?? 0);
+                $value = number_format(- ($balance * $factor), 2, '.');
                 return $driver ? $value : '';
             });
 
             $table->editColumn('final', function ($row) {
                 $driver = Driver::find($row->driver->id)->load('contract_vat');
-                $final = number_format($row->balance, 2, '.', '');
+                $balance = (float) ($this->receiptBalanceValue($row) ?? 0);
+                $final = number_format($balance, 2, '.', '');
                 return $driver ? $final : '';
             });
 
@@ -99,7 +102,13 @@ class ReceiptController extends Controller
                 return $row->file ? '<a href="' . $row->file->getUrl() . '" target="_blank">' . trans('global.downloadFile') . '</a>' : '';
             });
             $table->editColumn('receipt_value', function ($row) {
-                return '<input id="receipt_value-' . $row->id . '" type="number" value="' . $row->verified_value . '" ' . ($row->verified ? 'disabled' : '') . '>';
+                $value = $row->verified_value !== null && $row->verified_value !== ''
+                    ? (float) $row->verified_value
+                    : $this->receiptBalanceValue($row);
+
+                $value = $value !== null ? number_format((float) $value, 2, '.', '') : '';
+
+                return '<input id="receipt_value-' . $row->id . '" type="number" step="0.01" value="' . e($value) . '" ' . ($row->verified ? 'disabled' : '') . '>';
             });
             $table->editColumn('verified', function ($row) {
                 return '<input id="verified-' . $row->id . '" onclick="checkVerified(' . $row->id . ')" type="checkbox" ' . ($row->verified ? 'disabled' : '') . ' ' . ($row->verified ? 'checked' : null) . '>';
@@ -261,5 +270,27 @@ class ReceiptController extends Controller
 
         $drivers_balance->new_balance = (float) ($drivers_balance->new_balance ?? 0) - $receiptValue;
         $drivers_balance->save();
+    }
+
+    protected function receiptBalanceValue(Receipt $receipt): ?float
+    {
+        if ($receipt->balance !== null && $receipt->balance !== '') {
+            return (float) $receipt->balance;
+        }
+
+        if (!$receipt->driver_id || !$receipt->tvde_week_id) {
+            return null;
+        }
+
+        $driversBalance = DriversBalance::where([
+            'driver_id' => $receipt->driver_id,
+            'tvde_week_id' => $receipt->tvde_week_id,
+        ])->first();
+
+        if (!$driversBalance || $driversBalance->new_balance === null) {
+            return null;
+        }
+
+        return (float) $driversBalance->new_balance;
     }
 }
