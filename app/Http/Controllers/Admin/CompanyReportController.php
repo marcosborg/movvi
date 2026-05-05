@@ -223,10 +223,8 @@ class CompanyReportController extends Controller
             $current_account->save();
 
             // 🔹 Último saldo
-            $last_balance = DriversBalance::where('driver_id', $data['driver']['id'])
-                ->where('tvde_week_id', '!=', $data['tvde_week_id'])
-                ->orderBy('tvde_week_id', 'desc')
-                ->first();
+            $tvde_week = TvdeWeek::find((int) $data['tvde_week_id']);
+            $last_balance = $this->previousDriverBalanceBeforeWeek((int) $data['driver']['id'], $tvde_week);
 
             $last_balance = $last_balance ? (float) $last_balance->new_balance : 0.0;
             $new_balance = $last_balance + $total;
@@ -275,9 +273,8 @@ class CompanyReportController extends Controller
             'driver_id' => $driver_id
         ])->delete();
 
-        $last_balance = DriversBalance::where([
-            'driver_id' => $data['driver']['id'],
-        ])->orderBy('tvde_week_id', 'desc')->first();
+        $tvde_week = TvdeWeek::find((int) $tvde_week_id);
+        $last_balance = $this->previousDriverBalanceBeforeWeek((int) $data['driver']['id'], $tvde_week);
 
         $previous_balance = $last_balance ? (float) $last_balance->new_balance : 0.0;
         $new_balance = $previous_balance + ($data['driver']['total'] ?? 0);

@@ -394,16 +394,18 @@ trait Reports
 
 
             // BALANCE
-            $driver_balance = DriversBalance::where('driver_id', $driver->id)
-                ->where('tvde_week_id', '!=', $tvde_week_id)
-                ->orderBy('id', 'desc')->first();
+            $current_balance = DriversBalance::where([
+                'tvde_week_id' => $tvde_week_id,
+                'driver_id' => $driver->id,
+            ])->first();
 
-            $driver->last_balance = $driver_balance ? (float) $driver_balance->new_balance : 0.0;
-
-            if ($driver_balance) {
-                (float) $driver->new_balance = $driver_balance->new_balance + $final_total;
+            if ($current_balance) {
+                $driver->last_balance = (float) ($current_balance->last_balance ?? 0);
+                $driver->new_balance = (float) ($current_balance->new_balance ?? 0);
             } else {
-                (float) $driver->new_balance = $final_total;
+                $driver_balance = $this->previousDriverBalanceBeforeWeek((int) $driver->id, $tvde_week);
+                $driver->last_balance = $driver_balance ? (float) $driver_balance->new_balance : 0.0;
+                $driver->new_balance = $driver->last_balance + $final_total;
             }
 
             // Totais finais do driver (pipeline novo)
@@ -487,11 +489,6 @@ trait Reports
             ])->first();
 
             $driver->current_account = (bool) $current_account;
-
-            $current_balance = DriversBalance::where([
-                'tvde_week_id' => $tvde_week_id,
-                'driver_id' => $driver->id,
-            ])->first();
 
             $driver->balance_manual_status = $current_balance?->manual_status;
             $driver->balance_manual_status_label = $current_balance?->manual_status_label;
@@ -1222,6 +1219,24 @@ trait Reports
             ->unique('signature')
             ->sortBy('date')
             ->values();
+    }
+
+    protected function previousDriverBalanceBeforeWeek(int $driverId, ?TvdeWeek $week): ?DriversBalance
+    {
+        if (!$week) {
+            return null;
+        }
+
+        $weekStart = Carbon::parse($week->getRawOriginal('start_date') ?: $week->start_date)->toDateString();
+
+        return DriversBalance::query()
+            ->select('drivers_balances.*')
+            ->join('tvde_weeks', 'drivers_balances.tvde_week_id', '=', 'tvde_weeks.id')
+            ->where('drivers_balances.driver_id', $driverId)
+            ->where('tvde_weeks.start_date', '<', $weekStart)
+            ->orderByDesc('tvde_weeks.start_date')
+            ->orderByDesc('drivers_balances.id')
+            ->first();
     }
 
     /**
