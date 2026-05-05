@@ -294,6 +294,7 @@
             <div class="panel-heading">
                 Faturação
                 <span class="label label-default" style="margin-left: 8px;">KM importados: {{ $mileageCount }}</span>
+                <a class="btn btn-success btn-sm pull-right" style="margin-left:10px" href="{{ route('admin.company-reports.excel', ['sort_by' => $sortBy ?? 'name', 'sort_direction' => $sortDirection ?? 'asc']) }}">Gerar XLS</a>
                 <a class="btn btn-info btn-sm pull-right" style="margin-left:10px" href="{{ route('admin.company-reports.pdf', ['download' => 1, 'sort_by' => $sortBy ?? 'name', 'sort_direction' => $sortDirection ?? 'asc']) }}" target="_blank">Gerar PDF</a>
                 <button class="btn btn-success btn-sm pull-right" onclick="validateData()" id="validateData" disabled>Validar selecionados</button>
                 <button class="btn btn-primary btn-sm pull-right" onclick="selectAll()" id="selectAll">Selecionar todos</button>

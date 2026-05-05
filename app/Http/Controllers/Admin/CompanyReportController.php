@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\CompanyReportExport;
 use App\Http\Controllers\Controller;
 use Gate;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,6 +22,7 @@ use App\Models\CarTrack;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CompanyReportController extends Controller
 {
@@ -110,6 +112,34 @@ class CompanyReportController extends Controller
     {
         abort_if(Gate::denies('company_report_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        $data = $this->buildReportExportData($request);
+        $pdf = Pdf::loadView('admin.companyReports.pdf', $data)->setOption([
+            'isRemoteEnabled' => true,
+        ]);
+
+        $filename = $this->reportFilename($data['company'], $data['tvde_week'], 'pdf');
+
+        if ($download) {
+            return $pdf->download($filename);
+        }
+
+        return $pdf->stream($filename);
+    }
+
+    public function excel(Request $request)
+    {
+        abort_if(Gate::denies('company_report_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $data = $this->buildReportExportData($request);
+
+        return Excel::download(
+            new CompanyReportExport($data),
+            $this->reportFilename($data['company'], $data['tvde_week'], 'xls')
+        );
+    }
+
+    protected function buildReportExportData(Request $request): array
+    {
         $filter = $this->filter();
         $company_id = $filter['company_id'];
         $tvde_week_id = $filter['tvde_week_id'];
@@ -124,27 +154,22 @@ class CompanyReportController extends Controller
         $sortDirection = $request->query('sort_direction', 'asc');
         $drivers = $this->sortCompanyReportDrivers($results['drivers'], $sortBy, $sortDirection);
 
-        $pdf = Pdf::loadView('admin.companyReports.pdf', [
+        return [
             'company' => $company,
             'main_company' => $main_company,
             'tvde_week' => $tvde_week,
             'drivers' => $drivers,
             'totals' => $results['totals'],
-        ])->setOption([
-            'isRemoteEnabled' => true,
-        ]);
+        ];
+    }
 
+    protected function reportFilename(?Company $company, ?TvdeWeek $tvde_week, string $extension): string
+    {
         $weekNumber = $tvde_week
             ? ($tvde_week->display_number ?? $tvde_week->number ?? Carbon::parse($tvde_week->start_date)->isoWeek())
             : 'semana';
 
-        $filename = strtolower(str_replace(' ', '_', preg_replace('/[^A-Za-z0-9\-]/', '', ($company->name ?? 'empresa') . '-' . ($tvde_week->start_date ?? 'semana') . '-week-' . $weekNumber))) . '.pdf';
-
-        if ($download) {
-            return $pdf->download($filename);
-        }
-
-        return $pdf->stream($filename);
+        return strtolower(str_replace(' ', '_', preg_replace('/[^A-Za-z0-9\-]/', '', ($company->name ?? 'empresa') . '-' . ($tvde_week->start_date ?? 'semana') . '-week-' . $weekNumber))) . '.' . $extension;
     }
 
     public function uploadMileage(Request $request)
