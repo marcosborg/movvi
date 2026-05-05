@@ -220,8 +220,15 @@ class TvdeActivityController extends Controller
         $mapping = $this->platformCsvMapping($validated['platform']);
         $reader = $this->platformCsvRows($request->file('csv_file')->getRealPath(), $validated['platform']);
         $rows = [];
+        $isHeaderRow = true;
 
         foreach ($reader as $row) {
+            if ($isHeaderRow) {
+                $mapping = $this->resolvePlatformCsvMappingFromHeader($row, $validated['platform'], $mapping);
+                $isHeaderRow = false;
+                continue;
+            }
+
             $activity = $this->mapPlatformActivityRow(
                 $row,
                 $mapping,
@@ -322,7 +329,7 @@ class TvdeActivityController extends Controller
                 'driver_code_stable' => 0,
                 'gross' => 6,
                 'net' => 3,
-                'tips' => 18,
+                'tips' => 19,
             ];
         }
 
@@ -333,6 +340,57 @@ class TvdeActivityController extends Controller
             'net' => 21,
             'tips' => 9,
         ];
+    }
+
+    protected function resolvePlatformCsvMappingFromHeader(array $header, string $platform, array $fallback): array
+    {
+        $labels = $platform === 'uber'
+            ? [
+                'driver_code' => ['UUID do motorista'],
+                'driver_code_stable' => ['UUID do motorista'],
+                'gross' => ['Pago a si : Os seus rendimentos : Tarifa'],
+                'net' => ['Pago a si'],
+                'tips' => ['Pago a si:Os seus rendimentos:Gratificacao'],
+            ]
+            : [
+                'driver_code' => ['Identificador do motorista'],
+                'driver_code_stable' => ['Identificador individual'],
+                'gross' => ['Ganhos brutos (total)|EUR', 'Ganhos brutos (total)|€'],
+                'net' => ['Ganhos liquidos|EUR', 'Ganhos liquidos|€'],
+                'tips' => ['Gorjetas dos passageiros|EUR', 'Gorjetas dos passageiros|€'],
+            ];
+
+        $normalizedHeader = [];
+
+        foreach ($header as $index => $label) {
+            $normalizedHeader[$this->normalizeCsvHeaderLabel($label)] = $index;
+        }
+
+        foreach ($labels as $field => $possibleLabels) {
+            foreach ($possibleLabels as $label) {
+                $normalizedLabel = $this->normalizeCsvHeaderLabel($label);
+
+                if (array_key_exists($normalizedLabel, $normalizedHeader)) {
+                    $fallback[$field] = $normalizedHeader[$normalizedLabel];
+                    break;
+                }
+            }
+        }
+
+        return $fallback;
+    }
+
+    protected function normalizeCsvHeaderLabel($label): string
+    {
+        $label = trim((string) $label);
+        $label = str_replace("\xc2\xa0", ' ', $label);
+        $label = str_replace('€', 'EUR', $label);
+        $label = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $label) ?: $label;
+        $label = mb_strtolower($label, 'UTF-8');
+        $label = preg_replace('/\s*:\s*/', ':', $label);
+        $label = preg_replace('/\s+/', ' ', $label);
+
+        return trim($label);
     }
 
     protected function mapPlatformActivityRow(array $row, array $mapping, int $weekId, int $operatorId, int $companyId): ?array
