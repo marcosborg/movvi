@@ -199,6 +199,13 @@ class CompanyReportController extends Controller
     {
 
         foreach ($request->data as $data) {
+            $driverData = $data['driver'] ?? [];
+            $weekId = (int) ($data['tvde_week_id'] ?? $driverData['tvde_week_id'] ?? session()->get('tvde_week_id') ?? 0);
+            $driverId = (int) ($driverData['id'] ?? $data['driver_id'] ?? 0);
+
+            if (!$weekId || !$driverId) {
+                continue;
+            }
 
             // 🔹 Função inline para normalizar valores vindos do front
             $normalize = function ($value): float {
@@ -213,30 +220,34 @@ class CompanyReportController extends Controller
             };
 
             // 🔹 Normaliza o total do motorista
-            $total = $normalize($data['driver']['total']);
+            $total = $normalize($this->driverTotalFromPayload($driverData));
 
             // 🔹 Registo da conta corrente
-            $current_account = new CurrentAccount;
-            $current_account->tvde_week_id = $data['tvde_week_id'];
-            $current_account->driver_id    = $data['driver']['id'];
-            $current_account->data         = json_encode($this->buildCurrentAccountPayload($data['driver']));
+            $current_account = CurrentAccount::firstOrNew([
+                'tvde_week_id' => $weekId,
+                'driver_id'    => $driverId,
+            ]);
+            $current_account->data = json_encode($this->buildCurrentAccountPayload($driverData));
             $current_account->save();
 
             // 🔹 Último saldo
-            $tvde_week = TvdeWeek::find((int) $data['tvde_week_id']);
-            $last_balance = $this->previousDriverBalanceBeforeWeek((int) $data['driver']['id'], $tvde_week);
+            $tvde_week = TvdeWeek::find($weekId);
+            $last_balance = $this->previousDriverBalanceBeforeWeek($driverId, $tvde_week);
 
             $last_balance = $last_balance ? (float) $last_balance->new_balance : 0.0;
             $new_balance = $last_balance + $total;
 
             // 🔹 Novo saldo
-            $driver_balance = new DriversBalance;
-            $driver_balance->driver_id       = $data['driver']['id'];
-            $driver_balance->tvde_week_id    = $data['tvde_week_id'];
-            $driver_balance->value           = $total;
-            $driver_balance->last_balance    = $last_balance;
-            $driver_balance->new_balance     = $new_balance;
-            $driver_balance->manual_status   = null;
+            $driver_balance = DriversBalance::withTrashed()->firstOrNew([
+                'driver_id'    => $driverId,
+                'tvde_week_id' => $weekId,
+            ]);
+            if ($driver_balance->trashed()) {
+                $driver_balance->restore();
+            }
+            $driver_balance->value = $total;
+            $driver_balance->last_balance = $last_balance;
+            $driver_balance->new_balance = $new_balance;
             $driver_balance->save();
 
             /*
@@ -277,12 +288,13 @@ class CompanyReportController extends Controller
         $last_balance = $this->previousDriverBalanceBeforeWeek((int) $data['driver']['id'], $tvde_week);
 
         $previous_balance = $last_balance ? (float) $last_balance->new_balance : 0.0;
-        $new_balance = $previous_balance + ($data['driver']['total'] ?? 0);
+        $total = $this->driverTotalFromPayload($data['driver']);
+        $new_balance = $previous_balance + $total;
 
         $driver_balance = new DriversBalance;
         $driver_balance->driver_id = $data['driver']['id'];
         $driver_balance->tvde_week_id = $data['tvde_week_id'];
-        $driver_balance->value = $data['driver']['total'];
+        $driver_balance->value = $total;
         $driver_balance->last_balance = $previous_balance;
         $driver_balance->new_balance = $new_balance;
         $driver_balance->manual_status = $existingManualStatus;
@@ -292,13 +304,25 @@ class CompanyReportController extends Controller
     protected function buildCurrentAccountPayload(array $driverData): array
     {
         $earnings = $driverData['earnings'] ?? [];
+        $earnings = $earnings instanceof \Illuminate\Support\Collection ? $earnings->toArray() : (array) $earnings;
 
         $earnings['weekly_km'] = isset($driverData['weekly_km']) ? (float) $driverData['weekly_km'] : (float) ($earnings['weekly_km'] ?? 0);
         $earnings['earnings_per_km'] = isset($driverData['earnings_per_km']) ? (float) $driverData['earnings_per_km'] : (float) ($earnings['earnings_per_km'] ?? 0);
-        $earnings['total'] = isset($driverData['total']) ? (float) $driverData['total'] : (float) ($earnings['total'] ?? $earnings['driver_total'] ?? 0);
+        $earnings['total'] = $this->driverTotalFromPayload($driverData);
         $earnings['driver_total'] = $earnings['total'];
 
         return $earnings;
+    }
+
+    protected function driverTotalFromPayload(array $driverData): float
+    {
+        return (float) (
+            $driverData['total']
+            ?? $driverData['final_total']
+            ?? data_get($driverData, 'earnings.total')
+            ?? data_get($driverData, 'earnings.driver_total')
+            ?? 0
+        );
     }
 
     public function deleteData($tvde_week_id, $driver_id)
