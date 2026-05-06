@@ -39,6 +39,7 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin', '
     Route::prefix('mobile')->name('mobile.')->group(function () {
         Route::get('me', [MobileController::class, 'me'])->name('me');
         Route::get('dashboard', [MobileController::class, 'dashboard'])->name('dashboard');
+        Route::get('company-documents', [MobileController::class, 'companyDocuments'])->name('companyDocuments');
         Route::prefix('inspections')->name('inspections.')->group(function () {
             Route::get('/', [MobileInspectionController::class, 'index'])->name('index');
             Route::get('create-options', [MobileInspectionController::class, 'createOptions'])->name('createOptions');

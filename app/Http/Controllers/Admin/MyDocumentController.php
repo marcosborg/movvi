@@ -76,15 +76,16 @@ class MyDocumentController extends Controller
         $document->addMedia(storage_path('tmp/uploads/' . basename($file)))->toMediaCollection('criminal_record');
         }
         }
+        $profilePicture = $document->profile_picture->first();
         if ($request->input('profile_picture', false)) {
-        if (! $document->profile_picture || $request->input('profile_picture') !== $document->profile_picture->file_name) {
-        if ($document->profile_picture) {
-        $document->profile_picture->delete();
+        if (! $profilePicture || $request->input('profile_picture') !== $profilePicture->file_name) {
+        if ($profilePicture) {
+        $profilePicture->delete();
         }
         $document->addMedia(storage_path('tmp/uploads/' . basename($request->input('profile_picture'))))->toMediaCollection('profile_picture');
         }
-        } elseif ($document->profile_picture) {
-        $document->profile_picture->delete();
+        } elseif ($profilePicture) {
+        $profilePicture->delete();
         }
         if (count($document->driving_license) > 0) {
         foreach ($document->driving_license as $media) {

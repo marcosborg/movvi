@@ -21,6 +21,9 @@
                         </div>
                         <div class="form-group {{ $errors->has('file') ? 'has-error' : '' }}">
                             <label class="required" for="file">{{ trans('cruds.reimbursement.fields.file') }}</label>
+                            <div class="alert alert-warning" style="border: 2px solid #f0ad4e; font-weight: 700; color: #7a3b00; margin: 8px 0 12px;">
+                                AQUI N&Atilde;O DEVE COLOCAR RECIBOS VERDES.
+                            </div>
                             <div class="needsclick dropzone" id="file-dropzone">
                             </div>
                             @if($errors->has('file'))

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\Reports;
 use App\Notifications\NewReceipt;
+use App\Models\CompanyDocument;
 use App\Models\CurrentAccount;
 use App\Models\Document;
 use App\Models\Driver;
@@ -472,6 +473,25 @@ class MobileController extends Controller
                     'files' => $this->serializeMediaCollection($document->address),
                 ],
             ],
+        ]);
+    }
+
+    public function companyDocuments(Request $request): JsonResponse
+    {
+        $documents = CompanyDocument::with('media')
+            ->orderBy('name')
+            ->get()
+            ->map(function (CompanyDocument $document) {
+                return [
+                    'id' => $document->id,
+                    'name' => $document->name,
+                    'files' => $this->serializeMediaCollection($document->file),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'documents' => $documents,
         ]);
     }
 

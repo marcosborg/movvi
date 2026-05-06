@@ -74,9 +74,10 @@
                                         {{ trans('cruds.document.fields.profile_picture') }}
                                     </th>
                                     <td>
-                                        @if($document->profile_picture)
-                                            <a href="{{ $document->profile_picture->getUrl() }}" target="_blank" style="display: inline-block">
-                                                <img src="{{ $document->profile_picture->getUrl('thumb') }}">
+                                        @php($profilePicture = $document->profile_picture->first())
+                                        @if($profilePicture)
+                                            <a href="{{ $profilePicture->getUrl() }}" target="_blank" style="display: inline-block">
+                                                <img src="{{ $profilePicture->hasGeneratedConversion('thumb') ? $profilePicture->getUrl('thumb') : $profilePicture->getUrl() }}">
                                             </a>
                                         @endif
                                     </td>

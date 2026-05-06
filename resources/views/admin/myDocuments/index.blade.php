@@ -402,8 +402,8 @@ Dropzone.options.criminalRecordDropzone = {
       }
     },
     init: function () {
-@if(isset($document) && $document->profile_picture)
-      var file = {!! json_encode($document->profile_picture) !!}
+@if(isset($document) && $document->profile_picture->first())
+      var file = {!! json_encode($document->profile_picture->first()) !!}
           this.options.addedfile.call(this, file)
       this.options.thumbnail.call(this, file, file.preview ?? file.preview_url)
       file.previewElement.classList.add('dz-complete')
