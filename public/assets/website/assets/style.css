@@ -217,13 +217,7 @@ section {
 }
 
 .hero-section::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(0, 104, 71, 0.55), rgba(218, 18, 18, 0.45));
-    z-index: 1;
-    pointer-events: none;
-    mix-blend-mode: multiply;
+    display: none;
 }
 
 .swiper-caption {
@@ -232,12 +226,9 @@ section {
     left: 50%;
     transform: translate(-50%, -50%);
     width: min(90%, 720px);
-    background: rgba(33, 33, 33, 0.58);
+    background: transparent;
     padding: 28px 32px;
-    border-radius: 18px;
     z-index: 2;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
-    border: 2px solid rgba(0, 104, 71, 0.5);
     text-align: center;
 }
 

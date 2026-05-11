@@ -30,10 +30,11 @@
                                         <path d="M8 1a3 3 0 0 0-3 3v3H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-1V4a3 3 0 0 0-3-3zm1 6V4a1 1 0 1 0-2 0v3z"/>
                                     </svg>
                                 </span>
-                                <span class="fw-semibold">Conta</span>
+                                <span class="fw-semibold">Area Admin</span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="{{ route('admin.home') }}">Dashboard</a></li>
+                                <li><a class="dropdown-item" href="{{ route('admin.home') }}">Gestão</a></li>
+                                <li><a class="dropdown-item" href="https://dashboard.movvi.com.pt">Dashbords</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <a class="dropdown-item d-flex align-items-center gap-2" href="#" onclick="event.preventDefault(); document.getElementById('navbar-logout-form').submit();">
@@ -47,7 +48,7 @@
                                 </li>
                             </ul>
                         @else
-                            <a class="btn btn-outline-movvi d-flex align-items-center gap-2" href="{{ route('login') }}">
+                            <a class="btn btn-outline-movvi dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <span aria-hidden="true">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
                                         <path d="M8 1a3 3 0 0 0-3 3v3H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-1V4a3 3 0 0 0-3-3zm1 6V4a1 1 0 1 0-2 0v3z"/>
@@ -55,6 +56,10 @@
                                 </span>
                                 <span class="fw-semibold">Area Admin</span>
                             </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{{ route('login') }}">Gestão</a></li>
+                                <li><a class="dropdown-item" href="https://dashboard.movvi.com.pt">Dashbords</a></li>
+                            </ul>
                         @endauth
                     </li>
                 </ul>
