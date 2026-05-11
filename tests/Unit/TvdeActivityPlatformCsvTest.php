@@ -1,0 +1,54 @@
+<?php
+
+namespace Tests\Unit;
+
+use App\Http\Controllers\Admin\TvdeActivityController;
+use Tests\TestCase;
+
+class TvdeActivityPlatformCsvTest extends TestCase
+{
+    public function test_it_reads_current_bolt_csv_export_format(): void
+    {
+        $harness = new class extends TvdeActivityController {
+            public function rows(string $path): array
+            {
+                return $this->readBoltCsvRows($path);
+            }
+
+            public function mapping(array $header): array
+            {
+                return $this->resolvePlatformCsvMappingFromHeader($header, 'bolt', $this->platformCsvMapping('bolt'));
+            }
+
+            public function activity(array $row, array $mapping): ?array
+            {
+                return $this->mapPlatformActivityRow($row, $mapping, 10, 20, 30);
+            }
+        };
+
+        $path = tempnam(sys_get_temp_dir(), 'bolt-csv-');
+
+        file_put_contents($path, implode("\n", [
+            "\xEF\xBB\xBFMotorista,Email,Telemóvel,Ganhos brutos (total)|€,Ganhos brutos (pagamentos na app)|€,IVA sobre os ganhos brutos (pagamentos na app)|€,Ganhos brutos (pagamentos em dinheiro)|€,IVA sobre os ganhos brutos (pagamentos em dinheiro)|€,Dinheiro recebido|€,Gorjetas dos passageiros|€,Ganhos da campanha|€,Reembolsos de despesas|€,Taxas de cancelamento|€,IVA das taxas de cancelamento|€,Portagens|€,Taxas de reserva|€,IVA das taxas de reserva|€,Total de taxas|€,Comissões|€,Reembolsos aos passageiros|€,Outras taxas|€,Ganhos líquidos|€,Pagamento previsto|€,Ganhos brutos por hora|€/h,Ganhos líquidos por hora|€/h,Desconto de comissão (in-app)|€,Desconto da comissão (dinheiro)|€,Identificador do motorista,Identificador individual,Nível,Categorias ativas,Viagens pagas com dinheiro ativadas,Pontuação de motorista|%,Viagens terminadas,Taxa de aceitação total|%,Tempo online (min),Utilização|%,Taxa de finalização (todas as viagens)|%,Taxa de finalização (viagens aceites)|%,Distância média das viagens|km,Distância total das viagens|km,Classificação média do motorista|★",
+            "António Telinhos,antoniotelinhos@gmail.com,3.51913E+11,168.92,164.27,7.57,0,0,0,1,0,0,3.65,0.21,0.3,0,0,39.74,39.74,0,0,129.19,129.19,9.78,7.48,31.17,0,bf0a1f43-c31e-4710-b637-82d53465805b,f8bc360e-a998-42fd-9360-08c50471a0e7,Silver; Level=1; Status=ACTIVE,5-Apr,sim,89,18,13,1035.98,34,9,39,10.48,188.66,4.6",
+        ]));
+
+        try {
+            $rows = $harness->rows($path);
+            $mapping = $harness->mapping($rows[0]);
+            $activity = $harness->activity($rows[1], $mapping);
+        } finally {
+            @unlink($path);
+        }
+
+        $this->assertCount(42, $rows[0]);
+        $this->assertSame(3, $mapping['gross']);
+        $this->assertSame(21, $mapping['net']);
+        $this->assertSame(9, $mapping['tips']);
+        $this->assertSame(28, $mapping['driver_code_stable']);
+        $this->assertSame('f8bc360e-a998-42fd-9360-08c50471a0e7', $activity['driver_code']);
+        $this->assertSame(168.92, $activity['gross']);
+        $this->assertSame(129.19, $activity['net']);
+        $this->assertSame(1.0, $activity['tips']);
+    }
+}

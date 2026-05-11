@@ -386,6 +386,7 @@ class TvdeActivityController extends Controller
         $label = str_replace("\xc2\xa0", ' ', $label);
         $label = str_replace('€', 'EUR', $label);
         $label = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $label) ?: $label;
+        $label = str_replace("'", '', $label);
         $label = mb_strtolower($label, 'UTF-8');
         $label = preg_replace('/\s*:\s*/', ':', $label);
         $label = preg_replace('/\s+/', ' ', $label);
@@ -509,6 +510,15 @@ class TvdeActivityController extends Controller
 
         if ($line === '') {
             return [];
+        }
+
+        $csvRow = str_getcsv($line);
+
+        if (count($csvRow) > 1) {
+            return collect($csvRow)
+                ->map(fn ($value) => trim((string) $value))
+                ->values()
+                ->all();
         }
 
         $line = rtrim($line, ';');
