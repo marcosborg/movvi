@@ -34,7 +34,7 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="{{ route('admin.home') }}">Gestão</a></li>
-                                <li><a class="dropdown-item" href="https://dashboard.movvi.com.pt">Dashbords</a></li>
+                                <li><a class="dropdown-item" href="https://dashboard.movvi.com.pt">Dashboards</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <a class="dropdown-item d-flex align-items-center gap-2" href="#" onclick="event.preventDefault(); document.getElementById('navbar-logout-form').submit();">
@@ -58,7 +58,7 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="{{ route('login') }}">Gestão</a></li>
-                                <li><a class="dropdown-item" href="https://dashboard.movvi.com.pt">Dashbords</a></li>
+                                <li><a class="dropdown-item" href="https://dashboard.movvi.com.pt">Dashboards</a></li>
                             </ul>
                         @endauth
                     </li>
