@@ -36,7 +36,7 @@
                                 <li class="dropdown-submenu">
                                     <a class="dropdown-item dropdown-toggle" href="#" role="button">Gestão</a>
                                     <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="{{ route('admin.home') }}">Acesso ao GestVDE</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('admin.home') }}">Acesso ao MOVVI</a></li>
                                         <li><a class="dropdown-item" href="https://dashboard.movvi.com.pt">Dashboard de gestão</a></li>
                                         <li><a class="dropdown-item disabled" href="#" aria-disabled="true">App de Agenda</a></li>
                                     </ul>
@@ -44,7 +44,7 @@
                                 <li class="dropdown-submenu">
                                     <a class="dropdown-item dropdown-toggle" href="#" role="button">Motoristas</a>
                                     <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="{{ route('admin.home') }}">Acesso ao GestVDE</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('admin.home') }}">Acesso ao MOVVI</a></li>
                                         <li><a class="dropdown-item" href="https://dashboard.movvi.com.pt/motorista/login">Dashboard de Motorista</a></li>
                                     </ul>
                                 </li>
@@ -73,7 +73,7 @@
                                 <li class="dropdown-submenu">
                                     <a class="dropdown-item dropdown-toggle" href="#" role="button">Gestão</a>
                                     <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="{{ route('login') }}">Acesso ao GestVDE</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('login') }}">Acesso ao MOVVI</a></li>
                                         <li><a class="dropdown-item" href="https://dashboard.movvi.com.pt">Dashboard de gestão</a></li>
                                         <li><a class="dropdown-item disabled" href="#" aria-disabled="true">App de Agenda</a></li>
                                     </ul>
@@ -81,7 +81,7 @@
                                 <li class="dropdown-submenu">
                                     <a class="dropdown-item dropdown-toggle" href="#" role="button">Motoristas</a>
                                     <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="{{ route('login') }}">Acesso ao GestVDE</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('login') }}">Acesso ao MOVVI</a></li>
                                         <li><a class="dropdown-item" href="https://dashboard.movvi.com.pt/motorista/login">Dashboard de Motorista</a></li>
                                     </ul>
                                 </li>
