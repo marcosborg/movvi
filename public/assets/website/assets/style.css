@@ -125,8 +125,46 @@ section {
     color: var(--movvi-black);
 }
 
+.movvi-navbar .dropdown-submenu {
+    position: relative;
+}
+
+.movvi-navbar .dropdown-submenu > .dropdown-menu {
+    display: none;
+    top: 0;
+    right: 100%;
+    left: auto;
+    margin-top: -0.5rem;
+    margin-right: 0.25rem;
+}
+
+.movvi-navbar .dropdown-submenu:hover > .dropdown-menu,
+.movvi-navbar .dropdown-submenu:focus-within > .dropdown-menu {
+    display: block;
+}
+
+.movvi-navbar .dropdown-submenu > .dropdown-toggle::after {
+    float: left;
+    margin-top: 0.55rem;
+    margin-left: 0;
+    margin-right: 0.5rem;
+    transform: rotate(90deg);
+}
+
+.movvi-navbar .dropdown-item.disabled {
+    color: rgba(0, 0, 0, 0.38);
+}
+
 .movvi-navbar .dropdown-divider {
     border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 991.98px) {
+    .movvi-navbar .dropdown-submenu > .dropdown-menu {
+        position: static;
+        margin: 0.25rem 0 0.25rem 0.75rem;
+        box-shadow: none;
+    }
 }
 
 .movvi-navbar .navbar-toggler {
