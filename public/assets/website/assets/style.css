@@ -132,15 +132,24 @@ section {
 .movvi-navbar .dropdown-submenu > .dropdown-menu {
     display: none;
     top: 0;
-    right: 100%;
+    right: calc(100% - 2px);
     left: auto;
     margin-top: -0.5rem;
-    margin-right: 0.25rem;
+    margin-right: 0;
 }
 
 .movvi-navbar .dropdown-submenu:hover > .dropdown-menu,
 .movvi-navbar .dropdown-submenu:focus-within > .dropdown-menu {
     display: block;
+}
+
+.movvi-navbar .dropdown-submenu::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 100%;
+    width: 12px;
+    height: 100%;
 }
 
 .movvi-navbar .dropdown-submenu > .dropdown-toggle::after {
