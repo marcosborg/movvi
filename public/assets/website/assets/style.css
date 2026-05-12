@@ -174,6 +174,19 @@ section {
         margin: 0.25rem 0 0.25rem 0.75rem;
         box-shadow: none;
     }
+
+    .movvi-navbar .dropdown-submenu:hover > .dropdown-menu,
+    .movvi-navbar .dropdown-submenu:focus-within > .dropdown-menu {
+        display: none;
+    }
+
+    .movvi-navbar .dropdown-submenu.is-open > .dropdown-menu {
+        display: block;
+    }
+
+    .movvi-navbar .dropdown-submenu.is-open > .dropdown-toggle {
+        background: rgba(0, 104, 71, 0.08);
+    }
 }
 
 .movvi-navbar .navbar-toggler {

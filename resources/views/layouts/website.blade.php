@@ -112,6 +112,42 @@
                 prevEl: '.swiper-button-prev',
             },
         });
+
+        document.querySelectorAll('.movvi-navbar .dropdown-submenu > .dropdown-toggle').forEach((toggle) => {
+            toggle.addEventListener('click', (event) => {
+                if (!window.matchMedia('(max-width: 991.98px)').matches) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                const submenu = toggle.closest('.dropdown-submenu');
+                const parentMenu = submenu.closest('.dropdown-menu');
+
+                parentMenu.querySelectorAll('.dropdown-submenu.is-open').forEach((openSubmenu) => {
+                    if (openSubmenu !== submenu) {
+                        openSubmenu.classList.remove('is-open');
+                    }
+                });
+
+                submenu.classList.toggle('is-open');
+            });
+        });
+
+        document.querySelectorAll('.movvi-navbar .dropdown-submenu .dropdown-menu').forEach((menu) => {
+            menu.addEventListener('click', (event) => {
+                event.stopPropagation();
+            });
+        });
+
+        document.querySelectorAll('.movvi-navbar > .container .dropdown').forEach((dropdown) => {
+            dropdown.addEventListener('hidden.bs.dropdown', () => {
+                dropdown.querySelectorAll('.dropdown-submenu.is-open').forEach((submenu) => {
+                    submenu.classList.remove('is-open');
+                });
+            });
+        });
     </script>
     @yield('scripts')
 </body>
