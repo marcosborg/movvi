@@ -128,6 +128,22 @@ class AdminDriverImpersonationTest extends TestCase
         $response->assertSessionHas('error_message', 'Modo motorista ativo em leitura. Saia deste modo para editar.');
     }
 
+    public function test_receipt_submission_route_is_not_blocked_while_impersonating(): void
+    {
+        [$admin, $driverUser, $driver] = $this->createAdminAndDriver();
+
+        $this->actingAs($admin)->post(route('admin.impersonation.start'), [
+            'driver_id' => $driver->id,
+        ])->assertRedirect(route('admin.home'));
+
+        $response = $this->from(route('admin.home'))
+            ->post(route('admin.receipts.store'), []);
+
+        $response->assertRedirect(route('admin.home'));
+        $response->assertSessionMissing('error_message');
+        $response->assertSessionHasErrors(['driver_id', 'tvde_week_id', 'value', 'file']);
+    }
+
     public function test_get_requests_run_as_the_impersonated_driver_user(): void
     {
         [$admin, $driverUser, $driver] = $this->createAdminAndDriver();

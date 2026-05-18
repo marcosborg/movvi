@@ -67,10 +67,6 @@ class StoreReceiptRequest extends FormRequest
 
     protected function originalAdminCanForceDriverReceiptSubmission(): bool
     {
-        if (!$this->boolean('force_driver_receipt_submission')) {
-            return false;
-        }
-
         $impersonationService = app(AdminDriverImpersonationService::class);
         if (!$impersonationService->isImpersonating()) {
             return false;

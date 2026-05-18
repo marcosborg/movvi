@@ -36,11 +36,9 @@ class PreventWritesWhileImpersonating
 
     protected function isAllowedForcedReceiptSubmission(Request $request, AdminDriverImpersonationService $impersonationService): bool
     {
-        if (!in_array(optional($request->route())->getName(), ['admin.receipts.store', 'admin.receipts.storeMedia'], true)) {
-            return false;
-        }
+        $routeName = optional($request->route())->getName();
 
-        if (!$request->boolean('force_driver_receipt_submission') && optional($request->route())->getName() !== 'admin.receipts.storeMedia') {
+        if (!in_array($routeName, ['admin.receipts.store', 'admin.receipts.storeMedia'], true)) {
             return false;
         }
 
