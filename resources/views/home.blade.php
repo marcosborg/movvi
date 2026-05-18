@@ -311,6 +311,9 @@
                         <input type="hidden" name="driver_id" value="{{ $driver_id }}">
                         <input type="hidden" name="tvde_week_id" value="{{ $tvde_week_id }}">
                         <input type="hidden" name="balance" value="{{ $driver_balance->new_balance }}">
+                        @if($impersonationState['is_active'] ?? false)
+                            <input type="hidden" name="force_driver_receipt_submission" value="1">
+                        @endif
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
@@ -351,7 +354,7 @@
                         </div>
                         <div class="form-group">
                             <button class="btn btn-success" type="submit">
-                                Enviar recibo verde
+                                {{ ($impersonationState['is_active'] ?? false) ? 'Lancar recibo manualmente' : 'Enviar recibo verde' }}
                             </button>
                         </div>
                     </form>

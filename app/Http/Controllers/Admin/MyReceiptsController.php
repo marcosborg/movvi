@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\DriversBalance;
+use App\Models\TvdeWeek;
 
 class MyReceiptsController extends Controller
 {
@@ -169,9 +170,14 @@ class MyReceiptsController extends Controller
     public function checkVerified($receipt_id, $receipt_value, $amount_transferred)
     {
         $receipt = Receipt::find($receipt_id);
+        if (!$receipt || $receipt->verified) {
+            return;
+        }
+
         $receipt->verified = true;
         $receipt->verified_value = $receipt_value;
         $receipt->amount_transferred = $amount_transferred;
+        $receipt->processed_as = $receipt->processed_as ?: 'driver_submission';
         $receipt->save();
 
         $this->applyReceiptToBalance($receipt, (float) $receipt_value);
@@ -191,8 +197,34 @@ class MyReceiptsController extends Controller
             return;
         }
 
-        $drivers_balance->new_balance = (float) ($drivers_balance->new_balance ?? 0) - $receiptValue;
+        $drivers_balance->new_balance = round((float) ($drivers_balance->new_balance ?? 0) - $receiptValue, 2);
         $drivers_balance->save();
+
+        if ($receipt->tvde_week_id) {
+            $this->propagateReceiptBalanceDelta((int) $receipt->driver_id, (int) $receipt->tvde_week_id, $receiptValue);
+        }
+    }
+
+    protected function propagateReceiptBalanceDelta(int $driverId, int $tvdeWeekId, float $receiptValue): void
+    {
+        $week = TvdeWeek::find($tvdeWeekId);
+        if (!$week) {
+            return;
+        }
+
+        DriversBalance::query()
+            ->select('drivers_balances.*')
+            ->join('tvde_weeks', 'drivers_balances.tvde_week_id', '=', 'tvde_weeks.id')
+            ->where('drivers_balances.driver_id', $driverId)
+            ->where('tvde_weeks.start_date', '>', $week->start_date)
+            ->orderBy('tvde_weeks.start_date')
+            ->orderBy('drivers_balances.id')
+            ->get()
+            ->each(function (DriversBalance $balance) use ($receiptValue) {
+                $balance->last_balance = round((float) ($balance->last_balance ?? 0) - $receiptValue, 2);
+                $balance->new_balance = round((float) ($balance->new_balance ?? 0) - $receiptValue, 2);
+                $balance->save();
+            });
     }
 
 }

@@ -5,7 +5,7 @@
     <div style="margin-bottom: 10px;" class="row">
         <div class="col-lg-12">
             <a class="btn btn-success" href="{{ route('admin.receipts.create') }}">
-                {{ trans('global.add') }} {{ trans('cruds.receipt.title_singular') }}
+                Lancar recibo manualmente
             </a>
             @if (url()->current() == url('/admin/receipts/paid'))
             <a href="/admin/receipts" class="btn btn-primary pull-right">Ver não pagos</a>

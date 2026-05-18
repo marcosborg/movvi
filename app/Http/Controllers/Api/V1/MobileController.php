@@ -217,14 +217,23 @@ class MobileController extends Controller
             ], 422);
         }
 
+        $receiptValue = round((float) $driverBalance->new_balance, 2);
+
         $receipt = Receipt::create([
             'driver_id' => $driver->id,
             'tvde_week_id' => $week->id,
             'balance' => (float) $driverBalance->new_balance,
-            'value' => round((float) $driverBalance->new_balance, 2),
+            'value' => $receiptValue,
+            'verified' => true,
+            'verified_value' => $receiptValue,
+            'amount_transferred' => $receiptValue,
+            'processed_as' => 'driver_submission',
         ]);
 
         $receipt->addMediaFromRequest('file')->toMediaCollection('file');
+        $driverBalance->new_balance = 0;
+        $driverBalance->save();
+        $this->propagateReceiptBalanceDelta((int) $driver->id, (int) $week->id, $receiptValue);
 
         User::find(2)?->notify(new NewReceipt($driver));
 
@@ -1223,5 +1232,27 @@ class MobileController extends Controller
             'issue_notes' => $evaluation->issue_notes,
             'submitted_at' => $evaluation->submitted_at,
         ];
+    }
+
+    private function propagateReceiptBalanceDelta(int $driverId, int $tvdeWeekId, float $receiptValue): void
+    {
+        $week = TvdeWeek::find($tvdeWeekId);
+        if (!$week) {
+            return;
+        }
+
+        DriversBalance::query()
+            ->select('drivers_balances.*')
+            ->join('tvde_weeks', 'drivers_balances.tvde_week_id', '=', 'tvde_weeks.id')
+            ->where('drivers_balances.driver_id', $driverId)
+            ->where('tvde_weeks.start_date', '>', $week->start_date)
+            ->orderBy('tvde_weeks.start_date')
+            ->orderBy('drivers_balances.id')
+            ->get()
+            ->each(function (DriversBalance $balance) use ($receiptValue) {
+                $balance->last_balance = round((float) ($balance->last_balance ?? 0) - $receiptValue, 2);
+                $balance->new_balance = round((float) ($balance->new_balance ?? 0) - $receiptValue, 2);
+                $balance->save();
+            });
     }
 }

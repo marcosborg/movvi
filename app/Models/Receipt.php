@@ -35,6 +35,8 @@ class Receipt extends Model implements HasMedia
         'paid',
         'amount_transferred',
         'tvde_week_id',
+        'submitted_by_admin',
+        'processed_as',
         'created_at',
         'updated_at',
         'deleted_at',

@@ -17,6 +17,7 @@ use Yajra\DataTables\Facades\DataTables;
 use App\Models\DriversBalance;
 use App\Models\Company;
 use App\Models\TvdeWeek;
+use App\Services\AdminDriverImpersonationService;
 
 class ReceiptController extends Controller
 {
@@ -151,9 +152,26 @@ class ReceiptController extends Controller
     public function store(StoreReceiptRequest $request)
     {
 
-        $tvde_week_id = session()->get('tvde_week_id', $request->tvde_week_id);
+        $data = $request->validated();
 
-        $receipt = Receipt::create($request->all());
+        $driverBalance = $this->driverBalanceFor((int) $data['driver_id'], (int) $data['tvde_week_id']);
+        if ($driverBalance && (float) $driverBalance->new_balance > 0) {
+            $receiptValue = round((float) ($data['value'] ?? $driverBalance->new_balance), 2);
+
+            $data['balance'] = round((float) ($data['balance'] ?? $driverBalance->new_balance), 2);
+            $data['value'] = $receiptValue;
+            $data['verified'] = true;
+            $data['verified_value'] = $receiptValue;
+            $data['amount_transferred'] = $data['amount_transferred'] ?? $receiptValue;
+            $data['processed_as'] = 'driver_submission';
+        }
+
+        if ($this->isAdminManualSubmission($request)) {
+            $data['submitted_by_admin'] = true;
+            $data['processed_as'] = 'driver_submission';
+        }
+
+        $receipt = Receipt::create($data);
 
         if ($request->input('file', false)) {
             $receipt->addMedia(storage_path('tmp/uploads/' . basename($request->input('file'))))->toMediaCollection('file');
@@ -161,6 +179,10 @@ class ReceiptController extends Controller
 
         if ($media = $request->input('ck-media', false)) {
             Media::whereIn('id', $media)->update(['model_id' => $receipt->id]);
+        }
+
+        if ($receipt->verified) {
+            $this->applyReceiptToBalance($receipt, (float) $receipt->verified_value);
         }
 
         return redirect()->back()->with('message', 'Recibo enviado com sucesso. Obrigado.');
@@ -247,9 +269,14 @@ class ReceiptController extends Controller
     public function checkVerified($receipt_id, $receipt_value, $amount_transferred)
     {
         $receipt = Receipt::find($receipt_id);
+        if (!$receipt || $receipt->verified) {
+            return;
+        }
+
         $receipt->verified = true;
         $receipt->verified_value = $receipt_value;
         $receipt->amount_transferred = $amount_transferred;
+        $receipt->processed_as = $receipt->processed_as ?: 'driver_submission';
         $receipt->save();
 
         $this->applyReceiptToBalance($receipt, (float) $receipt_value);
@@ -257,19 +284,64 @@ class ReceiptController extends Controller
 
     protected function applyReceiptToBalance(Receipt $receipt, float $receiptValue): void
     {
-        $query = DriversBalance::where('driver_id', $receipt->driver_id);
-
-        if ($receipt->tvde_week_id) {
-            $query->where('tvde_week_id', $receipt->tvde_week_id);
-        }
-
-        $drivers_balance = $query->orderBy('id', 'desc')->first();
+        $drivers_balance = $this->driverBalanceFor((int) $receipt->driver_id, $receipt->tvde_week_id ? (int) $receipt->tvde_week_id : null);
         if (!$drivers_balance) {
             return;
         }
 
-        $drivers_balance->new_balance = (float) ($drivers_balance->new_balance ?? 0) - $receiptValue;
+        $drivers_balance->new_balance = round((float) ($drivers_balance->new_balance ?? 0) - $receiptValue, 2);
         $drivers_balance->save();
+
+        if ($receipt->tvde_week_id) {
+            $this->propagateReceiptBalanceDelta((int) $receipt->driver_id, (int) $receipt->tvde_week_id, $receiptValue);
+        }
+    }
+
+    protected function driverBalanceFor(int $driverId, ?int $tvdeWeekId): ?DriversBalance
+    {
+        $query = DriversBalance::where('driver_id', $driverId);
+
+        if ($tvdeWeekId) {
+            $query->where('tvde_week_id', $tvdeWeekId);
+        }
+
+        return $query->orderBy('id', 'desc')->first();
+    }
+
+    protected function propagateReceiptBalanceDelta(int $driverId, int $tvdeWeekId, float $receiptValue): void
+    {
+        $week = TvdeWeek::find($tvdeWeekId);
+        if (!$week) {
+            return;
+        }
+
+        DriversBalance::query()
+            ->select('drivers_balances.*')
+            ->join('tvde_weeks', 'drivers_balances.tvde_week_id', '=', 'tvde_weeks.id')
+            ->where('drivers_balances.driver_id', $driverId)
+            ->where('tvde_weeks.start_date', '>', $week->start_date)
+            ->orderBy('tvde_weeks.start_date')
+            ->orderBy('drivers_balances.id')
+            ->get()
+            ->each(function (DriversBalance $balance) use ($receiptValue) {
+                $balance->last_balance = round((float) ($balance->last_balance ?? 0) - $receiptValue, 2);
+                $balance->new_balance = round((float) ($balance->new_balance ?? 0) - $receiptValue, 2);
+                $balance->save();
+            });
+    }
+
+    protected function isAdminManualSubmission(Request $request): bool
+    {
+        $user = $request->user();
+        if ($user && ($user->is_admin || $user->hasRole('Admin') || $user->hasRole('Administrador'))) {
+            return true;
+        }
+
+        $impersonationService = app(AdminDriverImpersonationService::class);
+
+        return $request->boolean('force_driver_receipt_submission')
+            && $impersonationService->isImpersonating()
+            && $impersonationService->resolveOriginalAdmin($user) !== null;
     }
 
     protected function receiptBalanceValue(Receipt $receipt): ?float
