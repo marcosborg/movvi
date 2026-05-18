@@ -345,7 +345,7 @@
                         
                         <div class="form-group {{ $errors->has('file') ? 'has-error' : '' }}">
                             <label class="required" for="file">Recibo verde</label>
-                            <div class="needsclick dropzone" id="file-dropzone">
+                            <div class="needsclick dropzone" id="green-receipt-file-dropzone">
                             </div>
                             @if($errors->has('file'))
                             <span class="help-block" role="alert">{{ $errors->first('file') }}</span>
@@ -453,7 +453,7 @@
                             <div class="alert alert-warning" style="border: 2px solid #f0ad4e; font-weight: 700; color: #7a3b00; margin: 8px 0 12px;">
                                 AQUI N&Atilde;O DEVE COLOCAR RECIBOS VERDES.
                             </div>
-                            <div class="needsclick dropzone" id="file-dropzone">
+                            <div class="needsclick dropzone" id="reimbursement-file-dropzone">
                             </div>
                             @if($errors->has('file'))
                                 <span class="help-block" role="alert">{{ $errors->first('file') }}</span>
@@ -559,7 +559,7 @@
 
 </script>
 <script>
-    Dropzone.options.fileDropzone = {
+    Dropzone.options.greenReceiptFileDropzone = {
         url: '{{ route('admin.receipts.storeMedia') }}'
         , maxFilesize: 2, // MB
         maxFiles: 1
@@ -571,13 +571,14 @@
             size: 2
         }
         , success: function(file, response) {
-            $('form').find('input[name="file"]').remove()
-            $('form').append('<input type="hidden" name="file" value="' + response.name + '">')
+            var $form = $('#green-receipt-file-dropzone').closest('form')
+            $form.find('input[name="file"]').remove()
+            $form.append('<input type="hidden" name="file" value="' + response.name + '">')
         }
         , removedfile: function(file) {
             file.previewElement.remove()
             if (file.status !== 'error') {
-                $('form').find('input[name="file"]').remove()
+                $('#green-receipt-file-dropzone').closest('form').find('input[name="file"]').remove()
                 this.options.maxFiles = this.options.maxFiles + 1
             }
         }
@@ -586,7 +587,7 @@
             var file = {!! json_encode($receipt->file) !!}
             this.options.addedfile.call(this, file)
             file.previewElement.classList.add('dz-complete')
-            $('form').append('<input type="hidden" name="file" value="' + file.file_name + '">')
+            $('#green-receipt-file-dropzone').closest('form').append('<input type="hidden" name="file" value="' + file.file_name + '">')
             this.options.maxFiles = this.options.maxFiles - 1
             @endif
         }
@@ -725,7 +726,7 @@ Dropzone.options.receiptsDropzone = {
 </script>
 @endif
 <script>
-    Dropzone.options.fileDropzone = {
+    Dropzone.options.reimbursementFileDropzone = {
     url: '{{ route('admin.reimbursements.storeMedia') }}',
     maxFilesize: 2, // MB
     maxFiles: 1,
@@ -737,13 +738,14 @@ Dropzone.options.receiptsDropzone = {
       size: 2
     },
     success: function (file, response) {
-      $('form').find('input[name="file"]').remove()
-      $('form').append('<input type="hidden" name="file" value="' + response.name + '">')
+      var $form = $('#reimbursement-file-dropzone').closest('form')
+      $form.find('input[name="file"]').remove()
+      $form.append('<input type="hidden" name="file" value="' + response.name + '">')
     },
     removedfile: function (file) {
       file.previewElement.remove()
       if (file.status !== 'error') {
-        $('form').find('input[name="file"]').remove()
+        $('#reimbursement-file-dropzone').closest('form').find('input[name="file"]').remove()
         this.options.maxFiles = this.options.maxFiles + 1
       }
     },
@@ -752,7 +754,7 @@ Dropzone.options.receiptsDropzone = {
       var file = {!! json_encode($reimbursement->file) !!}
           this.options.addedfile.call(this, file)
       file.previewElement.classList.add('dz-complete')
-      $('form').append('<input type="hidden" name="file" value="' + file.file_name + '">')
+      $('#reimbursement-file-dropzone').closest('form').append('<input type="hidden" name="file" value="' + file.file_name + '">')
       this.options.maxFiles = this.options.maxFiles - 1
 @endif
     },
