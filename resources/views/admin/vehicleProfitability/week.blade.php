@@ -77,7 +77,7 @@
                                         <th style="width:52px;">Sel.</th>
                                         <th>Matricula</th>
                                         <th>Modelo</th>
-                                        <th style="text-align:right;">Aluguer (EUR)</th>
+                                        <th style="text-align:right;">Cedência (EUR)</th>
                                         <th style="text-align:right;">Percentagem (EUR)</th>
                                         <th style="text-align:right;">Ajustes (EUR)</th>
                                         <th style="text-align:right;">Total (EUR)</th>

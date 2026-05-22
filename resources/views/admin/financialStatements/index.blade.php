@@ -112,14 +112,14 @@
                                 <td>{{ number_format($total_net, 2) }}€</td>
                             </tr>
                             <tr>
-                                <th>Aluguer</th>
+                                <th>Cedência</th>
                                 <td></td>
                                 <td>- {{ number_format($car_hire_base, 2) }}€</td>
                                 <td>- {{ number_format($car_hire_base, 2) }}€</td>
                             </tr>
                             @if (($rent_discount ?? 0) > 0)
                             <tr>
-                                <th>Abatimento de aluguer</th>
+                                <th>Abatimento de cedência</th>
                                 <td>{{ number_format($rent_discount, 2) }}€</td>
                                 <td></td>
                                 <td>{{ number_format($rent_discount, 2) }}€</td>

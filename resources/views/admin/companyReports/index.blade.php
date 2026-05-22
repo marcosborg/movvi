@@ -164,10 +164,10 @@
             </div>
             <div class="col-md-3">
                 <div class="panel panel-default">
-                    <div class="panel-heading">Alugueres recebidos</div>
+                    <div class="panel-heading">Cedências recebidos</div>
                     <div class="panel-body">
                         <h3 style="margin: 0;">{{ number_format($totals['total_car_hire'] ?? 0, 2) }} <small>€</small></h3>
-                        <small>Total de aluguer efetivo da semana</small>
+                        <small>Total de cedência efetivo da semana</small>
                     </div>
                 </div>
             </div>
@@ -185,7 +185,7 @@
                     <div class="panel-heading">Receita operacional</div>
                     <div class="panel-body">
                         <h3 style="margin: 0;">{{ number_format(($totals['total_car_hire'] ?? 0) + ($totals['total_percent_value'] ?? 0) + ($totals['total_adjustments'] ?? 0), 2) }} <small>€</small></h3>
-                        <small>Aluguer + percentagem + ajustes operacionais</small>
+                        <small>Cedência + percentagem + ajustes operacionais</small>
                     </div>
                 </div>
             </div>
@@ -309,7 +309,7 @@
                         <option value="weekly_km" {{ ($sortBy ?? 'name') === 'weekly_km' ? 'selected' : '' }}>Ordenar por km</option>
                         <option value="earnings_per_km" {{ ($sortBy ?? 'name') === 'earnings_per_km' ? 'selected' : '' }}>Ordenar por euro/km</option>
                         <option value="percent_value" {{ ($sortBy ?? 'name') === 'percent_value' ? 'selected' : '' }}>Ordenar por percentagem</option>
-                        <option value="car_hire" {{ ($sortBy ?? 'name') === 'car_hire' ? 'selected' : '' }}>Ordenar por aluguer</option>
+                        <option value="car_hire" {{ ($sortBy ?? 'name') === 'car_hire' ? 'selected' : '' }}>Ordenar por cedência</option>
                     </select>
                     <select id="reportSortDirection" class="form-control">
                         <option value="asc" {{ ($sortDirection ?? 'asc') === 'asc' ? 'selected' : '' }}>Ascendente</option>
@@ -349,7 +349,7 @@
                             <th style="text-align: right;">Ajustes</th>
                             <th style="text-align: right;">Via verde</th>
                             <th style="text-align: right;">Percentual</th>
-                            <th style="text-align: right;">Aluguer</th>
+                            <th style="text-align: right;">Cedência</th>
                             <th style="text-align: right;">Caucao</th>
                             <th style="text-align: right">Valor da semana</th>
                             <th style="text-align: right">Último saldo</th>
@@ -502,7 +502,7 @@
                             <td style="text-align: right;">{{ number_format($totals['total_general_adjustments'] ?? 0, 2) }} <small>€</small></td>
                         </tr>
                         <tr>
-                            <th>Abatimento de aluguer</th>
+                            <th>Abatimento de cedência</th>
                             <td style="text-align: right;">{{ number_format($totals['total_rent_discounts'] ?? 0, 2) }} <small>€</small></td>
                         </tr>
                         <tr>

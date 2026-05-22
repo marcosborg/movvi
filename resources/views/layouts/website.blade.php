@@ -29,7 +29,7 @@
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <h5>Movvi</h5>
-                    <p>Servicos de mobilidade a sua medida: aluguer, stand e tours personalizados.</p>
+                    <p>Servicos de mobilidade a sua medida: cedência, stand e tours personalizados.</p>
                 </div>
                 <div class="col-md-8 mb-3">
                     <h5>Navegacao</h5>
@@ -41,7 +41,7 @@
                             <li><a href="{{ url('/') }}" class="text-white">Home</a></li>
                             <li><a href="{{ url('/quem-somos') }}" class="text-white">Quem Somos</a></li>
                             <li><a href="{{ route('website.stand') }}" class="text-white">Stand</a></li>
-                            <li><a href="{{ route('website.rentals') }}" class="text-white">Aluguer</a></li>
+                            <li><a href="{{ route('website.rentals') }}" class="text-white">Cedência</a></li>
                             <li><a href="{{ route('website.transfers') }}" class="text-white">Transfers & Tours</a></li>
                             <li><a href="{{ url('/contactos') }}" class="text-white">Contactos</a></li>
                         @endforelse

@@ -18,7 +18,7 @@
                         <li class="nav-item"><a class="nav-link active" aria-current="page" href="{{ url('/') }}">Home</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url('/quem-somos') }}">Quem Somos</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ route('website.stand') }}">Stand</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ route('website.rentals') }}">Aluguer</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ route('website.rentals') }}">Cedência</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ route('website.transfers') }}">Transfers & Tours</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url('/contactos') }}">Contactos</a></li>
                     @endforelse

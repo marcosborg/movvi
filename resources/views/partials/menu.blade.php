@@ -442,7 +442,7 @@
                                     <i class="fa-fw fas fa-car">
 
                                     </i>
-                                    <span>Aluguer de viaturas</span>
+                                    <span>Cedência de viaturas</span>
 
                                 </a>
                             </li>

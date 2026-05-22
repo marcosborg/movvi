@@ -33,8 +33,8 @@
             <th>Ajustes</th>
             <th>Via Verde</th>
             <th>Percentagem</th>
-            <th>Aluguer</th>
-            <th>Abatimento aluguer</th>
+            <th>Cedência</th>
+            <th>Abatimento cedência</th>
             <th>Caucao</th>
             <th>Total semana</th>
             <th>Ultimo saldo</th>
@@ -105,7 +105,7 @@
             <td>{{ $totals['total_general_adjustments'] ?? 0 }}</td>
         </tr>
         <tr>
-            <td>Abatimento de aluguer</td>
+            <td>Abatimento de cedência</td>
             <td>{{ $totals['total_rent_discounts'] ?? 0 }}</td>
         </tr>
         <tr>
@@ -154,7 +154,7 @@
     <thead>
         <tr>
             <th>Total motoristas</th>
-            <th>Alugueres recebidos</th>
+            <th>Cedências recebidos</th>
             <th>Percentuais recebidos</th>
             <th>Receita operacional</th>
         </tr>

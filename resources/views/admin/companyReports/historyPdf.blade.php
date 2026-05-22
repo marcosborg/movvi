@@ -44,7 +44,7 @@
                 <th class="text-right">Ajustes</th>
                 <th class="text-right">Via verde</th>
                 <th class="text-right">Percentagem</th>
-                <th class="text-right">Aluguer</th>
+                <th class="text-right">Cedência</th>
                 <th class="text-right">Valor da semana</th>
                 <th class="text-right">Ultimo saldo</th>
                 <th class="text-right">Novo saldo</th>

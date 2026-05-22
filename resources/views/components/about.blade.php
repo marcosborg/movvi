@@ -32,7 +32,7 @@
                 <div class="col-lg-6">
                     <h3>Sobre a Movvi</h3>
                     <h4 class="mb-3">Ligando pessoas e lugares com inovação</h4>
-                    <p>Somos apaixonados por mobilidade e tecnologia. A Movvi nasce com a missão de ligar pessoas e lugares através de soluções de transporte modernas e acessíveis. Desde o aluguer de viaturas até tours personalizados, trabalhamos todos os dias para melhorar a experiência de condução e viagem dos nossos clientes.</p>
+                    <p>Somos apaixonados por mobilidade e tecnologia. A Movvi nasce com a missão de ligar pessoas e lugares através de soluções de transporte modernas e acessíveis. Desde o cedência de viaturas até tours personalizados, trabalhamos todos os dias para melhorar a experiência de condução e viagem dos nossos clientes.</p>
                     <a href="quem-somos.html" class="btn btn-primary mt-3">Saber mais</a>
                 </div>
             </div>

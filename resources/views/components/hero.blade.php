@@ -30,7 +30,7 @@
                     <img src="https://picsum.photos/seed/movvi-fallback/1920/800" class="d-block w-100" alt="Mobilidade simplificada">
                     <div class="swiper-caption text-center">
                         <h2>Viagens que inspiram</h2>
-                        <p>Do aluguer ao tour, temos a solução perfeita para si.</p>
+                        <p>Do cedência ao tour, temos a solução perfeita para si.</p>
                         <a class="btn btn-primary mt-3" href="#about-preview">Saber mais</a>
                     </div>
                 </div>

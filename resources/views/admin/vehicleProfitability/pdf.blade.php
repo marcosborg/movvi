@@ -35,7 +35,7 @@
         <h2>Receitas por tipo</h2>
         <table>
             <tbody>
-                <tr><th>Aluguer (€)</th><td>{{ number_format($result['revenues']['rental_total'] ?? 0, 2, ',', '.') }}</td></tr>
+                <tr><th>Cedência (€)</th><td>{{ number_format($result['revenues']['rental_total'] ?? 0, 2, ',', '.') }}</td></tr>
                 <tr><th>Percentagem (€)</th><td>{{ number_format($result['revenues']['commission_total'] ?? 0, 2, ',', '.') }}</td></tr>
                 <tr><th>Ajustes operacionais (€)</th><td>{{ number_format($result['revenues']['adjustments_total'] ?? 0, 2, ',', '.') }}</td></tr>
                 <tr><th>Ajustes gerais (€)</th><td>{{ number_format($result['revenues']['general_adjustments_total'] ?? 0, 2, ',', '.') }}</td></tr>
@@ -54,7 +54,7 @@
                 <tr>
                     <th>Motorista</th>
                     <th>Tipo</th>
-                    <th style="text-align:right;">Aluguer</th>
+                    <th style="text-align:right;">Cedência</th>
                     <th style="text-align:right;">Percentagem</th>
                     <th style="text-align:right;">Ajustes</th>
                     <th style="text-align:right;">Fat. mínima</th>

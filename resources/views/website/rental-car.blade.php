@@ -5,7 +5,7 @@
     <div class="container py-5">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
             <div>
-                <p class="text-uppercase text-muted small mb-1">Aluguer</p>
+                <p class="text-uppercase text-muted small mb-1">Cedência</p>
                 <h1 class="h3 mb-0">{{ $car->title }}</h1>
                 @if($car->subtitle)
                     <small class="text-muted">{{ $car->subtitle }}</small>

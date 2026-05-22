@@ -130,8 +130,8 @@ return [
         ],
     ],
     'carRental' => [
-        'title'          => 'Aluguer de viaturas',
-        'title_singular' => 'Aluguer de viatura',
+        'title'          => 'Cedência de viaturas',
+        'title_singular' => 'Cedência de viatura',
     ],
     'car' => [
         'title'          => 'Carros',
@@ -2334,8 +2334,8 @@ return [
         ],
     ],
     'carHire' => [
-        'title'          => 'Aluguer de viaturas',
-        'title_singular' => 'Aluguer de viatura',
+        'title'          => 'Cedência de viaturas',
+        'title_singular' => 'Cedência de viatura',
         'fields'         => [
             'id'                => 'ID',
             'id_helper'         => ' ',

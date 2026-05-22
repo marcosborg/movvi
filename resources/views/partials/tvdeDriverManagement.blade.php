@@ -68,7 +68,7 @@
                                         <thead>
                                             <tr>
                                                 <th>Condutor</td>
-                                                <th>Aluguer</td>
+                                                <th>Cedência</td>
                                                 <th>Gestão</th>
                                                 <th>Seguro</th>
                                                 <th>Combustivel</th>

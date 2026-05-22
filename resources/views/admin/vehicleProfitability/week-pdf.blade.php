@@ -137,7 +137,7 @@
     <table class="kpis">
         <tr>
             <td class="kpi-card">
-                <div class="kpi-label">Aluguer</div>
+                <div class="kpi-label">Cedência</div>
                 <div class="kpi-value">{{ number_format($totals['rental_total'] ?? 0, 2, ',', '.') }} EUR</div>
             </td>
             <td class="kpi-card">
@@ -161,7 +161,7 @@
             <tr>
                 <th>Matricula</th>
                 <th>Modelo</th>
-                <th class="text-right">Aluguer</th>
+                <th class="text-right">Cedência</th>
                 <th class="text-right">Percentual</th>
                 <th class="text-right">Ajustes</th>
                 <th class="text-right">Total</th>

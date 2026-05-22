@@ -96,7 +96,7 @@
                                 <td>{{ number_format($total_net, 2) }}€</td>
                             </tr>
                             <tr>
-                                <th>Aluguer</th>
+                                <th>Cedência</th>
                                 <td></td>
                                 <td>- {{ number_format($car_hire, 2) }}€</td>
                                 <td>- {{ number_format($car_hire, 2) }}€</td>

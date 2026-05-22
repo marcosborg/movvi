@@ -11,7 +11,7 @@
             <th>Ajustes</th>
             <th>Via verde</th>
             <th>Percentagem</th>
-            <th>Aluguer</th>
+            <th>Cedência</th>
             <th>Valor da semana</th>
             <th>Ultimo saldo</th>
             <th>Novo saldo</th>

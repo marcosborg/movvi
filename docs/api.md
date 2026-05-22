@@ -362,7 +362,7 @@ Inclui:
 - `422 Unprocessable Entity`: ligacao Conta Azul ausente, OAuth mal configurado, ou erro devolvido pela API externa
 
 Notas sobre `data`:
-- `mode=week`: devolve `week`, `vehicles[]` e `totals` (aluguer, percentagem, total).
+- `mode=week`: devolve `week`, `vehicles[]` e `totals` (cedência, percentagem, total).
 - `mode=vehicle`: devolve `vehicle`, `week`, `revenues` e `meta.drivers[]` (inclui `usage_seconds` e flags de validacao).
 
 ### Erros

@@ -4,7 +4,7 @@
 <section class="pt-5">
     <div class="container py-5">
         <div class="text-center mb-5">
-            <h1 class="display-5 fw-bold">Aluguer de Viaturas</h1>
+            <h1 class="display-5 fw-bold">Cedência de Viaturas</h1>
             <p class="lead text-muted">Encontre a viatura ideal para o seu negócio TVDE ou para as suas deslocações.</p>
         </div>
 
@@ -35,7 +35,7 @@
                 </div>
             @empty
                 <div class="col-12">
-                    <div class="alert alert-info text-center">Sem viaturas para aluguer neste momento.</div>
+                    <div class="alert alert-info text-center">Sem viaturas para cedência neste momento.</div>
                 </div>
             @endforelse
         </div>

@@ -32,7 +32,7 @@ class Adjustment extends Model
         self::CATEGORY_GENERAL => 'Geral',
         self::CATEGORY_CAUTION_RECEIVED => 'Caucao recebida',
         self::CATEGORY_CAUTION_RETURNED => 'Caucao devolvida',
-        self::CATEGORY_RENT_DISCOUNT => 'Abatimento de aluguer',
+        self::CATEGORY_RENT_DISCOUNT => 'Abatimento de cedência',
         self::CATEGORY_MINIMUM_BILLING_DIFFERENCE => 'Diferenca de faturacao minima',
         self::CATEGORY_MANUAL => 'Ajuste manual',
         self::CATEGORY_COMPANY_ENERGY => 'Energia paga pela empresa',

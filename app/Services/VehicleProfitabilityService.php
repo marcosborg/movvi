@@ -20,7 +20,7 @@ class VehicleProfitabilityService
      *
      * We group the validated driver earnings for the week by the drivers that used the vehicle
      * (VehicleUsage overlap) and sum:
-     * - `car_hire` (weekly rental charged to the driver) => "Aluguer"
+     * - `car_hire` (weekly rental charged to the driver) => "Cedência"
      * - `percent_value` (company commission charged to the driver) => "Percentagem"
      */
     public static function make(int $vehicleId, int $tvdeWeekId): array

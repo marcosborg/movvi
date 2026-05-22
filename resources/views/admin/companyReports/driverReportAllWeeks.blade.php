@@ -22,7 +22,7 @@
                             @foreach ([
                             'Semana', 'Uber (Bruto)', 'Bolt (Bruto)', 'Uber (Líquido)', 'Bolt (Líquido)',
                             'Total Bruto', 'Total Líquido', 'Ajustes', 'Total Final', 'IVA',
-                            'Car Track', 'Aluguer', 'Combustível', 'Saldo', 'Transferido'
+                            'Car Track', 'Cedência', 'Combustível', 'Saldo', 'Transferido'
                             ] as $th)
                             <th>{{ $th }}</th>
                             @endforeach

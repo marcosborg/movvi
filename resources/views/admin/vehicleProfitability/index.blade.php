@@ -82,7 +82,7 @@
             <div class="col-md-3">
                 <div class="box box-info">
                     <div class="box-body">
-                        <h4>Aluguer (€)</h4>
+                        <h4>Cedência (€)</h4>
                         <p>{{ number_format($result['revenues']['rental_total'] ?? 0, 2, ',', '.') }}</p>
                     </div>
                 </div>
@@ -130,7 +130,7 @@
                                 <tr>
                                     <th>Motorista</th>
                                     <th>Tipo</th>
-                                    <th style="text-align:right;">Aluguer</th>
+                                    <th style="text-align:right;">Cedência</th>
                                     <th style="text-align:right;">Percentagem</th>
                                     <th style="text-align:right;">Ajustes</th>
                                     <th style="text-align:right;">Fat. mínima</th>
