@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Log;
 
 class CombustionTransactionAssignmentService
 {
+    private const ASSIGN_BY_CARD_CODES = [
+        'PTPRIO6087131653390003',
+    ];
+
     public function assign(CombustionTransaction $transaction): CombustionTransaction
     {
         $this->assignWithDiagnostics($transaction);
@@ -36,7 +40,8 @@ class CombustionTransactionAssignmentService
             $vehicleItemId,
             $transaction->date,
             $usageMatches,
-            $legacyDriverId
+            $legacyDriverId,
+            $this->shouldAssignByCard($transaction->card)
         );
 
         $decision['vehicle_item_id'] = $vehicleItemId;
@@ -85,8 +90,17 @@ class CombustionTransactionAssignmentService
         ?int $vehicleItemId,
         $transactionAt,
         array $usageMatches,
-        ?int $legacyDriverId
+        ?int $legacyDriverId,
+        bool $forceLegacyDriver = false
     ): array {
+        if ($forceLegacyDriver && $legacyDriverId) {
+            return [
+                'status' => 'card_driver_override',
+                'driver_id' => $legacyDriverId,
+                'usage_ids' => [],
+            ];
+        }
+
         if (!$transactionAt) {
             return [
                 'status' => $legacyDriverId ? 'legacy_fallback' : 'no_timestamp',
@@ -152,6 +166,13 @@ class CombustionTransactionAssignmentService
             ->first();
 
         return $driver?->id;
+    }
+
+    protected function shouldAssignByCard(?string $cardCode): bool
+    {
+        $normalizedCardCode = strtoupper(trim((string) $cardCode));
+
+        return in_array($normalizedCardCode, self::ASSIGN_BY_CARD_CODES, true);
     }
 
     protected function logAssignmentDiagnostics(CombustionTransaction $transaction, array $decision): void

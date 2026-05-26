@@ -40,6 +40,7 @@ class ReassignCombustionTransactions extends Command
             'processed' => 0,
             'changed' => 0,
             'assigned' => 0,
+            'card_driver_override' => 0,
             'legacy_fallback' => 0,
             'no_usage_match' => 0,
             'multiple_usage_matches' => 0,
@@ -64,11 +65,12 @@ class ReassignCombustionTransactions extends Command
 
         $this->info($dryRun ? 'Dry-run concluido.' : 'Reprocessamento concluido.');
         $this->table(
-            ['processed', 'changed', 'assigned', 'legacy_fallback', 'no_usage_match', 'multiple_usage_matches', 'usage_without_driver', 'vehicle_not_mapped', 'card_not_found', 'no_timestamp'],
+            ['processed', 'changed', 'assigned', 'card_driver_override', 'legacy_fallback', 'no_usage_match', 'multiple_usage_matches', 'usage_without_driver', 'vehicle_not_mapped', 'card_not_found', 'no_timestamp'],
             [[
                 $summary['processed'],
                 $summary['changed'],
                 $summary['assigned'],
+                $summary['card_driver_override'],
                 $summary['legacy_fallback'],
                 $summary['no_usage_match'],
                 $summary['multiple_usage_matches'],

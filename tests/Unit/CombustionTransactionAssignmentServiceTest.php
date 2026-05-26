@@ -73,4 +73,37 @@ class CombustionTransactionAssignmentServiceTest extends TestCase
         $this->assertSame('legacy_fallback', $decision['status']);
         $this->assertSame(7, $decision['driver_id']);
     }
+
+    public function test_it_can_force_assignment_to_card_driver_for_configured_exception(): void
+    {
+        $service = new class extends CombustionTransactionAssignmentService {
+            public function decide(bool $hasCard, ?int $vehicleItemId, $transactionAt, array $usageMatches, ?int $legacyDriverId): array
+            {
+                return $this->buildAssignmentDecision($hasCard, $vehicleItemId, $transactionAt, $usageMatches, $legacyDriverId, true);
+            }
+        };
+
+        $decision = $service->decide(true, 12, '2026-04-11 01:19:47', [
+            ['id' => 99, 'driver_id' => 40],
+        ], 7);
+
+        $this->assertSame('card_driver_override', $decision['status']);
+        $this->assertSame(7, $decision['driver_id']);
+        $this->assertSame([], $decision['usage_ids']);
+    }
+
+    public function test_prio_card_exception_is_limited_to_vithor_card(): void
+    {
+        $service = new class extends CombustionTransactionAssignmentService {
+            public function isCardException(?string $cardCode): bool
+            {
+                return $this->shouldAssignByCard($cardCode);
+            }
+        };
+
+        $this->assertTrue($service->isCardException('PTPRIO6087131653390003'));
+        $this->assertTrue($service->isCardException(' ptprio6087131653390003 '));
+        $this->assertFalse($service->isCardException('PTPRIO6087131653390004'));
+        $this->assertFalse($service->isCardException(null));
+    }
 }
