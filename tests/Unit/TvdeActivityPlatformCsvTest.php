@@ -7,6 +7,74 @@ use Tests\TestCase;
 
 class TvdeActivityPlatformCsvTest extends TestCase
 {
+    public function test_it_reads_current_uber_csv_tips_column(): void
+    {
+        $harness = new class extends TvdeActivityController {
+            public function mapping(array $header): array
+            {
+                return $this->resolvePlatformCsvMappingFromHeader($header, 'uber', $this->platformCsvMapping('uber'));
+            }
+
+            public function activity(array $row, array $mapping): ?array
+            {
+                return $this->mapPlatformActivityRow($row, $mapping, 10, 20, 30);
+            }
+        };
+
+        $header = [
+            'UUID do motorista',
+            'Nome próprio do motorista',
+            'Apelido do motorista',
+            'Pago a si',
+            'Pago a si : Os seus rendimentos',
+            'Pago a si : Saldo da viagem : Pagamentos : Dinheiro recebido',
+            'Pago a si : Os seus rendimentos : Tarifa',
+            'Pago a si : Os seus rendimentos : Impostos',
+            'Pago a si:Os seus rendimentos:Tarifa:Tarifa',
+            'Pago a si:Os seus rendimentos:Tarifa:Ajuste',
+            'Pago a si:Os seus rendimentos:Tarifa:Cancelamento',
+            'Pago a si:Os seus rendimentos:Tarifa:Ajuste da taxa de serviço',
+            'Pago a si:Os seus rendimentos:Tarifa:Tarifa dinâmica',
+            'Pago a si:Os seus rendimentos:Tarifa:Taxa de reserva',
+            'Pago a si:Os seus rendimentos:Tarifa:UberX Priority',
+            'Pago a si:Os seus rendimentos:Tarifa:Imposto sobre a tarifa',
+            'Pago a si:Os seus rendimentos:Tarifa:Tempo de espera na recolha',
+            'Pago a si:Os seus rendimentos:Taxa de serviço',
+            'Pago a si:Os seus rendimentos:Gratificação',
+            'Pago a si:Os seus rendimentos:Outros rendimentos:Taxa de aeroporto',
+        ];
+        $row = [
+            '2fbae627-2ccd-4b42-a500-9f0ab3386743',
+            'BRUNO',
+            'DINIS',
+            '731.24',
+            '730.74',
+            '',
+            '957.32',
+            '',
+            '844.49',
+            '10.06',
+            '2.83',
+            '-4.3',
+            '38.27',
+            '3.01',
+            '6.41',
+            '54.3',
+            '0.98',
+            '-238.1',
+            '11.58',
+            '-0.06',
+        ];
+
+        $mapping = $harness->mapping($header);
+        $activity = $harness->activity($row, $mapping);
+
+        $this->assertSame(18, $mapping['tips']);
+        $this->assertSame(957.32, $activity['gross']);
+        $this->assertSame(731.24, $activity['net']);
+        $this->assertSame(11.58, $activity['tips']);
+    }
+
     public function test_it_reads_current_bolt_csv_export_format(): void
     {
         $harness = new class extends TvdeActivityController {

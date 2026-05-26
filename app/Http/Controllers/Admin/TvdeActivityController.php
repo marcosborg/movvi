@@ -329,7 +329,7 @@ class TvdeActivityController extends Controller
                 'driver_code_stable' => 0,
                 'gross' => 6,
                 'net' => 3,
-                'tips' => 19,
+                'tips' => 18,
             ];
         }
 
@@ -350,7 +350,7 @@ class TvdeActivityController extends Controller
                 'driver_code_stable' => ['UUID do motorista'],
                 'gross' => ['Pago a si : Os seus rendimentos : Tarifa'],
                 'net' => ['Pago a si'],
-                'tips' => ['Pago a si:Os seus rendimentos:Gratificacao'],
+                'tips' => ['Pago a si:Os seus rendimentos:Gratificacao', 'Pago a si:Os seus rendimentos:Gratificação'],
             ]
             : [
                 'driver_code' => ['Identificador do motorista'],
@@ -385,6 +385,14 @@ class TvdeActivityController extends Controller
         $label = trim((string) $label);
         $label = str_replace("\xc2\xa0", ' ', $label);
         $label = str_replace('€', 'EUR', $label);
+        $label = strtr($label, [
+            'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A', 'á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a',
+            'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E', 'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'Í' => 'I', 'Ì' => 'I', 'Î' => 'I', 'Ï' => 'I', 'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
+            'Ó' => 'O', 'Ò' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ö' => 'O', 'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o',
+            'Ú' => 'U', 'Ù' => 'U', 'Û' => 'U', 'Ü' => 'U', 'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+            'Ç' => 'C', 'ç' => 'c',
+        ]);
         $label = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $label) ?: $label;
         $label = str_replace("'", '', $label);
         $label = mb_strtolower($label, 'UTF-8');
