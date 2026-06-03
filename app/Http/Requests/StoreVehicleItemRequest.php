@@ -17,6 +17,11 @@ class StoreVehicleItemRequest extends FormRequest
     public function rules()
     {
         return [
+            'company_id' => [
+                'nullable',
+                'integer',
+                'exists:companies,id',
+            ],
             'vehicle_brand_id' => [
                 'required',
                 'integer',
@@ -58,6 +63,9 @@ class StoreVehicleItemRequest extends FormRequest
                 'nullable',
                 'integer',
                 'exists:cards,id',
+            ],
+            'suspended' => [
+                'boolean',
             ],
         ];
     }
