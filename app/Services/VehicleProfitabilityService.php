@@ -216,28 +216,6 @@ class VehicleProfitabilityService
         $weekStart = Carbon::parse($week->getRawOriginal('start_date'))->startOfDay();
         $weekEnd = Carbon::parse($week->getRawOriginal('end_date'))->endOfDay();
 
-        $vehicles = VehicleItem::with('vehicle_model')
-            ->when($companyId, function ($query) use ($companyId) {
-                $query->where('company_id', $companyId);
-            })
-            ->where(function ($query) {
-                $query->where('suspended', false)->orWhereNull('suspended');
-            })
-            ->where(function ($query) use ($weekEnd) {
-                $query->whereNull('acquisition_date')
-                    ->orWhere('acquisition_date', '<=', $weekEnd->toDateString());
-            })
-            ->where(function ($query) use ($weekStart) {
-                $query->whereNull('sale_date')
-                    ->orWhere('sale_date', '>=', $weekStart->toDateString());
-            })
-            ->orderBy('license_plate')
-            ->get();
-
-        if ($vehicles->isEmpty()) {
-            return self::emptyWeekResult($tvdeWeekId, $week);
-        }
-
         $usages = VehicleUsage::query()
             ->whereNotNull('vehicle_item_id')
             ->whereNotNull('driver_id')
@@ -246,6 +224,49 @@ class VehicleProfitabilityService
                 $q->whereNull('end_date')->orWhere('end_date', '>=', $weekStart);
             })
             ->get(['vehicle_item_id', 'driver_id', 'start_date', 'end_date']);
+
+        $usedVehicleIds = $usages
+            ->pluck('vehicle_item_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $vehicles = VehicleItem::with('vehicle_model')
+            ->when($companyId, function ($query) use ($companyId) {
+                $query->where('company_id', $companyId);
+            })
+            ->where(function ($query) use ($usedVehicleIds) {
+                $query->where(function ($query) {
+                    $query->where('suspended', false)->orWhereNull('suspended');
+                });
+
+                if (! empty($usedVehicleIds)) {
+                    $query->orWhereIn('id', $usedVehicleIds);
+                }
+            })
+            ->where(function ($query) use ($weekEnd, $usedVehicleIds) {
+                $query->whereNull('acquisition_date')
+                    ->orWhere('acquisition_date', '<=', $weekEnd->toDateString());
+
+                if (! empty($usedVehicleIds)) {
+                    $query->orWhereIn('id', $usedVehicleIds);
+                }
+            })
+            ->where(function ($query) use ($weekStart, $usedVehicleIds) {
+                $query->whereNull('sale_date')
+                    ->orWhere('sale_date', '>=', $weekStart->toDateString());
+
+                if (! empty($usedVehicleIds)) {
+                    $query->orWhereIn('id', $usedVehicleIds);
+                }
+            })
+            ->orderBy('license_plate')
+            ->get();
+
+        if ($vehicles->isEmpty()) {
+            return self::emptyWeekResult($tvdeWeekId, $week);
+        }
 
         $usageSeconds = [];
         $driverIds = [];
