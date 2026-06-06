@@ -101,7 +101,11 @@
                 </div>
             </div>
             <div class="text-center mt-3">
-                <small>2025 Movvi.pt - Todos os direitos reservados.</small>
+                <small>
+                    2025 Movvi.pt - Todos os direitos reservados.
+                    <span class="mx-2">|</span>
+                    <a href="{{ route('website.privacy-policy') }}" class="text-white">Política de Privacidade</a>
+                </small>
             </div>
         </div>
     </footer>
@@ -167,7 +171,6 @@
     @yield('scripts')
 </body>
 </html>
-
 
 
 

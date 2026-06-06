@@ -5,6 +5,7 @@ use App\Http\Controllers\WebsiteController;
 //Route::redirect('/', '/admin');
 
 Route::get('/', [WebsiteController::class, 'index']);
+Route::get('/politica-de-privacidade', [WebsiteController::class, 'privacyPolicy'])->name('website.privacy-policy');
 Route::get('/noticias/{newsArticle}', [WebsiteController::class, 'noticia'])->name('website.noticias.show');
 Route::get('/cms/{page}/{slug}', [WebsiteController::class, 'cms'])->name('website.cms');
 Route::post('/cms/{page}/{slug}/form', [WebsiteController::class, 'submitPageForm'])->name('website.cms.form');

@@ -32,6 +32,11 @@ class WebsiteController extends Controller
         return view('website.noticia', compact('newsArticle'));
     }
 
+    public function privacyPolicy()
+    {
+        return view('website.privacy-policy');
+    }
+
     public function cms(Page $page, $slug)
     {
         if ($page->slug && $page->slug !== $slug) {
