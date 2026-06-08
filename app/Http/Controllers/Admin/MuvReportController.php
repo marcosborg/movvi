@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Muv\MuvFinancialReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -18,7 +19,7 @@ class MuvReportController extends Controller
 
     public function index(Request $request)
     {
-        abort_unless($request->user()?->hasRole('Admin'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_if(Gate::denies('muv_report_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $report = $this->reportService->build($this->filters($request));
 
@@ -27,7 +28,7 @@ class MuvReportController extends Controller
 
     public function pdf(Request $request)
     {
-        abort_unless($request->user()?->hasRole('Admin'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_if(Gate::denies('muv_report_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $report = $this->reportService->build($this->filters($request));
         $filename = sprintf(
