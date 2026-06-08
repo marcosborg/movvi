@@ -27,6 +27,8 @@ Auth::routes(['register' => false]);
 Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'middleware' => ['auth', 'prevent-writes-while-impersonating']], function () {
 
     Route::get('/', 'HomeController@index')->name('home');
+    Route::get('muv', 'MuvReportController@index')->name('muv.index');
+    Route::get('muv/pdf', 'MuvReportController@pdf')->name('muv.pdf');
     Route::post('impersonation/start', 'AdminDriverImpersonationController@start')->name('impersonation.start');
     Route::post('impersonation/stop', 'AdminDriverImpersonationController@stop')->name('impersonation.stop');
     Route::get('impersonation/drivers', 'AdminDriverImpersonationController@drivers')->name('impersonation.drivers');

@@ -17,6 +17,14 @@
                     {{ trans('global.dashboard') }}
                 </a>
             </li>
+            @if(auth()->user()?->hasRole('Admin'))
+            <li class="{{ request()->is('admin/muv') || request()->is('admin/muv/*') ? 'active' : '' }}">
+                <a href="{{ route('admin.muv.index') }}">
+                    <i class="fa-fw fas fa-chart-pie"></i>
+                    <span>MUV</span>
+                </a>
+            </li>
+            @endif
             @if(($sidebarFavorites ?? collect())->isNotEmpty())
             <li class="header">Favoritos</li>
     @foreach($sidebarFavorites as $favorite)
