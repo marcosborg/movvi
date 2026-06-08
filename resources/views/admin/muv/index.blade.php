@@ -131,12 +131,7 @@
 <div class="content">
     <div class="muv-header">
         <div>
-            <h1 class="muv-title">MUV · Relatório financeiro para investidores</h1>
-            <p class="muv-subtitle">
-                Visão consolidada de receitas, gastos, resultado estimado e reconciliação Conta Azul.
-                Período: {{ \Carbon\Carbon::parse($report['filters']['start_date'])->format('d/m/Y') }}
-                a {{ \Carbon\Carbon::parse($report['filters']['end_date'])->format('d/m/Y') }}.
-            </p>
+            <h1 class="muv-title">MUV</h1>
         </div>
         <a class="btn btn-danger" href="{{ route('admin.muv.pdf', request()->query()) }}">
             <i class="fa fa-file-pdf-o"></i> Exportar PDF

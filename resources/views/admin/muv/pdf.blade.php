@@ -44,12 +44,7 @@
     <footer>MUV · Relatório financeiro gerado em {{ $report['generated_at']->format('d/m/Y H:i') }}</footer>
 
     <div class="cover">
-        <h1>MUV · Relatório financeiro para investidores</h1>
-        <p>
-            Período analisado: {{ \Carbon\Carbon::parse($report['filters']['start_date'])->format('d/m/Y') }}
-            a {{ \Carbon\Carbon::parse($report['filters']['end_date'])->format('d/m/Y') }}.
-            Empresa: {{ $report['filters']['company']?->name ?? 'Todas as empresas' }}.
-        </p>
+        <h1>MUV</h1>
     </div>
 
     <table class="kpi-table">
