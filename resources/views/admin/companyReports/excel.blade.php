@@ -39,7 +39,7 @@
             <th>Total semana</th>
             <th>Ultimo saldo</th>
             <th>Novo saldo</th>
-            <th>Estado</th>
+            <th>Estado saldo</th>
         </tr>
     </thead>
     <tbody>

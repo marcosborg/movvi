@@ -117,6 +117,7 @@ trait Reports
         $receipt_check_match_count = 0;
         $receipt_check_mismatch_count = 0;
         $receipt_check_missing_count = 0;
+        $receipt_check_received_total = [];
         $receipt_check_difference_total = [];
 
         foreach ($drivers as $driver) {
@@ -415,9 +416,14 @@ trait Reports
             $driver->earnings_per_km = $earnings_per_km;
 
             $receipt = $weekReceipts->get($driver->id);
-            $receivedInAccount = $receipt && $receipt->verified_value !== null
-                ? (float) $receipt->verified_value
-                : null;
+            $receiptIsVerified = $receipt && (bool) $receipt->verified;
+            $receivedInAccount = null;
+
+            if ($receiptIsVerified) {
+                $receivedInAccount = $receipt->amount_transferred !== null
+                    ? (float) $receipt->amount_transferred
+                    : ($receipt->verified_value !== null ? (float) $receipt->verified_value : null);
+            }
             $platformNetTotal = round($net_total, 2);
             $receiptCheckDifference = $receivedInAccount !== null
                 ? round($receivedInAccount - $platformNetTotal, 2)
@@ -437,6 +443,7 @@ trait Reports
             }
 
             if ($receiptCheckDifference !== null) {
+                $receipt_check_received_total[] = $receivedInAccount;
                 $receipt_check_difference_total[] = $receiptCheckDifference;
             }
 
@@ -446,6 +453,7 @@ trait Reports
                 'received_in_account' => $receivedInAccount,
                 'difference' => $receiptCheckDifference,
                 'receipt_id' => $receipt?->id,
+                'is_verified' => $receiptIsVerified,
                 'amount_transferred' => $receipt && $receipt->amount_transferred !== null
                     ? (float) $receipt->amount_transferred
                     : null,
@@ -546,6 +554,7 @@ trait Reports
             'receipt_check_match_count' => $receipt_check_match_count,
             'receipt_check_mismatch_count' => $receipt_check_mismatch_count,
             'receipt_check_missing_count' => $receipt_check_missing_count,
+            'receipt_check_received_total' => array_sum($receipt_check_received_total),
             'receipt_check_difference_total' => array_sum($receipt_check_difference_total),
         ]);
 
