@@ -184,7 +184,7 @@ class SidebarFavoritesService
     {
         return [
             'admin.combustion-transactions.' => 'Abastecimentos',
-            'admin.company-reports.' => 'Faturação',
+            'admin.company-reports.' => 'Relatorio semanal',
             'admin.vehicle-usage' => 'Utilização da viatura',
         ];
     }

@@ -541,7 +541,7 @@
                                     <i class="fa-fw fas fa-file-contract">
 
                                     </i>
-                                    <span>Relatorio de motoristas</span>
+                                    <span>Relatorio semanal</span>
 
                                 </a>
                             </li>
