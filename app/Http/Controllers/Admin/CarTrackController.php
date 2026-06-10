@@ -9,6 +9,7 @@ use App\Http\Requests\StoreCarTrackRequest;
 use App\Http\Requests\UpdateCarTrackRequest;
 use App\Models\CarTrack;
 use App\Models\TvdeWeek;
+use App\Services\CarTrackAssignmentService;
 use Carbon\Carbon;
 use Gate;
 use Illuminate\Http\Request;
@@ -26,11 +27,14 @@ class CarTrackController extends Controller
         if ($request->ajax()) {
             $query = CarTrack::query()
                 ->leftJoin('tvde_weeks', 'tvde_weeks.id', '=', 'car_tracks.tvde_week_id')
+                ->leftJoin('drivers', 'drivers.id', '=', 'car_tracks.driver_id')
                 ->select([
                     'car_tracks.id',
                     'car_tracks.date',
                     'car_tracks.license_plate',
                     'car_tracks.value',
+                    'car_tracks.assignment_status',
+                    'drivers.name as driver_name',
                     'tvde_weeks.start_date as tvde_week_start_date',
                     'car_tracks.deleted_at',
                 ]);
@@ -59,6 +63,8 @@ class CarTrackController extends Controller
             $table->editColumn('date', fn($row) => $row->date ?: '');
             $table->editColumn('license_plate', fn($row) => $row->license_plate ?: '');
             $table->editColumn('value', fn($row) => $row->value ?: '');
+            $table->editColumn('assignment_status', fn($row) => $row->assignment_status ?: '');
+            $table->editColumn('driver_name', fn($row) => $row->driver_name ?: '');
             $table->editColumn('tvde_week_start_date', fn($row) => $row->tvde_week_start_date ?: '');
 
             // já não tens nenhuma coluna HTML chamada 'tvde_week'
@@ -81,9 +87,10 @@ class CarTrackController extends Controller
         return view('admin.carTracks.create', compact('tvde_weeks'));
     }
 
-    public function store(StoreCarTrackRequest $request)
+    public function store(StoreCarTrackRequest $request, CarTrackAssignmentService $assignmentService)
     {
         $carTrack = CarTrack::create($request->all());
+        $assignmentService->assign($carTrack);
 
         return redirect()->route('admin.car-tracks.index');
     }
@@ -99,9 +106,10 @@ class CarTrackController extends Controller
         return view('admin.carTracks.edit', compact('carTrack', 'tvde_weeks'));
     }
 
-    public function update(UpdateCarTrackRequest $request, CarTrack $carTrack)
+    public function update(UpdateCarTrackRequest $request, CarTrack $carTrack, CarTrackAssignmentService $assignmentService)
     {
         $carTrack->update($request->all());
+        $assignmentService->assign($carTrack);
 
         return redirect()->route('admin.car-tracks.index');
     }
@@ -144,7 +152,7 @@ class CarTrackController extends Controller
         return redirect()->back()->with('message', 'Eliminado com sucesso');
     }
 
-    public function uploadViaVerde(Request $request)
+    public function uploadViaVerde(Request $request, CarTrackAssignmentService $assignmentService)
     {
         abort_if(Gate::denies('car_track_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
@@ -202,10 +210,13 @@ class CarTrackController extends Controller
                     $existing->restore();
                 }
 
+                $assignmentService->assign($existing);
+
                 continue;
             }
 
-            CarTrack::create($row);
+            $created = CarTrack::create($row);
+            $assignmentService->assign($created);
         }
 
         return redirect()->back()

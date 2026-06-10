@@ -253,46 +253,11 @@ trait Reports
             $total_caution_received[] = $caution_received;
             $total_caution_returned[] = $caution_returned;
             // ---------- CAR TRACK (Via Verde) ----------
-            $car_track = 0.0;
-            if ($tvde_week->id) {
-                $week_start = Carbon::parse($tvde_week->getRawOriginal('start_date'))->startOfDay();
-                $week_end = Carbon::parse($tvde_week->getRawOriginal('end_date'))->endOfDay();
-
-                $usage_intervals = VehicleUsage::with('vehicle_item')
-                    ->where('driver_id', $driver->id)
-                    ->where('start_date', '<=', $tvde_week->end_date)
-                    ->where(function ($query) use ($tvde_week) {
-                        $query->whereNull('end_date')
-                            ->orWhere('end_date', '>=', $tvde_week->start_date);
-                    })
-                    ->where(function ($query) {
-                        $query->whereNull('usage_exceptions')
-                            ->orWhere('usage_exceptions', 'usage');
-                    })
-                    ->get();
-
-                foreach ($usage_intervals as $usage) {
-                    $plate = optional($usage->vehicle_item)->license_plate;
-                    if (!$plate) {
-                        continue;
-                    }
-
-                    $normalized_plate = strtoupper(str_replace(['-', ' '], '', $plate));
-                    $usage_start = $usage->start_date ? Carbon::parse($usage->start_date) : $week_start;
-                    $usage_end = $usage->end_date ? Carbon::parse($usage->end_date) : $week_end;
-
-                    if ($usage_end->lessThan($usage_start)) {
-                        continue;
-                    }
-
-                    $car_track += (float) \DB::table('car_tracks as ct')
-                        ->where('ct.tvde_week_id', $tvde_week->id)
-                        ->whereNull('ct.deleted_at')
-                        ->whereRaw("REPLACE(REPLACE(UPPER(ct.license_plate), '-', ''), ' ', '') = ?", [$normalized_plate])
-                        ->whereBetween('ct.date', [$usage_start->toDateTimeString(), $usage_end->toDateTimeString()])
-                        ->sum('ct.value');
-                }
-            }
+            $car_track = (float) CarTrack::query()
+                ->where('tvde_week_id', $tvde_week->id)
+                ->where('driver_id', $driver->id)
+                ->where('assignment_status', CarTrack::STATUS_ASSIGNED)
+                ->sum('value');
 
             // =======================
             // DRIVER PAYOUT (NET - TIPS - IVA 6% - COMPANY % - EXPENSES + ADJUSTMENTS + TIPS)
@@ -1174,59 +1139,18 @@ trait Reports
             return collect();
         }
 
-        $weekStart = Carbon::parse($tvdeWeek->getRawOriginal('start_date'))->startOfDay();
-        $weekEnd = Carbon::parse($tvdeWeek->getRawOriginal('end_date'))->endOfDay();
-
-        $usageIntervals = VehicleUsage::with('vehicle_item')
+        return CarTrack::query()
+            ->where('tvde_week_id', $tvdeWeek->id)
             ->where('driver_id', $driverId)
-            ->where('start_date', '<=', $tvdeWeek->end_date)
-            ->where(function ($query) use ($tvdeWeek) {
-                $query->whereNull('end_date')
-                    ->orWhere('end_date', '>=', $tvdeWeek->start_date);
-            })
-            ->where(function ($query) {
-                $query->whereNull('usage_exceptions')
-                    ->orWhere('usage_exceptions', 'usage');
-            })
-            ->get();
-
-        $details = collect();
-
-        foreach ($usageIntervals as $usage) {
-            $plate = optional($usage->vehicle_item)->license_plate;
-            if (!$plate) {
-                continue;
-            }
-
-            $normalizedPlate = strtoupper(str_replace(['-', ' '], '', $plate));
-            $usageStart = $usage->start_date ? Carbon::parse($usage->start_date) : $weekStart;
-            $usageEnd = $usage->end_date ? Carbon::parse($usage->end_date) : $weekEnd;
-
-            if ($usageEnd->lessThan($usageStart)) {
-                continue;
-            }
-
-            $rows = \DB::table('car_tracks as ct')
-                ->select(['ct.date', 'ct.value'])
-                ->where('ct.tvde_week_id', $tvdeWeek->id)
-                ->whereNull('ct.deleted_at')
-                ->whereRaw("REPLACE(REPLACE(UPPER(ct.license_plate), '-', ''), ' ', '') = ?", [$normalizedPlate])
-                ->whereBetween('ct.date', [$usageStart->toDateTimeString(), $usageEnd->toDateTimeString()])
-                ->orderBy('ct.date')
-                ->get();
-
-            foreach ($rows as $row) {
-                $details->push([
-                    'date' => $row->date,
-                    'value' => (float) $row->value,
-                    'signature' => sprintf('%s|%s', (string) $row->date, (string) $row->value),
-                ]);
-            }
-        }
-
-        return $details
-            ->unique('signature')
-            ->sortBy('date')
+            ->where('assignment_status', CarTrack::STATUS_ASSIGNED)
+            ->orderBy('date')
+            ->get(['date', 'value', 'license_plate'])
+            ->map(fn (CarTrack $carTrack) => [
+                'date' => $carTrack->date,
+                'value' => (float) $carTrack->value,
+                'license_plate' => $carTrack->license_plate,
+                'signature' => sprintf('%s|%s|%s', (string) $carTrack->date, (string) $carTrack->license_plate, (string) $carTrack->value),
+            ])
             ->values();
     }
 

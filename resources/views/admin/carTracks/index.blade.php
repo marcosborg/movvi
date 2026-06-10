@@ -63,6 +63,12 @@
                                     {{ trans('cruds.carTrack.fields.value') }}
                                 </th>
                                 <th>
+                                    Estado atribuição
+                                </th>
+                                <th>
+                                    Motorista
+                                </th>
+                                <th>
                                     &nbsp;
                                 </th>
                             </tr>
@@ -150,6 +156,8 @@
   { data: 'date', name: 'car_tracks.date' },
   { data: 'license_plate', name: 'car_tracks.license_plate' },
   { data: 'value', name: 'car_tracks.value' },
+  { data: 'assignment_status', name: 'car_tracks.assignment_status' },
+  { data: 'driver_name', name: 'drivers.name' },
   { data: 'actions', name: 'actions' }
 ],
     orderCellsTop: true,
