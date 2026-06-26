@@ -63,7 +63,7 @@
                 <td class="text-right">{{ number_format($driver->fuel ?? 0, 2) }}</td>
                 <td class="text-right">{{ number_format($driver->adjustments ?? 0, 2) }}</td>
                 <td class="text-right">{{ number_format($driver->earnings['car_track'] ?? 0, 2) }}</td>
-                <td class="text-right">{{ number_format($driver->earnings['percent_value'] ?? 0, 2) }}</td>
+                <td class="text-right">{{ ($driver->earnings['percent_value'] ?? 0) > 0 ? '-' : '' }}{{ number_format($driver->earnings['percent_value'] ?? 0, 2) }}</td>
                 <td class="text-right">{{ number_format($driver->earnings['car_hire'] ?? 0, 2) }}</td>
                 <td class="text-right">{{ number_format($driver->total ?? 0, 2) }}</td>
                 <td class="text-right">{{ number_format($driver->last_balance ?? 0, 2) }}</td>
@@ -83,7 +83,7 @@
                 <th class="text-right">{{ number_format($totals['total_fuel_transactions'] ?? 0, 2) }}</th>
                 <th class="text-right">{{ number_format($totals['total_adjustments'] ?? 0, 2) }}</th>
                 <th class="text-right">{{ number_format($totals['total_car_track'] ?? 0, 2) }}</th>
-                <th class="text-right">{{ number_format($totals['total_percent_value'] ?? 0, 2) }}</th>
+                <th class="text-right">{{ ($totals['total_percent_value'] ?? 0) > 0 ? '-' : '' }}{{ number_format($totals['total_percent_value'] ?? 0, 2) }}</th>
                 <th class="text-right">{{ number_format($totals['total_car_hire'] ?? 0, 2) }}</th>
                 <th class="text-right">{{ number_format($totals['total_drivers'] ?? 0, 2) }}</th>
                 <th></th>

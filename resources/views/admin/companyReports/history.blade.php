@@ -152,7 +152,7 @@
                         </td>
                         <td style="text-align: right">{{ number_format($driver->adjustments, 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->earnings['car_track'], 2) }} <small>€</small></td>
-                        <td style="text-align: right; color: red;">{{ number_format($driver->earnings['percent_value'], 2)
+                        <td style="text-align: right; color: red;">{{ ($driver->earnings['percent_value'] ?? 0) > 0 ? '-' : '' }}{{ number_format($driver->earnings['percent_value'], 2)
                             }}
                             <small>€</small>
                         </td>
@@ -205,7 +205,7 @@
                         <th style="text-align: right;">{{ number_format($totals['total_car_track'], 2) }}
                             <small>€</small>
                         </th>
-                        <th style="text-align: right; color: red;">{{ number_format($totals['total_percent_value'], 2) }}
+                        <th style="text-align: right; color: red;">{{ ($totals['total_percent_value'] ?? 0) > 0 ? '-' : '' }}{{ number_format($totals['total_percent_value'], 2) }}
                             <small>€</small>
                         </th>
                         <th style="text-align: right;">-{{ number_format($totals['total_car_hire'], 2) }}

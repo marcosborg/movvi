@@ -391,7 +391,7 @@
                                         @endforeach
                                         "><i class="fa-fw fas fa-eye"></i></button></td>
                                     <td style="text-align: right">{{ number_format($driver->earnings['car_track'], 2) }} <small>€</small></td>
-                                    <td style="text-align: right; color: red;">{{ number_format($driver->earnings['percent_value'], 2) }} <small>€</small></td>
+                                    <td style="text-align: right; color: red;">{{ ($driver->earnings['percent_value'] ?? 0) > 0 ? '-' : '' }}{{ number_format($driver->earnings['percent_value'], 2) }} <small>€</small></td>
                                     <td style="text-align: right">-{{ number_format($driver->earnings['car_hire'], 2) }} <small>€</small>
                                         @if(($driver->earnings['abatimento_aluguer'] ?? 0) > 0)
                                             <br><small class="text-success">abatimento: {{ number_format($driver->earnings['abatimento_aluguer'], 2) }} €</small>
@@ -466,7 +466,7 @@
                             <th style="text-align: right;">-{{ number_format($totals['total_fuel_transactions'], 2) }} <small>&euro;</small></th>
                             <th style="text-align: right;">{{ number_format($totals['total_adjustments'], 2) }} <small>&euro;</small></th>
                             <th style="text-align: right;">{{ number_format($totals['total_car_track'], 2) }} <small>&euro;</small></th>
-                            <th style="text-align: right; color: red;">{{ number_format($totals['total_percent_value'], 2) }} <small>&euro;</small></th>
+                            <th style="text-align: right; color: red;">{{ ($totals['total_percent_value'] ?? 0) > 0 ? '-' : '' }}{{ number_format($totals['total_percent_value'], 2) }} <small>&euro;</small></th>
                             <th style="text-align: right;">-{{ number_format($totals['total_car_hire'], 2) }} <small>&euro;</small></th>
                             <th style="text-align: right;" title="{{ $totals['caution_tooltip'] ?? '' }}">
                                 {{ $totals['caution_display'] ?? '0,00&euro;' }}

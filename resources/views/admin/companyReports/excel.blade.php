@@ -56,7 +56,7 @@
                 <td>{{ $driver->fuel ?? 0 }}</td>
                 <td>{{ $driver->adjustments ?? 0 }}</td>
                 <td>{{ $driver->earnings['car_track'] ?? 0 }}</td>
-                <td>{{ $driver->earnings['percent_value'] ?? 0 }}</td>
+                <td>{{ ($driver->earnings['percent_value'] ?? 0) > 0 ? -($driver->earnings['percent_value'] ?? 0) : 0 }}</td>
                 <td>{{ $driver->earnings['car_hire'] ?? 0 }}</td>
                 <td>{{ $driver->earnings['abatimento_aluguer'] ?? 0 }}</td>
                 <td>{{ ($driver->earnings['caucao_recebida'] ?? 0) + ($driver->earnings['caucao_devolvida'] ?? 0) }}</td>
@@ -80,7 +80,7 @@
             <th>{{ $totals['total_fuel_transactions'] ?? 0 }}</th>
             <th>{{ $totals['total_adjustments'] ?? 0 }}</th>
             <th>{{ $totals['total_car_track'] ?? 0 }}</th>
-            <th>{{ $totals['total_percent_value'] ?? 0 }}</th>
+            <th>{{ ($totals['total_percent_value'] ?? 0) > 0 ? -($totals['total_percent_value'] ?? 0) : 0 }}</th>
             <th>{{ $totals['total_car_hire'] ?? 0 }}</th>
             <th>{{ $totals['total_rent_discounts'] ?? 0 }}</th>
             <th>{{ ($totals['total_caution_received'] ?? 0) + ($totals['total_caution_returned'] ?? 0) }}</th>
