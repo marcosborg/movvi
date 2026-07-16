@@ -48,6 +48,7 @@
                                         <li><a class="dropdown-item" href="https://dashboard.movvi.com.pt/motorista/login">Dashboard de Motorista</a></li>
                                     </ul>
                                 </li>
+                                <li><a class="dropdown-item" href="https://charge.movvi.com.pt/">Movvi Charge ⚡</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <a class="dropdown-item d-flex align-items-center gap-2" href="#" onclick="event.preventDefault(); document.getElementById('navbar-logout-form').submit();">
@@ -85,6 +86,7 @@
                                         <li><a class="dropdown-item" href="https://dashboard.movvi.com.pt/motorista/login">Dashboard de Motorista</a></li>
                                     </ul>
                                 </li>
+                                <li><a class="dropdown-item" href="https://charge.movvi.com.pt/">Movvi Charge ⚡</a></li>
                             </ul>
                         @endauth
                     </li>
