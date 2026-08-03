@@ -80,6 +80,11 @@ class Driver extends Model
         return $this->hasMany(Receipt::class, 'driver_id', 'id');
     }
 
+    public function movviChargeEntries()
+    {
+        return $this->hasMany(MovviChargeEntry::class);
+    }
+
     public function alerts()
     {
         return $this->hasMany(DriverAlert::class, 'driver_id', 'id');

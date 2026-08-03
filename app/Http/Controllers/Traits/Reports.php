@@ -26,6 +26,7 @@ use App\Models\Company;
 use App\Models\CompanyData;
 use App\Models\CarTrack;
 use App\Models\TeslaCharging;
+use App\Models\MovviChargeEntry;
 use App\Models\VehicleUsage;
 use App\Models\WeeklyVehicleMileage;
 use Carbon\Carbon;
@@ -76,6 +77,14 @@ trait Reports
             ->map(function ($receipts) {
                 return $receipts->firstWhere('verified', true) ?? $receipts->first();
             });
+        $movviChargeTotals = MovviChargeEntry::query()
+            ->whereIn('driver_id', $driverIds)
+            ->whereHas('import', function ($query) use ($tvde_week_id) {
+                $query->where('tvde_week_id', $tvde_week_id);
+            })
+            ->selectRaw('driver_id, SUM(value) as total_value')
+            ->groupBy('driver_id')
+            ->pluck('total_value', 'driver_id');
 
         // Totais (mantendo compatibilidade)
         $total_operators = [];
@@ -208,8 +217,12 @@ trait Reports
             $other_fuel_total = (float) $this->otherFuelTransactionsForDriver($tvde_week, $driver)
                 ->sum('value');
 
+            // ---------- MOVVI CHARGE ----------
+            // É somado integralmente, depois da eventual divisão dos abastecimentos normais.
+            $movvi_charge_total = (float) ($movviChargeTotals[$driver->id] ?? 0);
+
             // Garantir número em fuel
-            $driver->fuel = (float) $fuel_transactions + $other_fuel_total;
+            $driver->fuel = (float) $fuel_transactions + $other_fuel_total + $movvi_charge_total;
             $total_fuel_transactions[] = $driver->fuel;
 
             // ---------- CAR HIRE ----------
@@ -335,6 +348,7 @@ trait Reports
                 // Custos e ajustes
                 'car_track' => $car_track,
                 'fuel_transactions' => $driver->fuel,
+                'movvi_charge' => $movvi_charge_total,
                 'car_hire' => $rent_value,
                 'car_hire_base' => $rent_base_value,
                 'abatimento_aluguer' => $rent_discount,
@@ -1511,7 +1525,6 @@ trait Reports
         $company_data->save();
     }
 }
-
 
 
 

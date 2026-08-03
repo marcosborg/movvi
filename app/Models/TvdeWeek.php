@@ -67,6 +67,11 @@ class TvdeWeek extends Model
         return $this->hasMany(TvdeActivity::class);
     }
 
+    public function movviChargeImport()
+    {
+        return $this->hasOne(MovviChargeImport::class);
+    }
+
     public function getDisplayNumberAttribute(): ?int
     {
         $rawStartDate = $this->getRawOriginal('start_date');

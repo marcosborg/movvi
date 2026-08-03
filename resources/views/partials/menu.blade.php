@@ -399,6 +399,17 @@
                                 </a>
                             </li>
                         @endcan
+                    @can('tesla_charging_access')
+                            <li class="{{ request()->is("admin/movvi-charge") || request()->is("admin/movvi-charge/*") ? "active" : "" }}">
+                                <a href="{{ route("admin.movvi-charge.index") }}">
+                                    <i class="fa-fw fas fa-charging-station">
+
+                                    </i>
+                                    <span>Movvi Charge</span>
+
+                                </a>
+                            </li>
+                        @endcan
                     @can('toll_payment_access')
                             <li class="{{ request()->is("admin/toll-payments") || request()->is("admin/toll-payments/*") ? "active" : "" }}">
                                 <a href="{{ route("admin.toll-payments.index") }}">

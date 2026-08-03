@@ -639,6 +639,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('tesla-chargings/process-csv-import', 'TeslaChargingController@processCsvImport')->name('tesla-chargings.processCsvImport');
     Route::resource('tesla-chargings', 'TeslaChargingController');
 
+    // Movvi Charge
+    Route::get('movvi-charge', 'MovviChargeController@index')->name('movvi-charge.index');
+    Route::post('movvi-charge/import', 'MovviChargeController@import')->name('movvi-charge.import');
+
     // Expense Reimbursement
     Route::delete('expense-reimbursements/destroy', 'ExpenseReimbursementController@massDestroy')->name('expense-reimbursements.massDestroy');
     Route::post('expense-reimbursements/parse-csv-import', 'ExpenseReimbursementController@parseCsvImport')->name('expense-reimbursements.parseCsvImport');
