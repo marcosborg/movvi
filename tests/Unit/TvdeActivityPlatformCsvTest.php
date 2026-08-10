@@ -119,4 +119,64 @@ class TvdeActivityPlatformCsvTest extends TestCase
         $this->assertSame(129.19, $activity['net']);
         $this->assertSame(1.0, $activity['tips']);
     }
+
+    public function test_it_reads_bolt_csv_rows_wrapped_in_an_extra_quote_layer(): void
+    {
+        $harness = new class extends TvdeActivityController {
+            public function rows(string $path): array
+            {
+                return $this->readBoltCsvRows($path);
+            }
+
+            public function mapping(array $header): array
+            {
+                return $this->resolvePlatformCsvMappingFromHeader($header, 'bolt', $this->platformCsvMapping('bolt'));
+            }
+
+            public function activity(array $row, array $mapping): ?array
+            {
+                return $this->mapPlatformActivityRow($row, $mapping, 10, 20, 30);
+            }
+        };
+
+        $header = ['Motorista', 'Email', 'Telemóvel', 'Ganhos brutos (total)|€'];
+        $header = array_merge($header, array_fill(0, 5, 'Campo'), ['Gorjetas dos passageiros|€']);
+        $header = array_merge($header, array_fill(0, 11, 'Campo'), ['Ganhos líquidos|€']);
+        $header = array_merge($header, array_fill(0, 5, 'Campo'), ['Identificador do motorista', 'Identificador individual', 'Nível']);
+        $header = array_merge($header, array_fill(0, 12, 'Campo'));
+
+        $row = array_fill(0, 42, '');
+        $row[0] = 'Alexandre Moreira';
+        $row[3] = '301.66';
+        $row[9] = '2.00';
+        $row[21] = '232.83';
+        $row[27] = '388b0192-a54c-41a2-8754-b301643a96a7';
+        $row[28] = 'afa0bfb7-3d9b-4c1d-8a97-b10eec3d6338';
+        $row[29] = 'Silver; Level=1; Status=ACTIVE';
+
+        $wrap = function (array $values): string {
+            $encoded = implode(',', array_map(fn (string $value) => '"' . str_replace('"', '""', $value) . '"', $values));
+
+            return '"' . str_replace('"', '""', $encoded) . '";;';
+        };
+
+        $path = tempnam(sys_get_temp_dir(), 'bolt-csv-');
+        file_put_contents($path, "\xEF\xBB\xBF" . $wrap($header) . "\r\n" . $wrap($row) . "\r\n");
+
+        try {
+            $rows = $harness->rows($path);
+            $mapping = $harness->mapping($rows[0]);
+            $activity = $harness->activity($rows[1], $mapping);
+        } finally {
+            @unlink($path);
+        }
+
+        $this->assertCount(42, $rows[0]);
+        $this->assertCount(42, $rows[1]);
+        $this->assertSame('Silver; Level=1; Status=ACTIVE', $rows[1][29]);
+        $this->assertSame('afa0bfb7-3d9b-4c1d-8a97-b10eec3d6338', $activity['driver_code']);
+        $this->assertSame(301.66, $activity['gross']);
+        $this->assertSame(232.83, $activity['net']);
+        $this->assertSame(2.0, $activity['tips']);
+    }
 }

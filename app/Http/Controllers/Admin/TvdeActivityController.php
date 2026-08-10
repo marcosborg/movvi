@@ -520,6 +520,24 @@ class TvdeActivityController extends Controller
             return [];
         }
 
+        // Some Bolt exports wrap the complete CSV row in quotes and escape
+        // every quote inside it. Decode that outer layer before parsing the
+        // actual comma-separated fields.
+        $wrappedLine = rtrim($line, ';');
+
+        if (str_starts_with($wrappedLine, '"') && str_ends_with($wrappedLine, '"')) {
+            $wrappedLine = substr($wrappedLine, 1, -1);
+            $wrappedLine = str_replace('""', '"', $wrappedLine);
+            $wrappedRow = str_getcsv($wrappedLine);
+
+            if (count($wrappedRow) > 1) {
+                return collect($wrappedRow)
+                    ->map(fn ($value) => trim((string) $value))
+                    ->values()
+                    ->all();
+            }
+        }
+
         $csvRow = str_getcsv($line);
 
         if (count($csvRow) > 1) {
