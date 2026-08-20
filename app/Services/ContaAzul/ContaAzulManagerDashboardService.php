@@ -5,6 +5,7 @@ namespace App\Services\ContaAzul;
 use App\Models\Company;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class ContaAzulManagerDashboardService
 {
@@ -15,8 +16,8 @@ class ContaAzulManagerDashboardService
 
     public function profitLoss(Company $company, array $query = []): array
     {
-        $receivables = $this->normalizeItems($this->client->listReceivables($company, $query));
-        $payables = $this->normalizeItems($this->client->listPayables($company, $query));
+        $receivables = $this->allReceivables($company, $query);
+        $payables = $this->allPayables($company, $query);
         $orderedReceivables = $this->sortItemsByDateDesc($receivables);
         $orderedPayables = $this->sortItemsByDateDesc($payables);
 
@@ -46,9 +47,9 @@ class ContaAzulManagerDashboardService
     public function movements(Company $company, array $query = []): array
     {
         $accounts = $this->client->listFinancialAccountsWithBalances($company, $query);
-        $receivables = $this->normalizeItems($this->client->listReceivables($company, $query))
+        $receivables = $this->allReceivables($company, $query)
             ->map(fn (array $item) => $this->normalizeMovement($item, 'incoming'));
-        $payables = $this->normalizeItems($this->client->listPayables($company, $query))
+        $payables = $this->allPayables($company, $query)
             ->map(fn (array $item) => $this->normalizeMovement($item, 'outgoing'));
 
         $movements = $receivables
@@ -89,9 +90,14 @@ class ContaAzulManagerDashboardService
 
     public function expenses(Company $company, array $query = []): array
     {
-        $payables = $this->normalizeItems($this->client->listPayables($company, $query));
+        $page = max((int) ($query['page'] ?? 1), 1);
+        $perPage = min(max((int) ($query['per_page'] ?? 20), 1), 100);
+        $financialQuery = Arr::except($query, ['page', 'per_page']);
+        $payables = $this->allPayables($company, $financialQuery);
         $orderedPayables = $this->sortItemsByDateDesc($payables);
-        $categories = $this->client->listCategories($company, $query);
+        $categories = $this->client->listCategories($company, $financialQuery);
+        $lastPage = max((int) ceil($payables->count() / $perPage), 1);
+        $pageItems = $orderedPayables->forPage($page, $perPage);
 
         $verifiedExpenses = $payables->filter(fn (array $item) => $this->isSettled($item));
         $openExpenses = $payables->reject(fn (array $item) => $this->isSettled($item));
@@ -112,7 +118,7 @@ class ContaAzulManagerDashboardService
                 'expense_breakdown' => $this->summarizeByCategory($payables),
                 'catalog' => $this->normalizeCategoryCatalog($categories),
             ],
-            'items' => $orderedPayables->map(fn (array $item) => [
+            'items' => $pageItems->map(fn (array $item) => [
                 'id' => $item['id'],
                 'description' => $item['description'],
                 'counterparty' => $item['counterparty'],
@@ -121,7 +127,66 @@ class ContaAzulManagerDashboardService
                 'date' => $item['date'],
                 'amount' => $item['amount'],
             ])->values()->all(),
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'last_page' => $lastPage,
+                'total' => $payables->count(),
+            ],
         ];
+    }
+
+    protected function allReceivables(Company $company, array $query): Collection
+    {
+        return $this->allFinancialItems(
+            $company,
+            'receivables',
+            $query,
+            fn (array $pageQuery) => $this->client->listReceivables($company, $pageQuery)
+        );
+    }
+
+    protected function allPayables(Company $company, array $query): Collection
+    {
+        return $this->allFinancialItems(
+            $company,
+            'payables',
+            $query,
+            fn (array $pageQuery) => $this->client->listPayables($company, $pageQuery)
+        );
+    }
+
+    protected function allFinancialItems(Company $company, string $type, array $query, callable $fetchPage): Collection
+    {
+        $query = Arr::except($query, ['pagina', 'tamanho_pagina', 'page', 'per_page']);
+        ksort($query);
+        $cacheKey = 'conta-azul:manager:' . $company->getKey() . ':' . $type . ':' . sha1(json_encode($query));
+
+        $items = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($query, $fetchPage) {
+            $page = 1;
+            $perPage = 200;
+            $items = collect();
+            $total = null;
+
+            do {
+                $payload = $fetchPage(array_merge($query, [
+                    'pagina' => $page,
+                    'tamanho_pagina' => $perPage,
+                ]));
+                $batch = $this->normalizeItems($payload);
+                $items = $items->concat($batch);
+                $totalValue = Arr::get($payload, 'itens_totais')
+                    ?? Arr::get($payload, 'items_totais')
+                    ?? Arr::get($payload, 'total');
+                $total = is_numeric($totalValue) ? (int) $totalValue : $total;
+                $page++;
+            } while ($batch->isNotEmpty()
+                && ($total === null ? $batch->count() === $perPage : $items->count() < $total));
+
+            return $items->values()->all();
+        });
+
+        return collect($items);
     }
 
     protected function normalizeItems(array $payload): Collection

@@ -347,12 +347,19 @@ Devolve:
 - `summary`
 - `categories`
 - `items`
+- `pagination`
+
+Query params:
+- `page`: pagina da lista de despesas (default `1`)
+- `per_page`: itens por pagina (default `20`, maximo `100`)
 
 Inclui:
 - total de despesas
 - despesas abertas
 - despesas pagas
 - despesas vencidas
+
+Os totais e categorias sao calculados sobre todas as paginas devolvidas pela Conta Azul. Apenas `items` e paginado. A leitura integral fica em cache durante 5 minutos por empresa e periodo.
 
 ### Erros esperados
 
