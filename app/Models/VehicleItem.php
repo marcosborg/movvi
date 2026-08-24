@@ -36,6 +36,7 @@ class VehicleItem extends Model implements HasMedia
         'year',
         'license_plate',
         'suspended',
+        'is_service_vehicle',
         'acquisition_date',
         'acquisition_value',
         'sale_date',
@@ -43,6 +44,11 @@ class VehicleItem extends Model implements HasMedia
         'created_at',
         'updated_at',
         'deleted_at',
+    ];
+
+    protected $casts = [
+        'suspended' => 'boolean',
+        'is_service_vehicle' => 'boolean',
     ];
 
     protected function serializeDate(DateTimeInterface $date)

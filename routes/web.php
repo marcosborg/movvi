@@ -616,6 +616,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
             ->name('vehicle-profitabilities.week-pdf');
         Route::post('export-conta-azul', [App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'exportContaAzul'])
             ->name('vehicle-profitabilities.export-conta-azul');
+        Route::post('allocate-entry/{entry}', [App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'allocateEntry'])
+            ->name('vehicle-profitabilities.allocate-entry');
+        Route::post('allocation-override', [App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'storeAllocationOverride'])
+            ->name('vehicle-profitabilities.allocation-override');
         Route::get('set-vehicle-item-id/{vehicle_item_id}', [\App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'setVehicleItemId']);
     });
 

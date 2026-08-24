@@ -8,9 +8,13 @@ use App\Http\Requests\MassDestroyTvdeActivityRequest;
 use App\Http\Requests\StoreTvdeActivityRequest;
 use App\Http\Requests\UpdateTvdeActivityRequest;
 use App\Models\Company;
+use App\Models\Driver;
 use App\Models\TvdeActivity;
+use App\Models\TvdeActivityEntry;
 use App\Models\TvdeOperator;
 use App\Models\TvdeWeek;
+use App\Services\TemporalVehicleRevenueAllocator;
+use Carbon\Carbon;
 use Gate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -220,6 +224,7 @@ class TvdeActivityController extends Controller
         $mapping = $this->platformCsvMapping($validated['platform']);
         $reader = $this->platformCsvRows($request->file('csv_file')->getRealPath(), $validated['platform']);
         $rows = [];
+        $entries = [];
         $isHeaderRow = true;
 
         foreach ($reader as $row) {
@@ -241,6 +246,8 @@ class TvdeActivityController extends Controller
                 continue;
             }
 
+            $entries[] = $activity;
+
             $signature = implode('|', [
                 $activity['tvde_week_id'],
                 $activity['tvde_operator_id'],
@@ -255,7 +262,7 @@ class TvdeActivityController extends Controller
                 continue;
             }
 
-            $rows[$signature] = $activity;
+            $rows[$signature] = collect($activity)->except('occurred_at')->all();
         }
 
         if (empty($rows)) {
@@ -264,7 +271,7 @@ class TvdeActivityController extends Controller
                 ->withInput();
         }
 
-        DB::transaction(function () use ($rows) {
+        DB::transaction(function () use ($rows, $entries, $validated, $operator, $companyId) {
             foreach ($rows as $activity) {
                 $lookup = [
                     'tvde_week_id' => $activity['tvde_week_id'],
@@ -290,6 +297,30 @@ class TvdeActivityController extends Controller
                 }
 
                 TvdeActivity::create($activity);
+            }
+
+            TvdeActivityEntry::query()
+                ->where('tvde_week_id', (int) $validated['tvde_week_id'])
+                ->where('tvde_operator_id', $operator->id)
+                ->where('company_id', (int) $companyId)
+                ->delete();
+
+            $allocator = app(TemporalVehicleRevenueAllocator::class);
+            foreach ($entries as $index => $activity) {
+                $driver = Driver::query()->get()->first(function (Driver $candidate) use ($activity, $validated) {
+                    return $validated['platform'] === 'uber'
+                        ? trim((string) $candidate->uber_uuid) === $activity['driver_code']
+                        : $candidate->matchesBoltIdentifier($activity['driver_code']);
+                });
+                $entry = TvdeActivityEntry::create([
+                    ...$activity,
+                    'driver_id' => $driver?->id,
+                    'source_hash' => hash('sha256', implode('|', [
+                        $index, $activity['driver_code'], $activity['occurred_at'] ?? '',
+                        $activity['gross'], $activity['net'], $activity['tips'],
+                    ])),
+                ]);
+                $allocator->allocate($entry);
             }
         });
 
@@ -330,6 +361,7 @@ class TvdeActivityController extends Controller
                 'gross' => 6,
                 'net' => 3,
                 'tips' => 18,
+                'occurred_at' => null,
             ];
         }
 
@@ -339,6 +371,7 @@ class TvdeActivityController extends Controller
             'gross' => 3,
             'net' => 21,
             'tips' => 9,
+            'occurred_at' => null,
         ];
     }
 
@@ -351,6 +384,7 @@ class TvdeActivityController extends Controller
                 'gross' => ['Pago a si : Os seus rendimentos : Tarifa'],
                 'net' => ['Pago a si'],
                 'tips' => ['Pago a si:Os seus rendimentos:Gratificacao', 'Pago a si:Os seus rendimentos:Gratificação'],
+                'occurred_at' => ['Data/hora', 'Data e hora', 'Hora da viagem', 'Data da viagem', 'Inicio da viagem', 'Início da viagem'],
             ]
             : [
                 'driver_code' => ['Identificador do motorista'],
@@ -358,6 +392,7 @@ class TvdeActivityController extends Controller
                 'gross' => ['Ganhos brutos (total)|EUR', 'Ganhos brutos (total)|€'],
                 'net' => ['Ganhos liquidos|EUR', 'Ganhos liquidos|€'],
                 'tips' => ['Gorjetas dos passageiros|EUR', 'Gorjetas dos passageiros|€'],
+                'occurred_at' => ['Data/hora', 'Data e hora', 'Hora de inicio', 'Hora de início', 'Data da viagem'],
             ];
 
         $normalizedHeader = [];
@@ -417,6 +452,11 @@ class TvdeActivityController extends Controller
         $gross = $this->normalizeImportedNumber($row[$mapping['gross']] ?? null);
         $net = $this->normalizeImportedNumber($row[$mapping['net']] ?? null);
         $tips = $this->normalizeImportedNumber($row[$mapping['tips']] ?? null);
+        $occurredAt = $this->normalizeActivityDate(
+            isset($mapping['occurred_at']) && $mapping['occurred_at'] !== null
+                ? ($row[$mapping['occurred_at']] ?? null)
+                : null
+        );
 
         if ($driverCode === '') {
             return null;
@@ -434,7 +474,29 @@ class TvdeActivityController extends Controller
             'gross' => $gross ?? 0,
             'net' => $net ?? 0,
             'tips' => $tips ?? 0,
+            'occurred_at' => $occurredAt,
         ];
+    }
+
+    protected function normalizeActivityDate($value): ?string
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        foreach (['d/m/Y H:i:s', 'd/m/Y H:i', 'Y-m-d H:i:s', 'Y-m-d H:i'] as $format) {
+            try {
+                return Carbon::createFromFormat($format, $value)->format('Y-m-d H:i:s');
+            } catch (\Throwable $exception) {
+            }
+        }
+
+        try {
+            return Carbon::parse($value)->format('Y-m-d H:i:s');
+        } catch (\Throwable $exception) {
+            return null;
+        }
     }
 
     protected function normalizeImportedNumber($value): ?float

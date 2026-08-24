@@ -42,7 +42,8 @@ class MovviChargeImportTest extends TestCase
         ]);
         $first = $service->import($firstFile, null);
 
-        $this->assertSame([$driver->id], MovviChargeImport::firstOrFail()->entries->pluck('driver_id')->all());
+        $firstImport = MovviChargeImport::where('tvde_week_id', $week->id)->firstOrFail();
+        $this->assertSame([$driver->id], $firstImport->entries->pluck('driver_id')->all());
         $this->assertSame([999999], $first['unknown_driver_ids']);
         $this->assertSame(6.15, $first['total_value']);
         $this->assertFalse($first['was_replacement']);
@@ -54,7 +55,8 @@ class MovviChargeImportTest extends TestCase
 
         $this->assertTrue($second['was_replacement']);
         $this->assertSame(1, MovviChargeImport::where('tvde_week_id', $week->id)->count());
-        $this->assertSame(12.0, (float) MovviChargeImport::firstOrFail()->entries->first()->value);
+        $replacementImport = MovviChargeImport::where('tvde_week_id', $week->id)->firstOrFail();
+        $this->assertSame(12.0, (float) $replacementImport->entries->first()->value);
     }
 
     public function test_it_blocks_an_import_for_a_closed_week(): void

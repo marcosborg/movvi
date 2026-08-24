@@ -128,6 +128,14 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.company.fields.suspended_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('is_service_vehicle') ? 'has-error' : '' }}">
+                            <div>
+                                <input type="hidden" name="is_service_vehicle" value="0">
+                                <input type="checkbox" name="is_service_vehicle" id="is_service_vehicle" value="1" {{ old('is_service_vehicle', $vehicleItem->is_service_vehicle) ? 'checked' : '' }}>
+                                <label for="is_service_vehicle" style="font-weight: 400">Viatura de serviço</label>
+                            </div>
+                            <span class="help-block">Não recebe faturação operacional na rentabilidade.</span>
+                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}

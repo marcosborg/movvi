@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Models\Adjustment;
 use App\Models\CurrentAccount;
 use App\Models\TvdeWeek;
+use App\Models\TvdeActivityEntry;
 use App\Models\VehicleItem;
+use App\Models\VehicleRevenueAllocationOverride;
 use App\Models\VehicleUsage;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Schema;
@@ -43,6 +45,7 @@ class VehicleProfitabilityService
                 $q->whereNull('end_date')->orWhere('end_date', '>=', $weekStart);
             })
             ->whereHas('driver')
+            ->whereHas('vehicle_item', fn ($query) => $query->where('is_service_vehicle', false))
             ->get();
 
         // If the vehicle has no usage in the week, return a safe empty payload.
@@ -81,6 +84,7 @@ class VehicleProfitabilityService
         arsort($driverUsageSeconds);
         $driverIds = array_map('intval', array_keys($driverUsageSeconds));
         $driverWeekUsageSeconds = self::buildDriverWeekUsageSeconds($weekStart, $weekEnd, $driverIds);
+        $revenueRatios = self::buildDriverVehicleRevenueRatios($week->id, $driverIds);
 
         $accounts = CurrentAccount::with('driver')
             ->where('tvde_week_id', $week->id)
@@ -98,9 +102,10 @@ class VehicleProfitabilityService
         foreach ($driverIds as $driverId) {
             $usageSeconds = (int) ($driverUsageSeconds[$driverId] ?? 0);
             $driverTotalUsageSeconds = (int) ($driverWeekUsageSeconds[$driverId] ?? 0);
-            $allocationRatio = $driverTotalUsageSeconds > 0
+            $usageRatio = $driverTotalUsageSeconds > 0
                 ? ($usageSeconds / $driverTotalUsageSeconds)
                 : 0.0;
+            $allocationRatio = self::allocationRatio($revenueRatios, $driverId, (int) $vehicle->id, $usageRatio);
             $account = $accounts->get($driverId);
             $profitabilityAdjustments = self::calculateDriverProfitabilityAdjustmentBreakdownForWeek(
                 $driverId,
@@ -223,6 +228,7 @@ class VehicleProfitabilityService
             ->where(function ($q) use ($weekStart) {
                 $q->whereNull('end_date')->orWhere('end_date', '>=', $weekStart);
             })
+            ->whereHas('vehicle_item', fn ($query) => $query->where('is_service_vehicle', false))
             ->get(['vehicle_item_id', 'driver_id', 'start_date', 'end_date']);
 
         $usedVehicleIds = $usages
@@ -293,6 +299,7 @@ class VehicleProfitabilityService
 
         $driverIds = array_keys($driverIds);
         $driverWeekUsageSeconds = self::buildDriverWeekUsageSeconds($weekStart, $weekEnd, $driverIds);
+        $revenueRatios = self::buildDriverVehicleRevenueRatios($week->id, $driverIds);
 
         $accounts = CurrentAccount::query()
             ->where('tvde_week_id', $week->id)
@@ -323,9 +330,10 @@ class VehicleProfitabilityService
 
             foreach ($drivers as $driverId => $seconds) {
                 $driverTotalUsageSeconds = (int) ($driverWeekUsageSeconds[(int) $driverId] ?? 0);
-                $allocationRatio = $driverTotalUsageSeconds > 0
+                $usageRatio = $driverTotalUsageSeconds > 0
                     ? ($seconds / $driverTotalUsageSeconds)
                     : 0.0;
+                $allocationRatio = self::allocationRatio($revenueRatios, (int) $driverId, $vehicleId, $usageRatio);
                 $earnings = $decoded[(int) $driverId] ?? null;
                 $profitabilityAdjustments = self::calculateDriverProfitabilityAdjustmentBreakdownForWeek(
                     (int) $driverId,
@@ -480,6 +488,7 @@ class VehicleProfitabilityService
                 $query->whereNull('end_date')
                     ->orWhere('end_date', '>=', $weekStart);
             })
+            ->whereHas('vehicle_item', fn ($query) => $query->where('is_service_vehicle', false))
             ->get(['driver_id', 'start_date', 'end_date']);
 
         foreach ($usages as $usage) {
@@ -499,6 +508,59 @@ class VehicleProfitabilityService
         }
 
         return $secondsByDriver;
+    }
+
+    private static function buildDriverVehicleRevenueRatios(int $weekId, array $driverIds): array
+    {
+        if (empty($driverIds)) {
+            return [];
+        }
+
+        $ratios = [];
+        $overrides = VehicleRevenueAllocationOverride::query()
+            ->where('tvde_week_id', $weekId)
+            ->whereIn('driver_id', $driverIds)
+            ->get();
+
+        foreach ($overrides as $override) {
+            $ratios[(int) $override->driver_id] = [(int) $override->vehicle_item_id => 1.0];
+        }
+
+        $entries = TvdeActivityEntry::query()
+            ->where('tvde_week_id', $weekId)
+            ->whereIn('driver_id', $driverIds)
+            ->get(['driver_id', 'vehicle_item_id', 'allocation_status', 'net']);
+
+        foreach ($entries->groupBy('driver_id') as $driverId => $driverEntries) {
+            if (isset($ratios[(int) $driverId])) {
+                continue;
+            }
+
+            $total = $driverEntries->sum(fn ($entry) => abs((float) $entry->net));
+            if ($total <= 0) {
+                $total = $driverEntries->count();
+            }
+
+            $ratios[(int) $driverId] = [];
+            foreach ($driverEntries->whereIn('allocation_status', ['assigned', 'manual'])->whereNotNull('vehicle_item_id')->groupBy('vehicle_item_id') as $vehicleId => $vehicleEntries) {
+                $value = $vehicleEntries->sum(fn ($entry) => abs((float) $entry->net));
+                if ($value <= 0) {
+                    $value = $vehicleEntries->count();
+                }
+                $ratios[(int) $driverId][(int) $vehicleId] = $total > 0 ? $value / $total : 0.0;
+            }
+        }
+
+        return $ratios;
+    }
+
+    private static function allocationRatio(array $ratios, int $driverId, int $vehicleId, float $usageRatio): float
+    {
+        if (! array_key_exists($driverId, $ratios)) {
+            return $usageRatio;
+        }
+
+        return (float) ($ratios[$driverId][$vehicleId] ?? 0.0);
     }
 
     private static function emptyResult(

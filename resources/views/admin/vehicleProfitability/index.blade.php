@@ -53,6 +53,53 @@
     @endif
 
     @if($result)
+        @if(session('message'))
+            <div class="alert alert-success">{{ session('message') }}</div>
+        @endif
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="box box-warning">
+                    <div class="box-header with-border"><h3 class="box-title">Atribuição semanal de faturação</h3></div>
+                    <div class="box-body">
+                        <form method="POST" action="{{ route('admin.vehicle-profitabilities.allocation-override') }}" class="form-inline">
+                            @csrf
+                            <input type="hidden" name="tvde_week_id" value="{{ $weekId }}">
+                            <select name="driver_id" class="form-control" required>
+                                <option value="">Motorista</option>
+                                @foreach($weekDrivers as $driver)<option value="{{ $driver->id }}">{{ $driver->name }}</option>@endforeach
+                            </select>
+                            <select name="vehicle_item_id" class="form-control" required>
+                                <option value="">Viatura operacional</option>
+                                @foreach($operationalVehicles as $vehicle)<option value="{{ $vehicle->id }}">{{ $vehicle->license_plate }}</option>@endforeach
+                            </select>
+                            <input name="reason" class="form-control" placeholder="Motivo (opcional)">
+                            <button class="btn btn-warning" type="submit">Atribuir semana</button>
+                        </form>
+                        <small>Utilize apenas para semanas históricas sem detalhe temporal. A atribuição substitui a divisão automática do motorista nessa semana.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if($pendingEntries->isNotEmpty())
+            <div class="row"><div class="col-lg-12"><div class="box box-danger">
+                <div class="box-header with-border"><h3 class="box-title">Faturação pendente de revisão</h3></div>
+                <div class="box-body table-responsive"><table class="table table-bordered">
+                    <thead><tr><th>Motorista</th><th>Operador</th><th>Data/hora</th><th>Valor líquido</th><th>Motivo</th><th>Viatura</th></tr></thead>
+                    <tbody>@foreach($pendingEntries as $entry)<tr>
+                        <td>{{ optional($entry->driver)->name ?? $entry->driver_code }}</td>
+                        <td>{{ optional($entry->tvde_operator)->name }}</td>
+                        <td>{{ optional($entry->occurred_at)->format('d/m/Y H:i') ?? 'Sem data/hora' }}</td>
+                        <td>{{ number_format($entry->net, 2, ',', '.') }} €</td>
+                        <td>{{ $entry->allocation_reason }}</td>
+                        <td><form method="POST" action="{{ route('admin.vehicle-profitabilities.allocate-entry', $entry) }}" class="form-inline">@csrf
+                            <select name="vehicle_item_id" class="form-control" required><option value="">Selecionar</option>@foreach($operationalVehicles as $vehicle)<option value="{{ $vehicle->id }}">{{ $vehicle->license_plate }}</option>@endforeach</select>
+                            <button class="btn btn-primary" type="submit">Atribuir</button>
+                        </form></td>
+                    </tr>@endforeach</tbody>
+                </table></div>
+            </div></div></div>
+        @endif
         <div class="row">
             <div class="col-lg-12">
                 <div class="box box-primary">

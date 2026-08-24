@@ -67,6 +67,7 @@ class StoreVehicleItemRequest extends FormRequest
             'suspended' => [
                 'boolean',
             ],
+            'is_service_vehicle' => ['boolean'],
         ];
     }
 }

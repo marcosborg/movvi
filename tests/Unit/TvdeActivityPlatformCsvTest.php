@@ -7,6 +7,28 @@ use Tests\TestCase;
 
 class TvdeActivityPlatformCsvTest extends TestCase
 {
+    public function test_it_preserves_a_timestamp_when_the_platform_export_contains_one(): void
+    {
+        $harness = new class extends TvdeActivityController {
+            public function mapping(array $header): array
+            {
+                return $this->resolvePlatformCsvMappingFromHeader($header, 'uber', $this->platformCsvMapping('uber'));
+            }
+
+            public function activity(array $row, array $mapping): ?array
+            {
+                return $this->mapPlatformActivityRow($row, $mapping, 10, 20, 30);
+            }
+        };
+
+        $header = ['UUID do motorista', 'Data/hora', 'Pago a si', 'Pago a si : Os seus rendimentos : Tarifa', 'Pago a si:Os seus rendimentos:Gratificação'];
+        $mapping = $harness->mapping($header);
+        $activity = $harness->activity(['driver-1', '10/08/2026 14:30', '75', '100', '2'], $mapping);
+
+        $this->assertSame(1, $mapping['occurred_at']);
+        $this->assertSame('2026-08-10 14:30:00', $activity['occurred_at']);
+    }
+
     public function test_it_reads_current_uber_csv_tips_column(): void
     {
         $harness = new class extends TvdeActivityController {
