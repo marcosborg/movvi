@@ -50,14 +50,14 @@
             </div>
             <div class="row mt-2">
                 <div class="col-12 mb-3">
-                    <h5>Apoio ao motorista</h5>
+                    <h5>Apoio aos motoristas</h5>
                     <div class="row footer-support-list">
                         <div class="col-md-4 mb-3">
-                            <a href="https://wa.me/351926008575" target="_blank" rel="noopener noreferrer" class="footer-support-card">
+                            <a href="https://wa.me/351925120962" target="_blank" rel="noopener noreferrer" class="footer-support-card">
                                 <div>
                                     <strong>Richard</strong>
                                     <span>Gestao de Frota &amp; Manutencao</span>
-                                    <span>926 008 575</span>
+                                    <span>925 120 962</span>
                                 </div>
                                 <span class="footer-support-action" aria-hidden="true">
                                     <svg viewBox="0 0 16 16" focusable="false">
@@ -102,7 +102,7 @@
             </div>
             <div class="text-center mt-3">
                 <small>
-                    2025 Movvi.pt - Todos os direitos reservados.
+                    2026 Movvi.pt - Todos os direitos reservados.
                     <span class="mx-2">|</span>
                     <a href="{{ route('website.privacy-policy') }}" class="text-white">Política de Privacidade</a>
                 </small>
@@ -171,7 +171,5 @@
     @yield('scripts')
 </body>
 </html>
-
-
 
 
