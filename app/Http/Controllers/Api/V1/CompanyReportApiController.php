@@ -129,7 +129,7 @@ class CompanyReportApiController extends Controller
     {
         $user = $request->user();
 
-        return $user && ($user->hasRole('Admin') || $user->hasRole('Gestor'));
+        return $user && $user->hasRole('Admin');
     }
 
     protected function resolveCompany(Request $request): ?Company
