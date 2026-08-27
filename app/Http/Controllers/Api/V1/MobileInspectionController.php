@@ -43,7 +43,7 @@ class MobileInspectionController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $this->ensureUserCanViewInspections($request);
+        $this->ensureUserCanManageInspections($request);
         $isAdmin = $this->isAdmin($user);
 
         $query = Inspection::query()
@@ -90,14 +90,14 @@ class MobileInspectionController extends Controller
                 'per_page' => $inspections->perPage(),
                 'total' => $inspections->total(),
                 'is_admin' => $isAdmin,
-                'can_create' => $isAdmin,
+                'can_create' => true,
             ],
         ]);
     }
 
     public function show(Request $request, Inspection $inspection)
     {
-        $this->ensureUserCanViewInspections($request);
+        $this->ensureUserCanManageInspections($request);
         $isAdmin = $this->isAdmin($request->user());
 
         $inspection->load([
@@ -218,7 +218,7 @@ class MobileInspectionController extends Controller
             ],
             'meta' => [
                 'is_admin' => $isAdmin,
-                'can_edit' => $isAdmin,
+                'can_edit' => true,
             ],
         ]);
     }
@@ -309,7 +309,7 @@ class MobileInspectionController extends Controller
     public function store(Request $request)
     {
         $user = $request->user();
-        $this->ensureUserIsAdmin($request);
+        $this->ensureUserCanManageInspections($request);
 
         $validated = Validator::make($request->all(), [
             'type' => ['required', 'in:handover,return'],
@@ -368,7 +368,7 @@ class MobileInspectionController extends Controller
 
     public function destroy(Request $request, Inspection $inspection)
     {
-        $this->ensureUserIsAdmin($request);
+        $this->ensureUserCanManageInspections($request);
 
         if ($inspection->locked_at || in_array((string) $inspection->status, ['closed', 'completed'], true)) {
             throw ValidationException::withMessages([
@@ -411,7 +411,7 @@ class MobileInspectionController extends Controller
 
     public function updateStep(Request $request, Inspection $inspection)
     {
-        $this->ensureUserIsAdmin($request);
+        $this->ensureUserCanManageInspections($request);
 
         $validated = Validator::make($request->all(), [
             'step' => ['required', 'integer', 'min:1', 'max:12'],
@@ -575,7 +575,7 @@ class MobileInspectionController extends Controller
 
     public function backStep(Request $request, Inspection $inspection)
     {
-        $this->ensureUserIsAdmin($request);
+        $this->ensureUserCanManageInspections($request);
 
         if ($inspection->locked_at) {
             throw ValidationException::withMessages([
@@ -602,7 +602,7 @@ class MobileInspectionController extends Controller
 
     public function resolveDamage(Request $request, Inspection $inspection, InspectionDamage $damage)
     {
-        $this->ensureUserIsAdmin($request);
+        $this->ensureUserCanManageInspections($request);
 
         if ((int) $damage->inspection_id !== (int) $inspection->id) {
             abort(Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -615,7 +615,7 @@ class MobileInspectionController extends Controller
 
     public function close(Request $request, Inspection $inspection)
     {
-        $this->ensureUserIsAdmin($request);
+        $this->ensureUserCanManageInspections($request);
 
         $this->workflow->close($inspection, false);
         $inspection->load('report');
@@ -624,13 +624,6 @@ class MobileInspectionController extends Controller
             'message' => 'Inspecao fechada e PDF gerado.',
             'report_pdf_url' => $inspection->report ? asset('storage/' . $inspection->report->pdf_path) : null,
         ]);
-    }
-
-    private function ensureUserIsAdmin(Request $request): void
-    {
-        if (!$this->isAdmin($request->user())) {
-            abort(Response::HTTP_FORBIDDEN, '403 Forbidden');
-        }
     }
 
     private function ensureUserCanManageTransfers(Request $request): void
@@ -642,7 +635,7 @@ class MobileInspectionController extends Controller
         }
     }
 
-    private function ensureUserCanViewInspections(Request $request): void
+    private function ensureUserCanManageInspections(Request $request): void
     {
         $user = $request->user();
 

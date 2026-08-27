@@ -81,7 +81,7 @@ class MobileController extends Controller
             ],
             'week' => $this->serializeWeek($week, $requestedDate),
             'financial_hub' => $this->buildFinancialHub($isAdmin),
-            'operations_hub' => $this->buildOperationsHub($isAdmin),
+            'operations_hub' => $this->buildOperationsHub($isAdmin || $isManager),
             'driver_hub' => $this->buildDriverHub($isDriver, $driver, $week, $requestedDate),
         ]);
     }
@@ -920,9 +920,9 @@ class MobileController extends Controller
         ];
     }
 
-    private function buildOperationsHub(bool $isAdmin): array
+    private function buildOperationsHub(bool $canManageOperations): array
     {
-        if (! $isAdmin) {
+        if (! $canManageOperations) {
             return [
                 'enabled' => false,
                 'modules' => [],
