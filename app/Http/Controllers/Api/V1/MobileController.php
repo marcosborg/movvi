@@ -80,7 +80,7 @@ class MobileController extends Controller
                 'is_driver' => $isDriver,
             ],
             'week' => $this->serializeWeek($week, $requestedDate),
-            'financial_hub' => $this->buildFinancialHub($isAdmin, $isManager),
+            'financial_hub' => $this->buildFinancialHub($isAdmin),
             'operations_hub' => $this->buildOperationsHub($isAdmin),
             'driver_hub' => $this->buildDriverHub($isDriver, $driver, $week, $requestedDate),
         ]);
@@ -876,9 +876,9 @@ class MobileController extends Controller
         ];
     }
 
-    private function buildFinancialHub(bool $isAdmin, bool $isManager): array
+    private function buildFinancialHub(bool $isAdmin): array
     {
-        if (! $isAdmin && ! $isManager) {
+        if (! $isAdmin) {
             return [
                 'enabled' => false,
                 'provider' => 'Conta Azul',
@@ -893,26 +893,24 @@ class MobileController extends Controller
                 'title' => 'Resumo financeiro',
                 'summary' => 'Visao financeira agregada da empresa puxada da integracao Conta Azul.',
                 'status' => 'planned',
-                'scope' => $isAdmin ? 'admin' : 'manager',
+                'scope' => 'admin',
             ],
             [
                 'key' => 'conta_azul_cashflow',
                 'title' => 'Fluxo de caixa',
                 'summary' => 'Leitura de entradas, saidas e indicadores operacionais vindos do ERP.',
                 'status' => 'planned',
-                'scope' => $isAdmin ? 'admin' : 'manager',
+                'scope' => 'admin',
             ],
         ];
 
-        if ($isAdmin) {
-            $modules[] = [
-                'key' => 'conta_azul_executive',
-                'title' => 'Indicadores executivos',
-                'summary' => 'Camada de decisao com rentabilidade, liquidez e comparacao global.',
-                'status' => 'planned',
-                'scope' => 'admin',
-            ];
-        }
+        $modules[] = [
+            'key' => 'conta_azul_executive',
+            'title' => 'Indicadores executivos',
+            'summary' => 'Camada de decisao com rentabilidade, liquidez e comparacao global.',
+            'status' => 'planned',
+            'scope' => 'admin',
+        ];
 
         return [
             'enabled' => true,

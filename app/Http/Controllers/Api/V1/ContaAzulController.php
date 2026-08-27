@@ -339,6 +339,6 @@ class ContaAzulController extends Controller
     {
         $user = $request->user();
 
-        return $user && ($user->hasRole('Admin') || $user->hasRole('Gestor'));
+        return $user && $user->hasRole('Admin');
     }
 }

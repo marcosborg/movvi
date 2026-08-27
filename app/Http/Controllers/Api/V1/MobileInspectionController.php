@@ -222,7 +222,7 @@ class MobileInspectionController extends Controller
 
     public function createOptions(Request $request)
     {
-        $this->ensureUserIsAdmin($request);
+        $this->ensureUserCanManageTransfers($request);
         $validated = $request->validate([
             'show_all' => ['nullable', 'boolean'],
         ]);
@@ -337,7 +337,7 @@ class MobileInspectionController extends Controller
 
     public function storeTransfer(Request $request)
     {
-        $this->ensureUserIsAdmin($request);
+        $this->ensureUserCanManageTransfers($request);
 
         $validated = Validator::make($request->all(), [
             'vehicle_id' => ['required', 'integer', 'exists:vehicle_items,id'],
@@ -626,6 +626,15 @@ class MobileInspectionController extends Controller
     private function ensureUserIsAdmin(Request $request): void
     {
         if (!$this->isAdmin($request->user())) {
+            abort(Response::HTTP_FORBIDDEN, '403 Forbidden');
+        }
+    }
+
+    private function ensureUserCanManageTransfers(Request $request): void
+    {
+        $user = $request->user();
+
+        if (!$user || (!$user->hasRole('Admin') && !$user->hasRole('Gestor'))) {
             abort(Response::HTTP_FORBIDDEN, '403 Forbidden');
         }
     }
