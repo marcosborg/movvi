@@ -43,7 +43,8 @@ class MobileInspectionController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $this->ensureUserIsAdmin($request);
+        $this->ensureUserCanViewInspections($request);
+        $isAdmin = $this->isAdmin($user);
 
         $query = Inspection::query()
             ->with(['vehicle:id,license_plate', 'driver:id,name'])
@@ -88,15 +89,16 @@ class MobileInspectionController extends Controller
                 'last_page' => $inspections->lastPage(),
                 'per_page' => $inspections->perPage(),
                 'total' => $inspections->total(),
-                'is_admin' => true,
-                'can_create' => true,
+                'is_admin' => $isAdmin,
+                'can_create' => $isAdmin,
             ],
         ]);
     }
 
     public function show(Request $request, Inspection $inspection)
     {
-        $this->ensureUserIsAdmin($request);
+        $this->ensureUserCanViewInspections($request);
+        $isAdmin = $this->isAdmin($request->user());
 
         $inspection->load([
             'vehicle.vehicle_brand',
@@ -215,7 +217,8 @@ class MobileInspectionController extends Controller
                 'driver' => optional($inspection->signatures->firstWhere('role', 'driver'))->signed_by_name,
             ],
             'meta' => [
-                'is_admin' => true,
+                'is_admin' => $isAdmin,
+                'can_edit' => $isAdmin,
             ],
         ]);
     }
@@ -631,6 +634,15 @@ class MobileInspectionController extends Controller
     }
 
     private function ensureUserCanManageTransfers(Request $request): void
+    {
+        $user = $request->user();
+
+        if (!$user || (!$user->hasRole('Admin') && !$user->hasRole('Gestor'))) {
+            abort(Response::HTTP_FORBIDDEN, '403 Forbidden');
+        }
+    }
+
+    private function ensureUserCanViewInspections(Request $request): void
     {
         $user = $request->user();
 
