@@ -536,13 +536,22 @@ class VehicleProfitabilityService
                 continue;
             }
 
-            $total = $driverEntries->sum(fn ($entry) => abs((float) $entry->net));
+            $allocatedEntries = $driverEntries
+                ->whereIn('allocation_status', ['assigned', 'manual'])
+                ->whereNotNull('vehicle_item_id');
+
+            // Pending/unallocated entries must not disable the usage-time fallback.
+            if ($allocatedEntries->isEmpty()) {
+                continue;
+            }
+
+            $total = $allocatedEntries->sum(fn ($entry) => abs((float) $entry->net));
             if ($total <= 0) {
-                $total = $driverEntries->count();
+                $total = $allocatedEntries->count();
             }
 
             $ratios[(int) $driverId] = [];
-            foreach ($driverEntries->whereIn('allocation_status', ['assigned', 'manual'])->whereNotNull('vehicle_item_id')->groupBy('vehicle_item_id') as $vehicleId => $vehicleEntries) {
+            foreach ($allocatedEntries->groupBy('vehicle_item_id') as $vehicleId => $vehicleEntries) {
                 $value = $vehicleEntries->sum(fn ($entry) => abs((float) $entry->net));
                 if ($value <= 0) {
                     $value = $vehicleEntries->count();
