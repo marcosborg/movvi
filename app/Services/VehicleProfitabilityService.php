@@ -242,6 +242,7 @@ class VehicleProfitabilityService
             ->when($companyId, function ($query) use ($companyId) {
                 $query->where('company_id', $companyId);
             })
+            ->where('is_service_vehicle', false)
             ->where(function ($query) use ($usedVehicleIds) {
                 $query->where(function ($query) {
                     $query->where('suspended', false)->orWhereNull('suspended');

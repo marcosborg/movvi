@@ -59,6 +59,17 @@ class VehicleProfitabilityServiceTest extends TestCase
         $this->assertEqualsWithDelta(70.0, $row['commission_total'], 0.001);
     }
 
+    public function test_service_vehicles_are_not_listed_in_week_profitability(): void
+    {
+        [$company, $driver, $week, $vehicle] = $this->scenario();
+        $vehicle->update(['is_service_vehicle' => true]);
+
+        $row = collect(VehicleProfitabilityService::makeWeek($week->id, $company->id)['vehicles'])
+            ->firstWhere('id', $vehicle->id);
+
+        $this->assertNull($row);
+    }
+
     private function scenario(): array
     {
         $company = Company::create([
