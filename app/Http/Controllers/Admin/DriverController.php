@@ -60,7 +60,7 @@ class DriverController extends Controller
             });
 
             $table->editColumn('user.email', function ($row) {
-                return $row->user ? (is_string($row->user) ? $row->user : $row->user->email) : '';
+                return $row->effective_email ?? '';
             });
             $table->editColumn('code', function ($row) {
                 return $row->code ? $row->code : '';
@@ -179,7 +179,8 @@ class DriverController extends Controller
 
     public function store(StoreDriverRequest $request)
     {
-        $driver = Driver::create($request->all());
+        $data = $this->withUserEmailFallback($request->all());
+        $driver = Driver::create($data);
         $driver->cards()->sync($request->input('cards', []));
 
         return redirect()->route('admin.drivers.index');
@@ -213,7 +214,7 @@ class DriverController extends Controller
     public function update(UpdateDriverRequest $request, Driver $driver)
     {
 
-        $driver->update($request->all());
+        $driver->update($this->withUserEmailFallback($request->all()));
         $driver->cards()->sync($request->input('cards', []));
 
         return redirect()->route('admin.drivers.index');
@@ -246,5 +247,16 @@ class DriverController extends Controller
         }
 
         return response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    private function withUserEmailFallback(array $data): array
+    {
+        if (filled($data['email'] ?? null) || empty($data['user_id'])) {
+            return $data;
+        }
+
+        $data['email'] = User::whereKey($data['user_id'])->value('email');
+
+        return $data;
     }
 }

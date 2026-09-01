@@ -142,7 +142,7 @@
                                         {{ trans('cruds.driver.fields.email') }}
                                     </th>
                                     <td>
-                                        {{ $driver->email }}
+                                        {{ $driver->effective_email }}
                                     </td>
                                 </tr>
                                 <tr>

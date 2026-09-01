@@ -131,7 +131,7 @@ class ReceiptController extends Controller
             return $table->make(true);
         }
 
-        $drivers = Driver::get();
+        $drivers = Driver::orderBy('name')->get();
         $companies = Company::all();
         $tvde_weeks = TvdeWeek::get();
 
@@ -142,7 +142,7 @@ class ReceiptController extends Controller
     {
         abort_if(Gate::denies('receipt_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $drivers = Driver::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $drivers = Driver::orderBy('name')->pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $tvde_weeks = TvdeWeek::pluck('start_date', 'id')->prepend(trans('global.pleaseSelect'), '');
 
@@ -192,7 +192,7 @@ class ReceiptController extends Controller
     {
         abort_if(Gate::denies('receipt_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $drivers = Driver::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $drivers = Driver::orderBy('name')->pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $receipt->load('driver', 'tvde_week');
         $tvde_weeks = TvdeWeek::pluck('start_date', 'id')->prepend(trans('global.pleaseSelect'), '');

@@ -199,4 +199,16 @@ class Driver extends Model
         return in_array($normalized, $this->boltIdentifiers(), true);
     }
 
+    public function getEffectiveEmailAttribute(): ?string
+    {
+        $driverEmail = trim((string) $this->email);
+        if ($driverEmail !== '') {
+            return $driverEmail;
+        }
+
+        $userEmail = trim((string) optional($this->user)->email);
+
+        return $userEmail !== '' ? $userEmail : null;
+    }
+
 }

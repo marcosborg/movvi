@@ -29,6 +29,24 @@ class UserAlert extends Model
         return $this->belongsToMany(User::class);
     }
 
+    public function getSafeLinkAttribute(): ?string
+    {
+        $link = trim((string) $this->alert_link);
+        if ($link === '') {
+            return null;
+        }
+
+        if (str_starts_with($link, '/') && ! str_starts_with($link, '//')) {
+            return $link;
+        }
+
+        $scheme = strtolower((string) parse_url($link, PHP_URL_SCHEME));
+
+        return in_array($scheme, ['http', 'https'], true) && filter_var($link, FILTER_VALIDATE_URL)
+            ? $link
+            : null;
+    }
+
     protected function serializeDate(DateTimeInterface $date)
     {
         return $date->format('Y-m-d H:i:s');

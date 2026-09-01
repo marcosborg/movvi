@@ -268,8 +268,8 @@
                                             'ASC')->get()->reverse()) > 0)
                                             @foreach($alerts as $alert)
                                             <li>
-                                                <a href="{{ $alert->alert_link ? $alert->alert_link : " #" }}"
-                                                    target="_blank" rel="noopener noreferrer">
+                                                <a href="{{ $alert->safe_link ?? '#' }}"
+                                                    @if($alert->safe_link) target="_blank" rel="noopener noreferrer" @endif>
                                                     @if($alert->pivot->read === 0) <strong> @endif
                                                         {{ $alert->alert_text }}
                                                         @if($alert->pivot->read === 0) </strong> @endif

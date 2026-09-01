@@ -78,7 +78,7 @@
                                 <td>
                                 </td>
                                 <td>
-                                    <select class="search">
+                                    <select class="search receipt-driver-filter" style="width: 100%;">
                                         <option value>{{ trans('global.all') }}</option>
                                         @foreach($drivers as $key => $item)
                                         <option value="{{ $item->name }}">{{ $item->name }}</option>
@@ -191,6 +191,11 @@
     pageLength: 100,
   };
   let table = $('.datatable-Receipt').DataTable(dtOverrideGlobals);
+  $('.receipt-driver-filter').select2({
+      width: '100%',
+      allowClear: true,
+      placeholder: '{{ trans('global.all') }}'
+  });
   $('a[data-toggle="tab"]').on('shown.bs.tab click', function(e){
       $($.fn.dataTable.tables(true)).DataTable()
           .columns.adjust();

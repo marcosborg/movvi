@@ -184,7 +184,7 @@
                         <div class="form-group {{ $errors->has('email') ? 'has-error' : '' }}">
                             <label for="email">{{ trans('cruds.driver.fields.email') }}</label>
                             <input class="form-control" type="email" name="email" id="email"
-                                value="{{ old('email', $driver->email) }}">
+                                value="{{ old('email', $driver->effective_email) }}">
                             @if($errors->has('email'))
                             <span class="help-block" role="alert">{{ $errors->first('email') }}</span>
                             @endif

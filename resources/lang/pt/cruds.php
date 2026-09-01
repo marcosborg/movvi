@@ -80,7 +80,7 @@ return [
             'alert_text'        => 'Texto de alerta',
             'alert_text_helper' => ' ',
             'alert_link'        => 'Link do alerta',
-            'alert_link_helper' => ' ',
+            'alert_link_helper' => 'Opcional. Use um endereço completo (https://...) ou um caminho interno iniciado por /.',
             'user'              => 'Utilizadores',
             'user_helper'       => ' ',
             'created_at'        => 'Created at',
