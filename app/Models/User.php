@@ -157,4 +157,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserFavorite::class)->orderBy('order');
     }
+
+    public function supportTickets()
+    {
+        return $this->hasMany(SupportTicket::class, 'opened_by');
+    }
 }

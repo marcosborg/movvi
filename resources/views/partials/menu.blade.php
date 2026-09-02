@@ -1641,6 +1641,26 @@
                 </a>
             </li>
             @endif
+            @php
+                $ticketAttentionCount = 0;
+                if (\Illuminate\Support\Facades\Schema::hasTable('support_tickets')) {
+                    $ticketQuery = \App\Models\SupportTicket::query();
+                    if ((auth()->user()->hasRole('Admin') || auth()->user()->hasRole('Gestor')) && ! auth()->user()->company()->exists()) {
+                        $ticketQuery->where('status', \App\Models\SupportTicket::STATUS_AWAITING_TECHNICAL);
+                    } else {
+                        $ticketQuery->where('company_id', optional(auth()->user()->company)->id)
+                            ->where('status', \App\Models\SupportTicket::STATUS_AWAITING_CUSTOMER);
+                    }
+                    $ticketAttentionCount = $ticketQuery->count();
+                }
+            @endphp
+            <li class="{{ request()->is('admin/support-tickets') || request()->is('admin/support-tickets/*') ? 'active' : '' }}">
+                <a href="{{ route('admin.support-tickets.index') }}">
+                    <i class="fa-fw fa fa-life-ring"></i>
+                    <span>Suporte técnico</span>
+                    @if($ticketAttentionCount > 0)<span class="pull-right-container"><small class="label pull-right bg-yellow">{{ $ticketAttentionCount }}</small></span>@endif
+                </a>
+            </li>
             @php($unread = \App\Models\QaTopic::unreadCount())
             <li class="{{ request()->is("admin/messenger") || request()->is("admin/messenger/*") ? "active" : "" }}">
                 <a href="{{ route("admin.messenger.index") }}">

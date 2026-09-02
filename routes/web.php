@@ -39,6 +39,15 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('favorites/{favorite}', 'FavoriteController@destroy')->name('favorites.destroy');
     Route::post('favorites/reorder', 'FavoriteController@reorder')->name('favorites.reorder');
 
+    Route::get('support-tickets', 'SupportTicketController@index')->name('support-tickets.index');
+    Route::get('support-tickets/create', 'SupportTicketController@create')->name('support-tickets.create');
+    Route::post('support-tickets', 'SupportTicketController@store')->name('support-tickets.store');
+    Route::get('support-tickets/attachments/{attachment}', 'SupportTicketController@attachment')->name('support-tickets.attachment');
+    Route::get('support-tickets/{supportTicket}', 'SupportTicketController@show')->name('support-tickets.show');
+    Route::post('support-tickets/{supportTicket}/reply', 'SupportTicketController@reply')->name('support-tickets.reply');
+    Route::patch('support-tickets/{supportTicket}/assign', 'SupportTicketController@assign')->name('support-tickets.assign');
+    Route::patch('support-tickets/{supportTicket}/close', 'SupportTicketController@close')->name('support-tickets.close');
+
     Route::get('/select-company/{company_id}', 'HomeController@selectCompany');
 
     // Permissions
