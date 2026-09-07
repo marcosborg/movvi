@@ -9,7 +9,6 @@ use Symfony\Component\Process\Process;
 
 class MakeInstallPackage extends Command
 {
-    protected $aliases = ['db:copy-production-to-sandbox'];
 
     /**
      * The name and signature of the console command.
@@ -67,10 +66,30 @@ class MakeInstallPackage extends Command
             return self::FAILURE;
         }
 
+        if (!in_array($mode, ['dump', 'legacy'], true) || !in_array($transport, ['pipe', 'file'], true)) {
+            $this->error('Modo ou transporte invalido.');
+            return self::FAILURE;
+        }
+
         try {
+            if (!empty($sourceConfig['url']) || !empty($targetConfig['url'])) {
+                throw new \RuntimeException('Configure as ligacoes explicitamente, sem DATABASE_URL.');
+            }
+            $source = DB::connection($sourceName);
+            $source->getPdo();
+            $sourceIdentity = (array) $source->selectOne('SELECT @@hostname AS host, @@port AS port');
+            $targetProbe = new \PDO(
+                'mysql:host=' . $targetConfig['host'] . ';port=' . $targetConfig['port'],
+                $targetConfig['username'], $targetConfig['password'],
+                [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION, \PDO::ATTR_TIMEOUT => 10]
+            );
+            $targetIdentity = $targetProbe->query('SELECT @@hostname AS host, @@port AS port')->fetch(\PDO::FETCH_ASSOC);
+            if ($sourceIdentity == $targetIdentity && strcasecmp($sourceConfig['database'], $targetDatabase) === 0) {
+                throw new \RuntimeException('Origem e destino identificam a mesma base de dados. Copia recusada.');
+            }
             $this->ensureDatabaseExists($targetConfig, $targetDatabase);
         } catch (\Throwable $e) {
-            $this->error("Falha ao criar/verificar base de dados destino '{$targetDatabase}': {$e->getMessage()}");
+            $this->error("Falha na verificacao das ligacoes para '{$targetDatabase}': {$e->getMessage()}");
 
             return self::FAILURE;
         }
@@ -79,18 +98,6 @@ class MakeInstallPackage extends Command
             "database.connections.{$targetName}.database" => $targetDatabase,
         ]);
         DB::purge($targetName);
-
-        if (!in_array($mode, ['dump', 'legacy'], true)) {
-            $this->error("Modo '{$mode}' invalido. Use --mode=dump ou --mode=legacy.");
-
-            return self::FAILURE;
-        }
-
-        if (!in_array($transport, ['pipe', 'file'], true)) {
-            $this->error("Transporte '{$transport}' invalido. Use --transport=pipe ou --transport=file.");
-
-            return self::FAILURE;
-        }
 
         if ($mode === 'dump') {
             try {
@@ -198,7 +205,6 @@ class MakeInstallPackage extends Command
                 'C:\\Program Files\\MySQL\\MySQL Server 5.7\\bin\\mysql.exe',
             ]
         );
-        $this->prepareFreshDatabase($targetConfig, $targetDatabase);
 
         $dumpArgs = array_filter([
             $mysqldumpBinary,
@@ -228,6 +234,7 @@ class MakeInstallPackage extends Command
         ], fn($value) => $value !== null && $value !== '');
 
         if ($transport === 'pipe') {
+            $this->prepareFreshDatabase($targetConfig, $targetDatabase);
             $this->info("A clonar {$sourceDatabase} para {$targetDatabase} por stream direto...");
             $this->runShellPipeline($dumpArgs, $importArgs, 'Falha ao clonar a base de dados por stream direto');
 
@@ -253,6 +260,7 @@ class MakeInstallPackage extends Command
             $fileDumpArgs = [...$dumpArgs, '--result-file=' . $dumpFileSql];
             $this->runProcess(new Process($fileDumpArgs), 'Falha ao gerar o dump da base de dados origem');
 
+            $this->prepareFreshDatabase($targetConfig, $targetDatabase);
             $this->info("A importar dump completo em {$targetDatabase}...");
 
             $importProcess = new Process($importArgs);

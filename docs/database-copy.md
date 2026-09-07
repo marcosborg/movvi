@@ -47,6 +47,26 @@ Isto reduz:
 
 ## Opcoes do comando
 
+### Copia local a partir de producao remota
+
+Configurar `DB_PRODUCTION_HOST`, `DB_PRODUCTION_PORT`, `DB_PRODUCTION_DATABASE`,
+`DB_PRODUCTION_USERNAME` e `DB_PRODUCTION_PASSWORD` no `.env` local. Configurar
+os campos `DB_SANDBOX_*` para o MySQL local e manter `DB_MODE=sandbox`.
+O IP publico do computador deve estar autorizado no MySQL remoto.
+
+Para verificar que o dump terminou com sucesso antes de substituir a sandbox:
+
+```powershell
+php artisan config:clear
+php artisan db:copy-production-to-sandbox --transport=file
+```
+
+O comando verifica o acesso a origem e recusa origem e destino no mesmo servidor
+e base de dados. Ligacoes com `DATABASE_URL` devem ser substituidas por campos
+explicitos. No modo `file`, a sandbox so e recriada depois do dump completo;
+o ficheiro temporario e eliminado no final. Uma falha durante a importacao pode
+deixar a sandbox incompleta; nesse caso, corrigir a causa e repetir a copia.
+
 Comando base:
 
 ```powershell

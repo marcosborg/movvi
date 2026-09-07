@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketAttachment;
 use App\Models\User;
+use App\Notifications\SupportTicketReplied;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -101,6 +102,23 @@ class SupportTicketController extends Controller
                 'last_message_at' => now(),
             ]);
         });
+
+        if ($staff && config('support.email_notifications')) {
+            try {
+                $customer = $supportTicket->opener;
+                if (!$customer || !filter_var($customer->email, FILTER_VALIDATE_EMAIL)) {
+                    throw new \RuntimeException('O autor do ticket nao tem um email valido.');
+                }
+                $customer->notify(new SupportTicketReplied($supportTicket));
+            } catch (\Throwable $e) {
+                \Log::warning('Falha ao notificar cliente de resposta ao ticket.', [
+                    'ticket_id' => $supportTicket->id,
+                    'exception_type' => get_class($e),
+                ]);
+                return back()->with('message', 'Resposta guardada.')
+                    ->with('error_message', 'Não foi possível enviar o aviso por email ao cliente. A resposta ficou disponível no ticket.');
+            }
+        }
 
         return back()->with('message', 'Resposta enviada.');
     }

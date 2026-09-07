@@ -6,6 +6,8 @@ use App\Models\Company;
 use App\Models\Role;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Notifications\SupportTicketReplied;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
@@ -15,6 +17,8 @@ class SupportTicketTest extends TestCase
 
     public function test_customer_and_admin_can_converse_and_close_ticket(): void
     {
+        Notification::fake();
+        config(['support.email_notifications' => true]);
         $customer = User::create(['name' => 'Ticket Customer', 'email' => uniqid().'@example.test', 'password' => 'secret', 'verified' => 1, 'verification_token' => 'test']);
         $company = Company::create([
             'name' => 'Ticket Company', 'vat' => uniqid('vat-'), 'address' => 'Test',
@@ -39,15 +43,40 @@ class SupportTicketTest extends TestCase
         ])->assertRedirect();
         $this->assertSame(SupportTicket::STATUS_AWAITING_CUSTOMER, $ticket->fresh()->status);
         $this->assertSame($admin->id, $ticket->fresh()->assigned_to);
+        Notification::assertSentTo($customer, SupportTicketReplied::class, function ($notification) use ($ticket, $customer) {
+            $mail = $notification->toMail($customer);
+            $this->assertSame(route('admin.support-tickets.show', $ticket), $mail->actionUrl);
+            $this->assertStringContainsString($ticket->number, $mail->subject);
+            $this->assertStringContainsString('Ver e responder ao ticket', $mail->render());
+            return true;
+        });
+        Notification::assertCount(1);
+
+        config(['support.email_notifications' => false]);
+        $this->actingAs($admin)->post(route('admin.support-tickets.reply', $ticket), [
+            'message' => 'Resposta na sandbox, sem email.',
+        ])->assertRedirect();
+        Notification::assertCount(1);
+        config(['support.email_notifications' => true]);
 
         $this->actingAs($customer)->post(route('admin.support-tickets.reply', $ticket), [
             'message' => 'Obrigado, envio mais informação.',
         ])->assertRedirect();
         $this->assertSame(SupportTicket::STATUS_AWAITING_TECHNICAL, $ticket->fresh()->status);
+        Notification::assertCount(1);
+
+        Notification::shouldReceive('send')->once()->andThrow(new \RuntimeException('SMTP unavailable'));
+        $this->actingAs($admin)->post(route('admin.support-tickets.reply', $ticket), [
+            'message' => 'Esta resposta persiste mesmo se o email falhar.',
+        ])->assertRedirect()->assertSessionHas('error_message');
+        $this->assertTrue($ticket->messages()->where('message', 'Esta resposta persiste mesmo se o email falhar.')->exists());
 
         $this->actingAs($customer)->patch(route('admin.support-tickets.close', $ticket))->assertRedirect();
         $this->assertSame(SupportTicket::STATUS_CLOSED, $ticket->fresh()->status);
         $this->assertSame($customer->id, $ticket->fresh()->closed_by);
+        $this->actingAs($admin)->post(route('admin.support-tickets.reply', $ticket), [
+            'message' => 'Nao enviar num ticket encerrado.',
+        ])->assertStatus(422);
     }
 
     public function test_customer_cannot_see_another_company_ticket(): void
