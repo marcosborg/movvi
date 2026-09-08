@@ -153,6 +153,10 @@ class SupportTicketController extends Controller
     {
         $attachment->load('message.ticket');
         $this->authorizeTicket($request->user(), $attachment->message->ticket);
+        if (in_array($request->getHost(), ['localhost', '127.0.0.1', '::1', '[::1]'], true)
+            && $request->isMethod('GET')) {
+            return app(\App\Services\ProductionTicketImage::class)->response($attachment->path);
+        }
         abort_unless(Storage::disk('local')->exists($attachment->path), 404);
 
         return Storage::disk('local')->response($attachment->path, $attachment->original_name, [

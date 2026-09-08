@@ -2,10 +2,6 @@
 
 $publicStorageUrl = env('PUBLIC_STORAGE_URL');
 
-if (! $publicStorageUrl && env('DB_MODE', 'sandbox') === 'sandbox') {
-    $publicStorageUrl = rtrim(env('PRODUCTION_APP_URL', 'https://movvi.com.pt'), '/').'/storage';
-}
-
 $publicStorageUrl = $publicStorageUrl ?: rtrim(env('APP_URL'), '/').'/storage';
 
 return [

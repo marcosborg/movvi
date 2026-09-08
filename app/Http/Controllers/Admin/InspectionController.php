@@ -699,8 +699,8 @@ class InspectionController extends Controller
                     'status' => $damage->is_resolved ? 'Resolvido' : 'Aberto',
                     'photos' => $damage->photos->map(function ($photo) use ($damage) {
                         return [
-                            'url' => asset('storage/' . $photo->path),
-                            'thumb' => asset('storage/' . $photo->path),
+                            'url' => \App\Support\ImageUrl::forDisplay(asset('storage/' . $photo->path)),
+                            'thumb' => \App\Support\ImageUrl::forDisplay(asset('storage/' . $photo->path)),
                             'title' => 'Dano #' . $damage->id,
                         ];
                     })->values()->all(),
@@ -739,8 +739,8 @@ class InspectionController extends Controller
 
                         return [
                             'label' => $label,
-                            'url' => asset('storage/' . $photo->path),
-                            'thumb' => asset('storage/' . $photo->path),
+                            'url' => \App\Support\ImageUrl::forDisplay(asset('storage/' . $photo->path)),
+                            'thumb' => \App\Support\ImageUrl::forDisplay(asset('storage/' . $photo->path)),
                         ];
                     })->values()->all(),
                 ];
@@ -755,7 +755,7 @@ class InspectionController extends Controller
             ->map(function ($signature) {
                 $path = (string) ($signature->signature_path ?? '');
                 $imageUrl = $path !== '' && !str_starts_with($path, 'typed-signature:')
-                    ? asset('storage/' . $path)
+                    ? \App\Support\ImageUrl::forDisplay(asset('storage/' . $path))
                     : null;
 
                 return [

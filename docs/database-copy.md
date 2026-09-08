@@ -201,3 +201,21 @@ php artisan db:make-install-package --source=mysql_production --target=mysql_san
 ```
 
 Evitar a rota HTTP e evitar `--mode=legacy` para clonagem total.
+
+## Visualização de imagens em localhost
+
+Em `localhost`, `127.0.0.1` e `::1`, os URLs de visualização das imagens da
+biblioteca de media e fotografias/assinaturas de inspeções
+apontam para `PRODUCTION_APP_URL` (por defeito `https://movvi.com.pt`). A regra
+está centralizada em `App\Support\ImageUrl`; novos pontos de visualização que
+não usem a biblioteca de media devem passar o URL por `ImageUrl::forDisplay()`.
+URLs externos e imagens incorporadas (`data:`/`blob:`) são preservados.
+
+Esta regra só altera URLs de leitura: não copia ficheiros, não envia uploads
+para produção e não altera as ligações à base de dados. Imagens criadas apenas
+localmente não estarão disponíveis em produção.
+
+Os anexos dos tickets continuam privados. Em localhost, a rota local verifica
+as permissões e lê a imagem por HTTPS usando uma chave dedicada de produção,
+sem depender dos cookies do navegador e sem guardar uma cópia permanente.
+Ver `docs/production-image-reader.md` para instalação, renovação e revogação.

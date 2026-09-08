@@ -21,7 +21,7 @@
                                 @if($ticketMessage->attachments->isNotEmpty())
                                     <div class="ticket-images">
                                         @foreach($ticketMessage->attachments as $attachment)
-                                            <a href="{{ route('admin.support-tickets.attachment', $attachment) }}" target="_blank" title="{{ $attachment->original_name }}">
+                                            <a href="{{ route('admin.support-tickets.attachment', $attachment) }}" target="_blank" rel="noopener" title="{{ $attachment->original_name }}">
                                                 <img src="{{ route('admin.support-tickets.attachment', $attachment) }}" alt="{{ $attachment->original_name }}">
                                             </a>
                                         @endforeach

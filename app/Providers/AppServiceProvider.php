@@ -33,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        config(['media-library.url_generator' => \App\Support\MediaUrlGenerator::class]);
         Paginator::useBootstrap();
 
         View::composer(['partials.menu', 'layouts.admin'], function ($view) {

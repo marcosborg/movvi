@@ -55,6 +55,7 @@ return [
     */
 
     'url' => env('APP_URL', 'http://localhost'),
+    'production_url' => env('PRODUCTION_APP_URL', 'https://movvi.com.pt'),
 
     'asset_url' => env('ASSET_URL'),
 
