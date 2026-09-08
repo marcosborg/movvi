@@ -131,143 +131,58 @@ class VehicleUsageController extends Controller
         return response(null, Response::HTTP_NO_CONTENT);
     }
 
-    public function usage()
+    public function usage(Request $request)
     {
-        $usages = VehicleUsage::with(['vehicle_item'])
-            ->orderBy('start_date')
-            ->get();
-
-        $grouped = $usages->groupBy('vehicle_item.license_plate');
-        $occupancyStats = [];
-        $monthlyStats = [];
-        $monthlyStackedStats = [];
-        $yearlyMap = [];
-
-        foreach ($grouped as $plate => $usagesForVehicle) {
-            $years = [];
-
-            foreach ($usagesForVehicle as $usage) {
-                $startRaw = $usage->getRawOriginal('start_date');
-                $endRaw = $usage->getRawOriginal('end_date');
-
-                try {
-                    $start = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $startRaw);
-                } catch (\Exception $e) {
-                    \Log::error("Data invalida em VehicleUsage ID {$usage->id} (start_date): '{$startRaw}'");
-                    continue;
-                }
-
-                try {
-                    $end = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $endRaw);
-                } catch (\Exception $e) {
-                    \Log::error("Data invalida em VehicleUsage ID {$usage->id} (end_date): '{$endRaw}'");
-                    continue;
-                }
-
-                $exception = $usage->usage_exceptions ?? 'usage';
-                $period = \Carbon\CarbonPeriod::create($start, $end);
-
-                foreach ($period as $day) {
-                    $year = $day->year;
-                    $month = $day->month;
-                    $monthKey = sprintf("%s (%04d-%02d)", $plate, $year, $month);
-
-                    if (!isset($monthlyStats[$monthKey])) {
-                        $monthlyStats[$monthKey] = [
-                            'label' => $monthKey,
-                            'plate' => $plate,
-                            'year'  => (string) $year,
-                            'month' => str_pad($month, 2, '0', STR_PAD_LEFT),
-                            'days'  => 0,
-                        ];
-                    }
-                    $monthlyStats[$monthKey]['days']++;
-
-                    if (!isset($monthlyStackedStats[$monthKey])) {
-                        $monthlyStackedStats[$monthKey] = [
-                            'label'       => $monthKey,
-                            'plate'       => $plate,
-                            'year'        => (string) $year,
-                            'month'       => str_pad($month, 2, '0', STR_PAD_LEFT),
-                            'usage'       => 0,
-                            'maintenance' => 0,
-                            'accident'    => 0,
-                            'unassigned'  => 0,
-                            'personal'    => 0,
-                        ];
-                    }
-                    if (array_key_exists($exception, $monthlyStackedStats[$monthKey])) {
-                        $monthlyStackedStats[$monthKey][$exception]++;
-                    }
-
-                    if (!isset($years[$year])) {
-                        $years[$year] = [];
-                    }
-                    $years[$year][$day->format('Y-m-d')] = true;
-                }
-            }
-
-            foreach ($years as $year => $usedDays) {
-                $totalDays = \Carbon\Carbon::create($year, 1, 1)->daysInYear;
-                $usedCount = count($usedDays);
-                $occupancyStats[$plate][$year] = [
-                    'used'    => $usedCount,
-                    'total'   => $totalDays,
-                    'percent' => round(($usedCount / $totalDays) * 100, 2),
-                ];
-
-                $yearKey = "$plate ($year)";
-                if (!isset($yearlyMap[$yearKey])) {
-                    $yearlyMap[$yearKey] = [
-                        'label'        => $yearKey,
-                        'year'         => (string) $year,
-                        'totalPercent' => 0,
-                        'months'       => 0,
-                    ];
-                }
-            }
+        abort_if(Gate::denies('vehicle_usage_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $today = now()->toDateString();
+        $request->validate([
+            'from' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:'.$today],
+            'to' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:'.$today],
+            'vehicle_ids' => ['nullable', 'array'], 'vehicle_ids.*' => ['integer', 'distinct'],
+            'group' => ['nullable', 'string', 'max:80'],
+            'selection' => ['nullable', 'in:all,selected'],
+            'section' => ['nullable', 'in:all,timeline,chart,detail'],
+            'format' => ['nullable', 'in:pdf'],
+        ]);
+        $from = $request->input('from') ?: now()->startOfYear()->toDateString();
+        $to = $request->input('to') ?: $today;
+        abort_if($from > $to, 422, 'A data inicial deve ser anterior à data final.');
+        abort_if(\Carbon\Carbon::parse($from)->diffInDays($to) > 3660, 422, 'Selecione um período até 10 anos.');
+        $companyId = session('company_id') ?: auth()->user()?->company_id;
+        $vehicles = VehicleItem::with(['vehicle_model', 'vehicle_brand'])
+            ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
+            ->orderBy('license_plate')->get();
+        $groups = [];
+        foreach ($vehicles as $vehicle) {
+            if ($vehicle->vehicle_brand) $groups['brand:'.$vehicle->vehicle_brand_id] = 'Marca: '.$vehicle->vehicle_brand->name;
+            if ($vehicle->vehicle_model) $groups['model:'.$vehicle->vehicle_model_id] = 'Modelo: '.$vehicle->vehicle_model->name;
         }
-
-        foreach ($monthlyStats as &$stat) {
-            $daysInMonth = cal_days_in_month(CAL_GREGORIAN, (int) $stat['month'], (int) $stat['year']);
-            $stat['percent'] = $daysInMonth > 0 ? round(($stat['days'] / $daysInMonth) * 100, 2) : 0;
-
-            $yearKey = "{$stat['plate']} ({$stat['year']})";
-            if (isset($yearlyMap[$yearKey])) {
-                $yearlyMap[$yearKey]['totalPercent'] += $stat['percent'];
-                $yearlyMap[$yearKey]['months']++;
+        asort($groups);
+        $group = $request->input('group', '');
+        abort_if($group && !isset($groups[$group]), 422, 'Grupo de viaturas inválido.');
+        $ids = array_map('intval', $request->input('vehicle_ids', []));
+        abort_if(array_diff($ids, $vehicles->modelKeys()), 403, 'Viatura fora da empresa selecionada.');
+        abort_if($request->input('selection') === 'selected' && !$ids, 422, 'Selecione pelo menos uma viatura.');
+        $selected = $vehicles->filter(function ($vehicle) use ($group, $ids, $request) {
+            if ($group) {
+                [$kind, $id] = explode(':', $group);
+                if ((int) $vehicle->{$kind === 'brand' ? 'vehicle_brand_id' : 'vehicle_model_id'} !== (int) $id) return false;
             }
+            return $request->input('selection') !== 'selected' || in_array($vehicle->id, $ids, true);
+        });
+        $usages = VehicleUsage::with('driver')->whereIn('vehicle_item_id', $selected->modelKeys())
+            ->where('start_date', '<', \Carbon\Carbon::parse($to)->addDay()->toDateString())
+            ->where(fn ($q) => $q->whereNull('end_date')->orWhere('end_date', '>', $from))->get();
+        $report = (new \App\Services\VehicleUsageReportService)->build($selected, $usages, $from, $to);
+        $section = $request->input('section', 'all');
+        $companyName = $companyId ? \App\Models\Company::find($companyId)?->name : 'Todas as empresas';
+        $data = compact('report', 'vehicles', 'groups', 'group', 'ids', 'from', 'to', 'section', 'companyName');
+        if ($request->input('format') === 'pdf') {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.vehicleUsages.usage-pdf', $data)->setPaper('a4', 'landscape');
+            $pdf->render();
+            $pdf->getDomPDF()->getCanvas()->page_text(745, 572, '{PAGE_NUM} / {PAGE_COUNT}', null, 8, [0.4, 0.4, 0.4]);
+            return $pdf->stream('utilizacao-viaturas-'.$from.'-'.$to.'.pdf');
         }
-        unset($stat);
-
-        $yearlyStats = [];
-        foreach ($yearlyMap as $entry) {
-            $yearlyStats[] = [
-                'label'   => $entry['label'],
-                'year'    => $entry['year'],
-                'percent' => $entry['months'] > 0 ? round($entry['totalPercent'] / $entry['months'], 2) : 0,
-            ];
-        }
-
-        usort($yearlyStats, fn($a, $b) => $b['percent'] <=> $a['percent']);
-
-        $availableYears = [];
-        foreach ($occupancyStats as $years) {
-            foreach ($years as $year => $data) {
-                $availableYears[$year] = true;
-            }
-        }
-        ksort($availableYears);
-
-        $monthlyStackedStats = array_values($monthlyStackedStats);
-
-        return view('admin.vehicleUsages.usage', compact(
-            'grouped',
-            'occupancyStats',
-            'yearlyStats',
-            'monthlyStats',
-            'availableYears',
-            'monthlyStackedStats'
-        ));
+        return view('admin.vehicleUsages.usage', $data);
     }
 }
