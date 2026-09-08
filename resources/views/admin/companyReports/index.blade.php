@@ -56,7 +56,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     validateData = () => {
-        const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked:not(:disabled)');
+        const checkboxes = document.querySelectorAll('.report-driver-row input[type="checkbox"]:checked:not(:disabled)');
         const data = [];
         checkboxes.forEach((checkbox) => {
             let driver = JSON.parse(checkbox.value);
@@ -65,21 +65,36 @@
                 tvde_week_id: {{ session()->get('tvde_week_id') }}
             });
         });
-        $.post({
+        if (!data.length) return;
+        const button = document.getElementById('validateData');
+        if (button.dataset.submitting === 'true') return;
+        button.dataset.submitting = 'true';
+        button.disabled = true;
+        $.ajax({
+            method: 'POST',
+            contentType: 'application/json; charset=UTF-8',
+            dataType: 'json',
+            processData: false,
             url: '/admin/company-reports/validate-data',
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
-            data: {
-                data: data,
-            },
+            data: JSON.stringify({data: data, expected_count: data.length}),
             success: (resp) => {
+                if (resp.validated_count !== data.length) {
+                    Swal.fire('Validação incompleta', 'Atualize a página e confirme os condutores por validar.', 'error');
+                    return;
+                }
                 Swal.fire('Atualizado com sucesso').then(() => {
                     location.reload();
                 });
             },
             error: (error) => {
-                console.log(error);
+                Swal.fire('Não foi possível validar', error.responseJSON?.message || 'O pedido não foi concluído. Atualize a página para confirmar o estado antes de repetir.', 'error');
+            },
+            complete: () => {
+                delete button.dataset.submitting;
+                checkCheckedCheckboxes();
             }
         });
     }
@@ -96,7 +111,7 @@
     }
 
     function unselectAll() {
-        const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked:not(:disabled)');
+        const checkboxes = document.querySelectorAll('.report-driver-row input[type="checkbox"]:checked:not(:disabled)');
         checkboxes.forEach((checkbox) => {
             checkbox.checked = false;
         });

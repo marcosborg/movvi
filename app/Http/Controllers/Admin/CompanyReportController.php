@@ -222,66 +222,78 @@ class CompanyReportController extends Controller
 
     public function validateData(Request $request)
     {
+        $request->validate([
+            'data' => ['required', 'array', 'min:1'],
+            'expected_count' => ['required', 'integer', 'min:1'],
+            'data.*.driver' => ['required', 'array'],
+            'data.*.driver.id' => ['required', 'integer', 'exists:drivers,id'],
+            'data.*.tvde_week_id' => ['required', 'integer', 'exists:tvde_weeks,id'],
+        ]);
+        abort_unless(count($request->input('data')) === (int) $request->input('expected_count'), 422, 'O pedido não contém todos os condutores selecionados. Nenhum registo foi validado.');
 
-        foreach ($request->data as $data) {
-            $driverData = $data['driver'] ?? [];
-            $weekId = (int) ($data['tvde_week_id'] ?? $driverData['tvde_week_id'] ?? session()->get('tvde_week_id') ?? 0);
-            $driverId = (int) ($driverData['id'] ?? $data['driver_id'] ?? 0);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request) {
+            foreach ($request->input('data') as $data) {
+                $driverData = $data['driver'] ?? [];
+                $weekId = (int) ($data['tvde_week_id'] ?? $driverData['tvde_week_id'] ?? session()->get('tvde_week_id') ?? 0);
+                $driverId = (int) ($driverData['id'] ?? $data['driver_id'] ?? 0);
 
-            if (!$weekId || !$driverId) {
-                continue;
-            }
-
-            // 🔹 Função inline para normalizar valores vindos do front
-            $normalize = function ($value): float {
-                if (is_numeric($value)) {
-                    return (float) $value; // já é número limpo
+                if (!$weekId || !$driverId) {
+                    continue;
                 }
-                $v = str_replace(' ', '', (string) $value);   // remove espaços normais
-                $v = str_replace("\xc2\xa0", '', $v);         // remove NBSP (utf-8)
-                $v = str_replace('.', '', $v);                // tira separador de milhar
-                $v = str_replace(',', '.', $v);               // vírgula → ponto decimal
-                return (float) $v;
-            };
 
-            // 🔹 Normaliza o total do motorista
-            $total = $normalize($this->driverTotalFromPayload($driverData));
+                // 🔹 Função inline para normalizar valores vindos do front
+                $normalize = function ($value): float {
+                    if (is_numeric($value)) {
+                        return (float) $value; // já é número limpo
+                    }
+                    $v = str_replace(' ', '', (string) $value);   // remove espaços normais
+                    $v = str_replace("\xc2\xa0", '', $v);         // remove NBSP (utf-8)
+                    $v = str_replace('.', '', $v);                // tira separador de milhar
+                    $v = str_replace(',', '.', $v);               // vírgula → ponto decimal
+                    return (float) $v;
+                };
 
-            // 🔹 Registo da conta corrente
-            $current_account = CurrentAccount::firstOrNew([
-                'tvde_week_id' => $weekId,
-                'driver_id'    => $driverId,
-            ]);
-            $current_account->data = json_encode($this->buildCurrentAccountPayload($driverData));
-            $current_account->save();
+                // 🔹 Normaliza o total do motorista
+                $total = $normalize($this->driverTotalFromPayload($driverData));
 
-            // 🔹 Último saldo
-            $tvde_week = TvdeWeek::find($weekId);
-            $last_balance = $this->previousDriverBalanceBeforeWeek($driverId, $tvde_week);
+                // 🔹 Registo da conta corrente
+                $current_account = CurrentAccount::firstOrNew([
+                    'tvde_week_id' => $weekId,
+                    'driver_id'    => $driverId,
+                ]);
+                $current_account->data = json_encode($this->buildCurrentAccountPayload($driverData));
+                $current_account->save();
 
-            $last_balance = $last_balance ? (float) $last_balance->new_balance : 0.0;
-            $new_balance = $last_balance + $total;
+                // 🔹 Último saldo
+                $tvde_week = TvdeWeek::find($weekId);
+                $last_balance = $this->previousDriverBalanceBeforeWeek($driverId, $tvde_week);
 
-            // 🔹 Novo saldo
-            $driver_balance = DriversBalance::withTrashed()->firstOrNew([
-                'driver_id'    => $driverId,
-                'tvde_week_id' => $weekId,
-            ]);
-            if ($driver_balance->trashed()) {
-                $driver_balance->restore();
+                $last_balance = $last_balance ? (float) $last_balance->new_balance : 0.0;
+                $new_balance = $last_balance + $total;
+
+                // 🔹 Novo saldo
+                $driver_balance = DriversBalance::withTrashed()->firstOrNew([
+                    'driver_id'    => $driverId,
+                    'tvde_week_id' => $weekId,
+                ]);
+                if ($driver_balance->trashed()) {
+                    $driver_balance->restore();
+                }
+                $driver_balance->value = $total;
+                $driver_balance->last_balance = $last_balance;
+                $driver_balance->new_balance = $new_balance;
+                $driver_balance->save();
+
+                /*
+            $email = $data['driver']['email'];
+
+            Notification::route('mail', $email)
+                ->notify(new ActivityLaunchesSend());
+            */
             }
-            $driver_balance->value = $total;
-            $driver_balance->last_balance = $last_balance;
-            $driver_balance->new_balance = $new_balance;
-            $driver_balance->save();
+        });
 
-            /*
-        $email = $data['driver']['email'];
-
-        Notification::route('mail', $email)
-            ->notify(new ActivityLaunchesSend());
-        */
-        }
+        return response()->json(['validated_count' => count($request->input('data'))]);
     }
 
     public function revalidateData(Request $request)
