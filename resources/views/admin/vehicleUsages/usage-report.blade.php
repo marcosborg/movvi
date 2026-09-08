@@ -13,15 +13,15 @@
 <div class="usage-section {{ $pdf ? '' : 'tab-pane active' }}" id="timeline" role="tabpanel">
     <h3>Linha do Tempo das Viaturas</h3>
     <p class="text-muted">Da esquerda para a direita: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} a {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }}. @unless($pdf) Passe sobre os intervalos para ver as datas e o motorista. @endunless</p>
-    <table class="usage-table"><thead><tr><th style="width:18%">Viatura</th><th>Utilização ao longo do período</th><th style="width:12%">Dias em uso</th></tr></thead><tbody>
+    <table class="usage-table"><thead><tr><th style="width:16%">Viatura</th><th>Utilização ao longo do período</th><th style="width:10%">Dias em uso</th><th style="width:10%">Dias sem uso</th>@if($canViewRevenue)<th style="width:13%">Faturação total</th><th style="width:13%">Média diária</th>@endif</tr></thead><tbody>
     @foreach($report['rows'] as $row)
-        <tr><td><strong>{{ $row['plate'] }}</strong><br><small>{{ $row['model'] }}</small></td><td>
+        <tr><td><strong>{{ $row['plate'] }}</strong><br><small>{{ $row['model'] }}<br>Desde {{ \Carbon\Carbon::parse($row['first_usage_at'])->format('d/m/Y H:i') }}</small></td><td>
             <div class="usage-timeline">
             @foreach($row['segments'] as $segment)
                 <span style="left:{{ $segment['offset'] }}%;width:{{ $segment['width'] }}%;background:{{ $report['colors'][$segment['category']] }}" title="{{ $report['categories'][$segment['category']] }} | {{ $segment['start'] }} até {{ $segment['end'] }} (fim exclusivo) | {{ $segment['driver'] }}"></span>
             @endforeach
             </div>
-        </td><td class="number">{{ $num($row['stats']['usage']) }}</td></tr>
+        </td><td class="number">{{ $num($row['stats']['usage']) }}</td><td class="number">{{ $num($row['stats']['idle']) }}</td>@if($canViewRevenue)<td class="number">{{ $num($row['stats']['revenue']) }} €{{ $row['stats']['incomplete'] ? '*' : '' }}</td><td class="number">{{ $num($row['stats']['daily_average']) }} €</td>@endif</tr>
     @endforeach
     </tbody></table>
 </div>
@@ -47,14 +47,22 @@
 @if($section === 'all' || $section === 'detail')
 <div class="usage-section {{ $pdf ? '' : 'tab-pane' }}" id="detail" role="tabpanel">
     <h3>Detalhe da Ocupação por Viatura</h3>
-    <table class="usage-table"><thead><tr><th>Viatura</th><th>Ano / período</th><th>Dias em uso</th><th>Dias disponíveis</th><th>Manutenção</th><th>Sinistrado</th><th>Uso pessoal</th><th>Sem utilização</th><th>Ocupação</th></tr></thead><tbody>
+    <table class="usage-table"><thead><tr><th>Viatura</th><th>{{ ['years'=>'Ano','months'=>'Mês','weeks'=>'Semana ISO'][$breakdown] }} / período</th><th>Dias em uso</th><th>Dias decorridos</th><th>Dias sem uso</th>@if($canViewRevenue)<th>Faturação total</th><th>Média diária</th>@endif<th>Ocupação</th></tr></thead><tbody>
     @foreach($report['rows'] as $row)
-        @foreach($row['years'] as $year => $stats)
-        <tr><td>{{ $row['plate'] }}</td><td>{{ $year }}</td><td class="number">{{ $num($stats['usage']) }}</td><td class="number">{{ $num($stats['total']) }}</td><td class="number">{{ $num($stats['maintenance']) }}</td><td class="number">{{ $num($stats['accident']) }}</td><td class="number">{{ $num($stats['personal']) }}</td><td class="number">{{ $num($stats['unassigned']) }}</td><td class="number"><strong>{{ $num($stats['percent']) }}%</strong></td></tr>
+        @foreach($row[$breakdown] as $period => $stats)
+        <tr><td>{{ $row['plate'] }}</td><td>{{ $period }}</td><td class="number">{{ $num($stats['usage']) }}</td><td class="number">{{ $num($stats['total']) }}</td><td class="number">{{ $num($stats['idle']) }}</td>@if($canViewRevenue)<td class="number">{{ $num($stats['revenue']) }} €{{ $stats['incomplete'] ? '*' : '' }}</td><td class="number">{{ $num($stats['daily_average']) }} €</td>@endif<td class="number"><strong>{{ $num($stats['percent']) }}%</strong></td></tr>
         @endforeach
     @endforeach
     </tbody></table>
-    <p>Os anos são limitados às datas selecionadas. Para ver um mês, selecione o início e o fim desse mês no filtro de período.</p>
+    <p>Os períodos são limitados às datas selecionadas e à primeira utilização de cada viatura. Semanas ISO de segunda-feira a domingo.</p>
+    <h3>Composição dos dias sem uso</h3>
+    <table class="usage-table"><thead><tr><th>Viatura</th><th>Período</th><th>Manutenção</th><th>Sinistrado</th><th>Uso pessoal</th><th>Sem atribuição</th></tr></thead><tbody>
+    @foreach($report['rows'] as $row)
+        @foreach($row[$breakdown] as $period => $stats)
+        <tr><td>{{ $row['plate'] }}</td><td>{{ $period }}</td><td class="number">{{ $num($stats['maintenance']) }}</td><td class="number">{{ $num($stats['accident']) }}</td><td class="number">{{ $num($stats['personal']) }}</td><td class="number">{{ $num($stats['unassigned']) }}</td></tr>
+        @endforeach
+    @endforeach
+    </tbody></table>
 </div>
 @endif
 @endif

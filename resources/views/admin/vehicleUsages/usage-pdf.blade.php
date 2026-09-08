@@ -14,6 +14,8 @@ h1 {font-size:22px;margin:0 0 8px;}
 <h1>Utilização das viaturas</h1>
 <p>{{ $companyName }} | {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} a {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }} | {{ count($report['rows']) }} viaturas</p>
 <div class="usage-summary">Ocupação do grupo: <strong>{{ number_format($report['fleet']['percent'],2,',','.') }}%</strong> | Dias em utilização: {{ number_format($report['fleet']['usage'],2,',','.') }} | Dias disponíveis (soma das viaturas): {{ number_format($report['fleet']['total'],2,',','.') }}</div>
-<p class="usage-method">Tempo decorrido até à data final, nunca além de hoje. Dias equivalentes de 24 horas. Em sobreposições prevalece o registo iniciado mais recentemente. A ocupação conta apenas utilização; manutenção, sinistros e uso pessoal são separados. As datas de aquisição e venda limitam a disponibilidade quando preenchidas.</p>
+<p>{{ $activeOnly ? 'Apenas viaturas ativas' : 'Inclui histórico de viaturas inativas' }} | Detalhe por {{ ['years'=>'ano','months'=>'mês','weeks'=>'semana'][$breakdown] }}</p>
+@include('admin.vehicleUsages.usage-method')
+@if($canViewRevenue)<p><strong>Faturação total: {{ number_format($report['fleet']['revenue'],2,',','.') }} €</strong>{{ $report['fleet']['incomplete'] ? ' *' : '' }} | Média por viatura/dia: {{ number_format($report['fleet']['daily_average'],2,',','.') }} €</p>@endif
 @include('admin.vehicleUsages.usage-report', ['pdf'=>true])
 </body></html>

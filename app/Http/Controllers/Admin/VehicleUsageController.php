@@ -143,6 +143,8 @@ class VehicleUsageController extends Controller
             'selection' => ['nullable', 'in:all,selected'],
             'section' => ['nullable', 'in:all,timeline,chart,detail'],
             'format' => ['nullable', 'in:pdf'],
+            'active_only' => ['nullable', 'boolean'],
+            'breakdown' => ['nullable', 'in:years,months,weeks'],
         ]);
         $from = $request->input('from') ?: now()->startOfYear()->toDateString();
         $to = $request->input('to') ?: $today;
@@ -150,6 +152,11 @@ class VehicleUsageController extends Controller
         abort_if(\Carbon\Carbon::parse($from)->diffInDays($to) > 3660, 422, 'Selecione um período até 10 anos.');
         $companyId = session('company_id') ?: auth()->user()?->company_id;
         $vehicles = VehicleItem::with(['vehicle_model', 'vehicle_brand'])
+            ->addSelect(['first_usage_at' => VehicleUsage::selectRaw('MIN(start_date)')
+                ->whereColumn('vehicle_item_id', 'vehicle_items.id')
+                ->where(fn ($q) => $q->where('usage_exceptions', 'usage')
+                    ->orWhere(fn ($q) => $q->whereNull('usage_exceptions')->whereNotNull('driver_id')))
+                ->where(fn ($q) => $q->whereNull('end_date')->orWhereColumn('end_date', '>', 'start_date'))])
             ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
             ->orderBy('license_plate')->get();
         $groups = [];
@@ -161,9 +168,14 @@ class VehicleUsageController extends Controller
         $group = $request->input('group', '');
         abort_if($group && !isset($groups[$group]), 422, 'Grupo de viaturas inválido.');
         $ids = array_map('intval', $request->input('vehicle_ids', []));
+        $activeOnly = $request->boolean('active_only', true);
+        $breakdown = $request->input('breakdown', 'years');
         abort_if(array_diff($ids, $vehicles->modelKeys()), 403, 'Viatura fora da empresa selecionada.');
         abort_if($request->input('selection') === 'selected' && !$ids, 422, 'Selecione pelo menos uma viatura.');
-        $selected = $vehicles->filter(function ($vehicle) use ($group, $ids, $request) {
+        $selected = $vehicles->filter(function ($vehicle) use ($group, $ids, $request, $activeOnly, $today) {
+            if ($activeOnly && ($vehicle->suspended || !$vehicle->first_usage_at
+                || substr($vehicle->first_usage_at, 0, 10) > $today
+                || ($vehicle->getRawOriginal('sale_date') && $vehicle->getRawOriginal('sale_date') <= $today))) return false;
             if ($group) {
                 [$kind, $id] = explode(':', $group);
                 if ((int) $vehicle->{$kind === 'brand' ? 'vehicle_brand_id' : 'vehicle_model_id'} !== (int) $id) return false;
@@ -173,10 +185,12 @@ class VehicleUsageController extends Controller
         $usages = VehicleUsage::with('driver')->whereIn('vehicle_item_id', $selected->modelKeys())
             ->where('start_date', '<', \Carbon\Carbon::parse($to)->addDay()->toDateString())
             ->where(fn ($q) => $q->whereNull('end_date')->orWhere('end_date', '>', $from))->get();
-        $report = (new \App\Services\VehicleUsageReportService)->build($selected, $usages, $from, $to);
+        $canViewRevenue = Gate::allows('vehicle_profitability_access');
+        $revenueWeeks = $canViewRevenue ? app(\App\Services\VehicleUsageRevenueService::class)->weeks($selected, $from, $to) : [];
+        $report = (new \App\Services\VehicleUsageReportService)->build($selected, $usages, $from, $to, $revenueWeeks);
         $section = $request->input('section', 'all');
         $companyName = $companyId ? \App\Models\Company::find($companyId)?->name : 'Todas as empresas';
-        $data = compact('report', 'vehicles', 'groups', 'group', 'ids', 'from', 'to', 'section', 'companyName');
+        $data = compact('report', 'vehicles', 'groups', 'group', 'ids', 'from', 'to', 'section', 'companyName', 'activeOnly', 'breakdown', 'canViewRevenue');
         if ($request->input('format') === 'pdf') {
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.vehicleUsages.usage-pdf', $data)->setPaper('a4', 'landscape');
             $pdf->render();

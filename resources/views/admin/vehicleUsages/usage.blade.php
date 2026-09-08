@@ -17,11 +17,15 @@
             <button type="button" class="btn btn-default btn-sm" id="clear-vehicles">Limpar seleção</button>
             <div style="max-height:220px;overflow:auto;border:1px solid #ddd;padding:10px" id="vehicle-options">
             @foreach($vehicles as $vehicle)
-                <label style="display:inline-block;width:300px;font-weight:normal" data-brand="brand:{{ $vehicle->vehicle_brand_id }}" data-model="model:{{ $vehicle->vehicle_model_id }}"><input type="checkbox" name="vehicle_ids[]" value="{{ $vehicle->id }}" @checked(in_array($vehicle->id,$ids))> {{ $vehicle->license_plate }} - {{ $vehicle->vehicle_brand?->name }} {{ $vehicle->vehicle_model?->name }}</label>
+                <label style="display:inline-block;width:300px;font-weight:normal" data-active="{{ !$vehicle->suspended && $vehicle->first_usage_at && substr($vehicle->first_usage_at,0,10) <= now()->toDateString() && (!$vehicle->getRawOriginal('sale_date') || $vehicle->getRawOriginal('sale_date') > now()->toDateString()) ? '1' : '0' }}" data-brand="brand:{{ $vehicle->vehicle_brand_id }}" data-model="model:{{ $vehicle->vehicle_model_id }}"><input type="checkbox" name="vehicle_ids[]" value="{{ $vehicle->id }}" @checked(in_array($vehicle->id,$ids))> {{ $vehicle->license_plate }} - {{ $vehicle->vehicle_brand?->name }} {{ $vehicle->vehicle_model?->name }}</label>
             @endforeach
             </div>
         </div>
         <div class="form-inline">
+            <label for="active_only">Estado</label>
+            <select name="active_only" id="active_only" class="form-control"><option value="1" @selected($activeOnly)>Apenas viaturas ativas</option><option value="0" @selected(!$activeOnly)>Incluir histórico de viaturas inativas</option></select>
+            <label for="breakdown">Detalhe por</label>
+            <select name="breakdown" id="breakdown" class="form-control"><option value="years" @selected($breakdown === 'years')>Ano</option><option value="months" @selected($breakdown === 'months')>Mês</option><option value="weeks" @selected($breakdown === 'weeks')>Semana</option></select>
             <button type="submit" class="btn btn-primary">Aplicar filtros</button>
             <label for="section" style="margin-left:15px">Conteúdo do PDF</label>
             <select name="section" id="section" class="form-control"><option value="all">As três abas</option><option value="timeline">Linha do tempo</option><option value="chart">Gráfico de ocupação</option><option value="detail">Detalhe por viatura</option></select>
@@ -29,7 +33,8 @@
         </div>
     </form>
     <div class="usage-summary"><strong>{{ $companyName }} | {{ count($report['rows']) }} {{ count($report['rows']) === 1 ? 'viatura' : 'viaturas' }}</strong> &nbsp; {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} a {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }} &nbsp; <strong>Ocupação do grupo: {{ number_format($report['fleet']['percent'],2,',','.') }}%</strong></div>
-    <p class="usage-method">Contamos apenas até à data final, no máximo hoje. Dias equivalentes de 24 horas; cada intervalo conta uma só vez e, em sobreposições, prevalece o registo iniciado mais recentemente. A ocupação inclui apenas utilização, separando manutenção, sinistros e uso pessoal. As datas de aquisição e venda limitam os dias disponíveis quando preenchidas.</p>
+    @include('admin.vehicleUsages.usage-method')
+@if($canViewRevenue)    <p><strong>Faturação total do grupo: {{ number_format($report['fleet']['revenue'],2,',','.') }} €</strong>{{ $report['fleet']['incomplete'] ? ' *' : '' }} | Média por viatura/dia: {{ number_format($report['fleet']['daily_average'],2,',','.') }} €</p>@endif
     <ul class="nav nav-tabs" role="tablist">
         <li class="active"><a href="#timeline" data-toggle="tab" role="tab">Linha do Tempo das Viaturas</a></li>
         <li><a href="#chart" data-toggle="tab" role="tab">Gráfico da Taxa de Ocupação</a></li>
@@ -50,10 +55,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function filterVehicles() {
         const group = document.getElementById('group').value;
         const search = document.getElementById('vehicle-search').value.toLocaleLowerCase();
-        labels.forEach(label => { label.style.display = (!group || label.dataset.brand === group || label.dataset.model === group) && label.textContent.toLocaleLowerCase().includes(search) ? 'inline-block' : 'none'; });
+        const activeOnly = document.getElementById('active_only').value === '1';
+        labels.forEach(label => { label.style.display = (!activeOnly || label.dataset.active === '1') && (!group || label.dataset.brand === group || label.dataset.model === group) && label.textContent.toLocaleLowerCase().includes(search) ? 'inline-block' : 'none'; });
     }
     selection.addEventListener('change', () => { picker.style.display = selection.value === 'selected' ? 'block' : 'none'; });
     document.getElementById('group').addEventListener('change', filterVehicles);
+    document.getElementById('active_only').addEventListener('change', filterVehicles);
     document.getElementById('vehicle-search').addEventListener('input', filterVehicles);
     document.getElementById('pick-visible').addEventListener('click', () => labels.filter(l=>l.style.display !== 'none').forEach(l=>l.querySelector('input').checked=true));
     document.getElementById('clear-vehicles').addEventListener('click', () => labels.forEach(l=>l.querySelector('input').checked=false));

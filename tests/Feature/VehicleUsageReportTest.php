@@ -45,14 +45,73 @@ class VehicleUsageReportTest extends TestCase
     }
     public function test_leap_year_and_partial_day_are_consistent(): void {
         $r=$this->report([$this->usage(1,'2024-01-01 12:00:00','2025-01-01')],'2024-01-01','2024-12-31');
-        $this->assertEquals(366,$r['fleet']['total']); $this->assertEquals(365.5,$r['fleet']['usage']);
+        $this->assertEquals(365.5,$r['fleet']['total']); $this->assertEquals(365.5,$r['fleet']['usage']);
     }
-    public function test_acquisition_and_sale_clip_denominator_and_usage(): void {
+    public function test_first_usage_and_sale_clip_denominator_regardless_of_acquisition(): void {
         $r=$this->report([$this->usage(1,'2025-01-01',null)],'2026-01-01','2026-09-08',['acquisition_date'=>'2026-09-02','sale_date'=>'2026-09-04']);
-        $this->assertEquals(3,$r['fleet']['total']); $this->assertEquals(3,$r['fleet']['usage']);
+        $this->assertEquals(247,$r['fleet']['total']); $this->assertEquals(247,$r['fleet']['usage']);
     }
-    public function test_vehicle_without_usage_stays_visible_at_zero(): void {
-        $r=$this->report([]); $this->assertCount(1,$r['rows']);
-        $this->assertEquals(251,$r['fleet']['unassigned']); $this->assertEquals(0,$r['fleet']['percent']);
+    public function test_vehicle_never_used_is_excluded(): void {
+        $r=$this->report([]); $this->assertCount(0,$r['rows']);
+    }
+    public function test_first_usage_before_filter_preserves_idle_days_and_ignores_record_creation(): void {
+        $r=$this->report([], '2026-09-01','2026-09-06', ['first_usage_at'=>'2026-08-15 00:00:00','created_at'=>'2026-09-04']);
+        $this->assertEquals(6,$r['fleet']['total']);
+        $this->assertEquals(6,$r['fleet']['idle']);
+    }
+    public function test_first_usage_clips_year_and_periods_reconcile(): void {
+        $r=$this->report([$this->usage(1,'2026-09-01','2026-09-03')], '2026-01-01','2026-09-06');
+        $s=$r['rows'][0];
+        $this->assertEquals(6,$s['stats']['total']);
+        $this->assertEquals(2,$s['stats']['usage']);
+        $this->assertEquals(4,$s['stats']['idle']);
+        $this->assertEquals($s['stats'],$s['weeks']['2026-W36']);
+        $this->assertEquals($s['stats'],$s['months']['2026-09']);
+    }
+    public function test_future_first_usage_has_no_elapsed_days(): void {
+        $r=$this->report([$this->usage(1,'2026-09-10',null)]);
+        $this->assertEmpty($r['rows']);
+    }
+    private function revenueReport(string $from, string $to, array $vehicle = [], array $weeks = []): array {
+        $vehicle += ['first_usage_at'=>'2026-09-01 00:00:00'];
+        $weeks = $weeks ?: [['from'=>'2026-08-31','to'=>'2026-09-06','vehicles'=>[1=>['revenue'=>140.0,'missing_accounts'=>0]]]];
+        return (new VehicleUsageReportService)->build(collect([$this->vehicle($vehicle)]),
+            collect([$this->usage(1,'2026-09-01','2026-09-03')]), $from, $to, $weeks);
+    }
+    public function test_approved_daily_average_includes_idle_days(): void {
+        $r=$this->revenueReport('2026-01-01','2026-09-06'); $s=$r['rows'][0]['stats'];
+        $this->assertEqualsWithDelta(140,$s['revenue'],0.00001);
+        $this->assertEquals(6,$s['total']); $this->assertEquals(4,$s['idle']);
+        $this->assertEqualsWithDelta(140/6,$s['daily_average'],0.00001);
+        $this->assertEquals($s,$r['rows'][0]['weeks']['2026-W36']);
+    }
+    public function test_partial_filters_do_not_reallocate_the_whole_week(): void {
+        $a=$this->revenueReport('2026-09-01','2026-09-02')['fleet'];
+        $b=$this->revenueReport('2026-09-03','2026-09-06')['fleet'];
+        $this->assertEqualsWithDelta(140,$a['revenue']+$b['revenue'],0.00001);
+        $this->assertEqualsWithDelta(140/3,$a['revenue'],0.00001);
+    }
+    public function test_week_crossing_year_and_month_preserves_revenue_and_iso_week(): void {
+        $r=$this->revenueReport('2025-12-29','2026-01-04',['first_usage_at'=>'2025-12-29'],[
+            ['from'=>'2025-12-29','to'=>'2026-01-04','vehicles'=>[1=>['revenue'=>700.0,'missing_accounts'=>1]]]
+        ]); $row=$r['rows'][0];
+        $this->assertEqualsWithDelta(300,$row['years'][2025]['revenue'],0.00001);
+        $this->assertEqualsWithDelta(400,$row['years'][2026]['revenue'],0.00001);
+        $this->assertEqualsWithDelta(700,$row['weeks']['2026-W01']['revenue'],0.00001);
+        $this->assertTrue($r['fleet']['incomplete']);
+    }
+    public function test_current_week_and_sale_cap_allocation_without_future_days(): void {
+        $weeks=[['from'=>'2026-09-07','to'=>'2026-09-13','vehicles'=>[1=>['revenue'=>100.0,'missing_accounts'=>0]]]];
+        $r=$this->revenueReport('2026-09-07','2026-09-08',['first_usage_at'=>'2026-09-07'],$weeks);
+        $this->assertEquals(2,$r['fleet']['total']); $this->assertEquals(100,$r['fleet']['revenue']);
+        $r=$this->revenueReport('2026-09-01','2026-09-06',['sale_date'=>'2026-09-03']);
+        $this->assertEquals(3,$r['fleet']['total']); $this->assertEqualsWithDelta(140,$r['fleet']['revenue'],0.00001);
+    }
+    public function test_partial_first_day_uses_wall_time_and_preserves_negative_adjustments(): void {
+        $r=$this->revenueReport('2026-09-01','2026-09-06',['first_usage_at'=>'2026-09-01 12:00:00'],[
+            ['from'=>'2026-08-31','to'=>'2026-09-06','vehicles'=>[1=>['revenue'=>-55.0,'missing_accounts'=>0]]]
+        ]);
+        $this->assertEquals(5.5,$r['fleet']['total']);
+        $this->assertEqualsWithDelta(-10,$r['fleet']['daily_average'],0.00001);
     }
 }

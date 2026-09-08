@@ -17,7 +17,7 @@ class VehicleUsageReportService
     ];
 
     /** Calendar wall time: a full calendar day always represents one report day. */
-    public function build(Collection $vehicles, Collection $usages, string $from, string $to): array
+    public function build(Collection $vehicles, Collection $usages, string $from, string $to, array $revenueWeeks = []): array
     {
         $start = CarbonImmutable::parse($from, 'UTC')->startOfDay();
         $today = CarbonImmutable::parse(now()->toDateString(), 'UTC');
@@ -26,11 +26,15 @@ class VehicleUsageReportService
         $rows = [];
         $byVehicle = $usages->groupBy('vehicle_item_id');
         foreach ($vehicles as $vehicle) {
-            $eligibleStart = $start;
+            $firstUsage = $vehicle->first_usage_at ?: $byVehicle->get($vehicle->id, collect())
+                ->filter(fn ($usage) => ($usage->usage_exceptions === 'usage' || (!$usage->usage_exceptions && $usage->driver_id))
+                    && $usage->getRawOriginal('start_date')
+                    && (!$usage->getRawOriginal('end_date') || $usage->getRawOriginal('end_date') > $usage->getRawOriginal('start_date')))
+                ->map(fn ($usage) => $usage->getRawOriginal('start_date'))->min();
+            if (!$firstUsage) continue;
+            $operationalStart = CarbonImmutable::parse($firstUsage, 'UTC');
+            $eligibleStart = $start->max($operationalStart);
             $eligibleEnd = $end;
-            if ($date = $vehicle->getRawOriginal('acquisition_date')) {
-                $eligibleStart = $eligibleStart->max(CarbonImmutable::parse($date, 'UTC')->startOfDay());
-            }
             if ($date = $vehicle->getRawOriginal('sale_date')) {
                 $eligibleEnd = $eligibleEnd->min(CarbonImmutable::parse($date, 'UTC')->startOfDay()->addDay());
             }
@@ -59,6 +63,7 @@ class VehicleUsageReportService
             usort($intervals, fn ($a, $b) => [$b['original_start'], $b['id']] <=> [$a['original_start'], $a['id']]);
             $segments = [];
             $months = [];
+            $weeks = [];
             for ($i = 0; $i < count($boundaries) - 1; $i++) {
                 $a = $boundaries[$i]; $b = $boundaries[$i + 1];
                 $category = 'unassigned'; $driver = null;
@@ -73,10 +78,13 @@ class VehicleUsageReportService
                     'width' => 100 * ($b - $a) / max(1, $end->timestamp - $start->timestamp)];
                 $cursor = CarbonImmutable::createFromTimestampUTC($a);
                 while ($cursor->timestamp < $b) {
-                    $next = min($b, $cursor->startOfMonth()->addMonth()->timestamp);
+                    $next = min($b, $cursor->startOfDay()->addDay()->timestamp);
                     $key = $cursor->format('Y-m');
                     $months[$key] ??= array_fill_keys(array_keys(self::CATEGORIES), 0.0);
                     $months[$key][$category] += ($next - $cursor->timestamp) / 86400;
+                    $weekKey = $cursor->format('o-\\WW');
+                    $weeks[$weekKey] ??= array_fill_keys(array_keys(self::CATEGORIES), 0.0);
+                    $weeks[$weekKey][$category] += ($next - $cursor->timestamp) / 86400;
                     $cursor = CarbonImmutable::createFromTimestampUTC($next);
                 }
             }
@@ -91,15 +99,24 @@ class VehicleUsageReportService
                 $months[$month] = $this->withRate($counts);
             }
             foreach ($years as $year => $counts) $years[$year] = $this->withRate($counts);
-            $rows[] = ['id' => $vehicle->id, 'plate' => $vehicle->license_plate,
+            foreach ($weeks as $week => $counts) $weeks[$week] = $this->withRate($counts);
+            $row = ['id' => $vehicle->id, 'plate' => $vehicle->license_plate,
                 'model' => $vehicle->vehicle_model?->name, 'segments' => $segments,
-                'months' => $months, 'years' => $years, 'stats' => $this->withRate($totals)];
+                'first_usage_at' => $operationalStart->toDateTimeString(),
+                'months' => $months, 'years' => $years, 'weeks' => $weeks, 'stats' => $this->withRate($totals)];
+            $this->addRevenue($row, $revenueWeeks, $operationalStart, $eligibleStart, $eligibleEnd,
+                $vehicle->getRawOriginal('sale_date'), $today->addDay());
+            $rows[] = $row;
         }
         $fleet = array_fill_keys(array_keys(self::CATEGORIES), 0.0);
         foreach ($rows as $row) foreach ($fleet as $category => $value) $fleet[$category] += $row['stats'][$category];
+        $fleet = $this->withRate($fleet);
+        $fleet['revenue'] = array_sum(array_column(array_column($rows, 'stats'), 'revenue'));
+        $fleet['daily_average'] = $fleet['total'] > 0 ? $fleet['revenue'] / $fleet['total'] : 0.0;
+        $fleet['incomplete'] = in_array(true, array_column(array_column($rows, 'stats'), 'incomplete'), true);
         $ranking = $rows;
         usort($ranking, fn ($a, $b) => ($b['stats']['percent'] <=> $a['stats']['percent']) ?: strcmp($a['plate'], $b['plate']));
-        return ['rows' => $rows, 'ranking' => $ranking, 'fleet' => $this->withRate($fleet),
+        return ['rows' => $rows, 'ranking' => $ranking, 'fleet' => $fleet,
             'from' => $start->toDateString(), 'to' => $last->toDateString(),
             'categories' => self::CATEGORIES, 'colors' => self::COLORS];
     }
@@ -107,6 +124,42 @@ class VehicleUsageReportService
     private function withRate(array $counts): array
     {
         $total = array_sum($counts);
-        return $counts + ['total' => $total, 'percent' => $total > 0 ? 100 * $counts['usage'] / $total : 0.0];
+        return $counts + ['total' => $total, 'idle' => $total - $counts['usage'],
+            'percent' => $total > 0 ? 100 * $counts['usage'] / $total : 0.0,
+            'revenue' => 0.0, 'daily_average' => 0.0, 'incomplete' => false];
+    }
+
+    private function addRevenue(array &$row, array $weeks, CarbonImmutable $first, CarbonImmutable $from,
+        CarbonImmutable $to, ?string $saleDate, CarbonImmutable $todayEnd): void
+    {
+        foreach ($weeks as $week) {
+            $value = $week['vehicles'][$row['id']] ?? null;
+            if (!$value) continue;
+            // Allocate on the full operational week BEFORE clipping to the requested interval.
+            // This makes adjacent report periods additive and preserves the weekly source total.
+            $a = CarbonImmutable::parse($week['from'], 'UTC')->startOfDay()->max($first);
+            $b = CarbonImmutable::parse($week['to'], 'UTC')->startOfDay()->addDay()->min($todayEnd);
+            if ($saleDate) $b = $b->min(CarbonImmutable::parse($saleDate, 'UTC')->startOfDay()->addDay());
+            if ($a >= $b) continue;
+            $seconds = $b->timestamp - $a->timestamp;
+            $cursor = $a->max($from);
+            $limit = $b->min($to);
+            while ($cursor < $limit) {
+                $next = $cursor->startOfDay()->addDay()->min($limit);
+                $amount = $value['revenue'] * ($next->timestamp - $cursor->timestamp) / $seconds;
+                $row['stats']['revenue'] += $amount;
+                $row['stats']['incomplete'] = $row['stats']['incomplete'] || $value['missing_accounts'] > 0;
+                foreach (['months'=>$cursor->format('Y-m'), 'years'=>$cursor->format('Y'), 'weeks'=>$cursor->format('o-\\WW')] as $group=>$key) {
+                    $row[$group][$key]['revenue'] += $amount;
+                    $row[$group][$key]['incomplete'] = $row[$group][$key]['incomplete'] || $value['missing_accounts'] > 0;
+                }
+                $cursor = $next;
+            }
+        }
+        foreach (['months', 'years', 'weeks'] as $group) {
+            foreach ($row[$group] as &$stats) $stats['daily_average'] = $stats['total'] > 0 ? $stats['revenue'] / $stats['total'] : 0.0;
+            unset($stats);
+        }
+        $row['stats']['daily_average'] = $row['stats']['total'] > 0 ? $row['stats']['revenue'] / $row['stats']['total'] : 0.0;
     }
 }
