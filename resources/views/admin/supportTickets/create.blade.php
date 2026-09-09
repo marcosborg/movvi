@@ -7,6 +7,18 @@
             <form method="POST" action="{{ route('admin.support-tickets.store') }}" enctype="multipart/form-data">
                 @csrf
                 <div class="box-body">
+                    @if($isStaff)
+                        <div class="form-group {{ $errors->has('company_id') ? 'has-error' : '' }}">
+                            <label for="company_id">Empresa</label>
+                            <select id="company_id" name="company_id" class="form-control" required>
+                                <option value="">Selecione a empresa</option>
+                                @foreach($companies as $company)
+                                    <option value="{{ $company->id }}" {{ (string) old('company_id') === (string) $company->id ? 'selected' : '' }}>{{ $company->name }}</option>
+                                @endforeach
+                            </select>
+                            @if($errors->has('company_id'))<span class="help-block">{{ $errors->first('company_id') }}</span>@endif
+                        </div>
+                    @endif
                     <div class="form-group {{ $errors->has('subject') ? 'has-error' : '' }}">
                         <label for="subject">Assunto</label>
                         <input id="subject" name="subject" class="form-control" maxlength="160" required value="{{ old('subject') }}" placeholder="Resuma o problema numa frase">

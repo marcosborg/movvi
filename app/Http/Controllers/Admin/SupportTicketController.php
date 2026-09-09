@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SupportTicket;
+use App\Models\Company;
 use App\Models\SupportTicketAttachment;
 use App\Models\User;
 use App\Notifications\SupportTicketReplied;
@@ -38,16 +39,25 @@ class SupportTicketController extends Controller
 
     public function create(Request $request)
     {
-        abort_if($this->isStaff($request->user()), 403);
-        abort_unless($this->companyId($request->user()), 403, 'O utilizador não está associado a uma empresa.');
+        $staff = $this->isStaff($request->user());
+        abort_unless($staff || $this->companyId($request->user()), 403, 'O utilizador não está associado a uma empresa.');
 
-        return view('admin.supportTickets.create');
+        return view('admin.supportTickets.create', [
+            'isStaff' => $staff,
+            'companies' => $staff ? Company::orderBy('name')->get(['id', 'name']) : collect(),
+        ]);
     }
 
     public function store(Request $request)
     {
-        abort_if($this->isStaff($request->user()), 403);
-        $companyId = $this->companyId($request->user());
+        if ($this->isStaff($request->user())) {
+            $validated = $request->validate([
+                'company_id' => ['required', 'integer', \Illuminate\Validation\Rule::exists('companies', 'id')->whereNull('deleted_at')],
+            ]);
+            $companyId = (int) $validated['company_id'];
+        } else {
+            $companyId = $this->companyId($request->user());
+        }
         abort_unless($companyId, 403, 'O utilizador não está associado a uma empresa.');
         $data = $this->validateMessage($request, true);
 
@@ -88,7 +98,9 @@ class SupportTicketController extends Controller
         $this->authorizeTicket($request->user(), $supportTicket);
         abort_if($supportTicket->status === SupportTicket::STATUS_CLOSED, 422, 'Este ticket está encerrado.');
         $data = $this->validateMessage($request);
-        $staff = $this->isStaff($request->user());
+        // Staff opening their own request act as requester in that conversation.
+        $staff = $this->isStaff($request->user())
+            && (int) $supportTicket->opened_by !== (int) $request->user()->id;
 
         DB::transaction(function () use ($request, $supportTicket, $data, $staff) {
             $message = $supportTicket->messages()->create([

@@ -4,9 +4,7 @@
     <div class="box box-primary">
         <div class="box-header with-border">
             <h3 class="box-title"><i class="fa fa-life-ring"></i> Suporte técnico</h3>
-            @unless($isStaff)
                 <a href="{{ route('admin.support-tickets.create') }}" class="btn btn-primary pull-right"><i class="fa fa-plus"></i> Abrir ticket</a>
-            @endunless
         </div>
         <div class="box-body">
             <form method="GET" class="form-inline" style="margin-bottom:20px">
