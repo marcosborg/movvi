@@ -20,6 +20,7 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin', '
     Route::get('drivers', [DriverController::class, 'index'])->name('drivers');
     Route::get('vehicle-usages', [MobileController::class, 'vehicleUsages'])->name('vehicleUsages');
     Route::get('weeks', [MobileController::class, 'weeks'])->name('weeks');
+    Route::get('company-reports/operational-revenue', [CompanyReportApiController::class, 'operationalRevenue'])->name('companyReports.operationalRevenue');
     Route::get('company-reports/weekly', [CompanyReportApiController::class, 'weekly'])->name('companyReports.weekly');
     Route::prefix('conta-azul')->name('contaAzul.')->group(function () {
         Route::get('status', [ContaAzulController::class, 'status'])->name('status');

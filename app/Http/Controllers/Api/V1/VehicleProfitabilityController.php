@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Company;
 use App\Models\TvdeWeek;
 use App\Models\VehicleItem;
 use App\Services\VehicleProfitabilityService;
@@ -18,11 +19,16 @@ class VehicleProfitabilityController extends Controller
      *
      * Query params:
      * - tvde_week_id (int) OR date (d-m-Y)
+     * - company_id (int, optional) -> restricts vehicles to this company.
      * - vehicle_id (int, optional) -> when present returns per-vehicle breakdown; otherwise returns week totals for all vehicles.
      */
     public function index(Request $request)
     {
         abort_if(Gate::denies('vehicle_profitability_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $request->validate(['company_id' => ['sometimes', 'required', 'integer', 'min:1']]);
+        $companyId = $request->has('company_id') ? $request->integer('company_id') : null;
+        abort_if($companyId && !Company::find($companyId), 404, 'Empresa nao encontrada.');
 
         $vehicleId = (int) $request->query('vehicle_id', 0);
         $weekId = (int) $request->query('tvde_week_id', 0);
@@ -67,7 +73,7 @@ class VehicleProfitabilityController extends Controller
 
         if ($vehicleId > 0) {
             $vehicle = VehicleItem::find($vehicleId);
-            if (!$vehicle) {
+            if (!$vehicle || ($companyId && (int) $vehicle->company_id !== $companyId)) {
                 return response()->json([
                     'error' => 'Viatura não encontrada.',
                     'vehicle_id' => $vehicleId,
@@ -89,7 +95,7 @@ class VehicleProfitabilityController extends Controller
             'params' => [
                 'tvde_week_id' => $weekId,
             ],
-            'data' => VehicleProfitabilityService::makeWeek($weekId),
+            'data' => VehicleProfitabilityService::makeWeek($weekId, $companyId),
         ]);
     }
 }

@@ -9,6 +9,8 @@ use App\Models\Driver;
 use App\Models\TvdeWeek;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 class CompanyReportApiController extends Controller
 {
@@ -28,7 +30,7 @@ class CompanyReportApiController extends Controller
             ], 404);
         }
 
-        [$week, $requestedDate] = $this->resolveWeek($request->query('date'));
+        [$week, $requestedDate] = $this->resolveWeek($request);
 
         if (! $week) {
             return response()->json([
@@ -62,6 +64,7 @@ class CompanyReportApiController extends Controller
                             'earnings_per_km' => (float) ($driver->earnings_per_km ?? 0),
                             'uber_net' => (float) data_get($driver->earnings, 'uber.uber_net', 0),
                             'bolt_net' => (float) data_get($driver->earnings, 'bolt.bolt_net', 0),
+                            'total_net' => (float) data_get($driver->earnings, 'uber.uber_net', 0) + (float) data_get($driver->earnings, 'bolt.bolt_net', 0),
                             'tips_total' => (float) data_get($driver->earnings, 'tips_total', 0),
                             'vat_value' => (float) data_get($driver->earnings, 'iva_value', 0),
                             'fuel' => (float) ($driver->fuel ?? 0),
@@ -99,6 +102,7 @@ class CompanyReportApiController extends Controller
                     ->sortByDesc('total')
                     ->values(),
                 'totals' => [
+                    'operational_revenue' => $this->revenue($results['totals'])['operational_revenue'],
                     'net_uber' => (float) ($results['totals']['net_uber'] ?? 0),
                     'net_bolt' => (float) ($results['totals']['net_bolt'] ?? 0),
                     'total_weekly_km' => (float) ($results['totals']['total_weekly_km'] ?? 0),
@@ -134,6 +138,7 @@ class CompanyReportApiController extends Controller
 
     protected function resolveCompany(Request $request): ?Company
     {
+        $request->validate(['company_id' => ['sometimes', 'required', 'integer', 'min:1']]);
         $requestedCompanyId = $request->integer('company_id');
         if ($requestedCompanyId) {
             return Company::find($requestedCompanyId);
@@ -147,23 +152,75 @@ class CompanyReportApiController extends Controller
         return Company::where('main', true)->first() ?? Company::orderBy('id')->first();
     }
 
-    protected function resolveWeek(?string $date): array
+    public function operationalRevenue(Request $request)
     {
-        if ($date) {
-            try {
-                $parsedDate = Carbon::createFromFormat('d-m-Y', $date)->startOfDay();
-                $week = TvdeWeek::whereDate('start_date', '<=', $parsedDate)
-                    ->whereDate('end_date', '>=', $parsedDate)
-                    ->first();
+        abort_unless($this->canViewCompanyReports($request), 403);
+        $company = $this->resolveCompany($request);
+        abort_unless($company, 404, 'Empresa nao encontrada.');
+        [$week] = $this->resolveWeek($request, true);
+        abort_unless($week, 404, 'Semana TVDE nao encontrada.');
+        $results = $this->getWeekReport($company->id, $week->id);
 
-                if ($week) {
-                    return [$week, $date];
-                }
-            } catch (\Throwable $exception) {
-            }
+        return response()->json([
+            'company' => ['id' => (int) $company->id, 'name' => $company->name],
+            'week' => [
+                'id' => (int) $week->id,
+                'number' => $week->display_number,
+                'year' => $week->display_year,
+                'start_date' => Carbon::parse($week->getRawOriginal('start_date'))->format('d-m-Y'),
+                'end_date' => Carbon::parse($week->getRawOriginal('end_date'))->format('d-m-Y'),
+            ],
+            'currency' => 'EUR',
+            'data' => $this->revenue($results['totals']),
+        ]);
+    }
+
+    protected function revenue(array|Collection $totals): array
+    {
+        $hire = (float) ($totals['total_car_hire'] ?? 0);
+        $percent = (float) ($totals['total_percent_value'] ?? 0);
+        $adjustments = (float) ($totals['total_adjustments'] ?? 0);
+
+        return [
+            'car_hire' => $hire,
+            'percent_value' => $percent,
+            'adjustments' => $adjustments,
+            'operational_revenue' => $hire + $percent + $adjustments,
+        ];
+    }
+
+    protected function resolveWeek(Request $request, bool $required = false): array
+    {
+        $request->validate([
+            'tvde_week_id' => ['sometimes', 'required', 'integer', 'min:1'],
+            'date' => ['sometimes', 'required', 'date_format:d-m-Y'],
+        ]);
+        if ($required && !$request->hasAny(['tvde_week_id', 'date'])) {
+            throw ValidationException::withMessages([
+                'tvde_week_id' => 'Indique tvde_week_id ou date.',
+            ]);
         }
-
-        $week = TvdeWeek::orderByDesc('start_date')->first();
+        $date = $request->query('date');
+        $week = null;
+        if ($request->has('tvde_week_id')) {
+            $week = TvdeWeek::find($request->integer('tvde_week_id'));
+            abort_unless($week, 404, 'Semana TVDE nao encontrada.');
+        }
+        if ($date !== null) {
+            $parsed = Carbon::createFromFormat('d-m-Y', $date)->startOfDay();
+            $dateWeek = TvdeWeek::whereDate('start_date', '<=', $parsed)
+                ->whereDate('end_date', '>=', $parsed)->first();
+            abort_unless($dateWeek, 404, 'Semana TVDE nao encontrada.');
+            if ($week && $week->id !== $dateWeek->id) {
+                throw ValidationException::withMessages([
+                    'date' => 'A data e tvde_week_id identificam semanas diferentes.',
+                ]);
+            }
+            $week = $dateWeek;
+        }
+        if (!$request->hasAny(['tvde_week_id', 'date'])) {
+            $week = TvdeWeek::orderByDesc('start_date')->first();
+        }
 
         return [$week, $date];
     }

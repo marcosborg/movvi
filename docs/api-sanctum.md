@@ -235,7 +235,7 @@ Query params suportados:
 
 ## Conta Azul `auth:sanctum`
 
-Estas rotas exigem utilizador com role `Admin` ou `Gestor`.
+Estas rotas exigem utilizador com role `Admin`.
 
 ### 7. Status da ligacao
 
@@ -325,3 +325,134 @@ Tambem existem rotas especificas da app reservada:
 - Em erro de autenticacao, o backend pode devolver `401`.
 - Em erro funcional ou validacao, e comum devolver `422`.
 - A integracao externa deve enviar sempre `Accept: application/json`.
+
+## Dashboard externo: receitas e histórico semanal
+
+O dashboard pode obter os dados diretamente por JSON, sem scraping HTML nem
+PDFs. As rotas de relatórios da empresa e Conta Azul exigem **Admin**; a
+rentabilidade mantém a permissão `vehicle_profitability_access`. Todas exigem
+`Authorization: Bearer <access_token>` e `Accept: application/json`.
+
+### Descobrir semanas — `GET /api/v1/weeks`
+
+Parâmetros: `date_from` e `date_to` (`YYYY-MM-DD`, filtram o início da semana),
+`page` (mínimo 1) e `per_page` (1–100, padrão 24).
+A resposta mantém `filters` e `weeks`; cada semana acrescenta `year` (ano ISO,
+que pode diferir do ano civil do primeiro dia). A paginação é:
+
+```json
+{"pagination":{"current_page":1,"per_page":24,"total":26,"last_page":2}}
+```
+
+Percorrer até `last_page`. A existência de uma semana não certifica que esteja
+fechada: não há estado explícito de fecho nesta API. O consumidor agenda as
+consultas e decide quando atualizar o dashboard. Não assumir que os dados de
+semanas já consultadas são imutáveis.
+
+### Receita operacional — `GET /api/v1/company-reports/operational-revenue`
+
+Parâmetros:
+
+- `company_id`: ID positivo, opcional. Sem ele, usa a empresa do motorista
+  associado ao utilizador, depois a empresa principal ou a primeira empresa.
+  Para a integração, enviar sempre a empresa pretendida.
+- `tvde_week_id`: ID positivo da semana, ou `date` no formato `d-m-Y`.
+  Neste endpoint pelo menos um é obrigatório. A data pode ser qualquer dia da semana.
+- Com ID e data, ambos têm de identificar a mesma semana.
+
+Exemplo ilustrativo de resposta (os valores não são dados certificados de produção):
+
+```json
+{
+  "company": {"id": 1, "name": "Empresa exemplo"},
+  "week": {"id": 123, "number": 1, "year": 2026,
+    "start_date": "29-12-2025", "end_date": "04-01-2026"},
+  "currency": "EUR",
+  "data": {"car_hire": 100, "percent_value": 20,
+    "adjustments": -5, "operational_revenue": 115}
+}
+```
+
+`operational_revenue = car_hire + percent_value + adjustments`, exatamente os
+componentes do cartão de receita operacional do relatório da empresa. Os
+montantes são números JSON, sem formatação monetária; formatar para duas casas
+na apresentação. Não substituir esta receita pela soma da rentabilidade das viaturas.
+
+### Relatório completo — `GET /api/v1/company-reports/weekly`
+
+Aceita os mesmos filtros de empresa e semana. Mantém `company`, `week`,
+`data.drivers` e `data.totals` e os campos anteriores. Acrescenta:
+
+- `data.totals.operational_revenue`: a mesma fórmula do endpoint resumido.
+- `data.drivers[].total_net`: `uber_net + bolt_net`, rendimento líquido das
+  plataformas **antes das deduções da empresa**; não é faturação bruta das plataformas.
+- O campo existente `data.drivers[].total` é o valor final semanal do motorista;
+  saldos anteriores e novos continuam nos campos próprios.
+
+Sem filtro de semana, esta rota mantém a escolha da semana de início mais
+recente cadastrada, que não é necessariamente a última semana fechada.
+Um filtro explícito inválido nunca é substituído silenciosamente pela última semana.
+
+### Rentabilidade — `GET /api/v1/vehicle-profitabilities`
+
+Acrescenta `company_id` opcional. No modo semanal limita as viaturas à empresa;
+com `vehicle_id`, uma viatura de outra empresa devolve `404`.
+Sem `company_id`, mantém o âmbito global anterior. A seleção por `date` nesta
+rota continua a exigir a **data de início** da semana; preferir `tvde_week_id`.
+
+A receita das viaturas segue o serviço de rentabilidade: cedência, comissão e
+ajustes atribuídos às viaturas, conforme as regras de alocação temporal e validação.
+O modo semanal exclui viaturas de serviço e considera os critérios existentes
+para viaturas suspensas e períodos de utilização. Não há um atraso fixo de
+vários dias configurado para carros novos. Diferenças face à receita operacional
+exigem reconciliação do âmbito e das alocações; não significam automaticamente
+“ajustes globais”.
+
+### Fluxo de integração e Conta Azul
+
+Obter o token com `POST /api/login` (email e password do **Movvi**). Usar os IDs
+reais devolvidos pela API; os placeholders abaixo devem ser substituídos.
+Enviar explicitamente empresa/semana e confirmar a semana devolvida.
+
+```bash
+curl 'https://movvi.com.pt/api/login' -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"user@example.com","password":"<password>"}'
+curl 'https://movvi.com.pt/api/v1/weeks?page=1&per_page=100' \
+  -H 'Authorization: Bearer <access_token>' -H 'Accept: application/json'
+curl 'https://movvi.com.pt/api/v1/company-reports/operational-revenue?company_id=<company_id>&tvde_week_id=<week_id>' \
+  -H 'Authorization: Bearer <access_token>' -H 'Accept: application/json'
+curl 'https://movvi.com.pt/api/v1/company-reports/weekly?company_id=<company_id>&tvde_week_id=<week_id>' \
+  -H 'Authorization: Bearer <access_token>' -H 'Accept: application/json'
+curl 'https://movvi.com.pt/api/v1/vehicle-profitabilities?company_id=<company_id>&tvde_week_id=<week_id>' \
+  -H 'Authorization: Bearer <access_token>' -H 'Accept: application/json'
+curl 'https://movvi.com.pt/api/v1/conta-azul/manager/expenses?company_id=<company_id>&data_vencimento_de=2026-09-01&data_vencimento_ate=2026-09-30&page=1&per_page=100' \
+  -H 'Authorization: Bearer <access_token>' -H 'Accept: application/json'
+```
+
+As despesas usam a ligação Conta Azul já autorizada para a empresa no backoffice
+Movvi (`/admin/companies/{company}/conta-azul`). Consultar
+`GET /api/v1/conta-azul/status?company_id=<company_id>` para verificar o estado.
+O cliente não precisa de implementar outro OAuth para consumir esta API Movvi.
+Não usar email/password Conta Azul como token Movvi.
+
+Em `/conta-azul/manager/expenses`, as datas filtram **vencimento**, não constituem
+por si uma apuração contabilística por competência. Sem datas, o padrão é o mês
+atual. `items` é paginado (`page`, `per_page`, padrão 20, máximo 100), enquanto
+`summary` e `categories` abrangem todas as páginas carregadas da Conta Azul.
+A leitura integral tem cache de cinco minutos por empresa e período. Não somar
+os totais do resumo uma vez por página. `/manager/profit-loss` e
+`/manager/movements` continuam disponíveis; não somar novamente receitas Movvi
+já representadas no Conta Azul.
+
+### Erros dos relatórios da empresa
+
+- `401`: autenticação ausente/inválida.
+- `403`: utilizador sem papel Admin.
+- `404`: empresa ou semana inexistente, incluindo data sem semana cadastrada.
+- `422`: formato/ID inválido, filtro vazio, ID e data contraditórios, ou seleção
+  ausente na rota de receita operacional.
+
+A API Laravel pode devolver `message`/`errors` nos erros de validação e `error`
+em respostas existentes; verificar sempre o status HTTP. Nas rotas Conta Azul,
+`422` também pode indicar falta de ligação, configuração OAuth ou falha externa.

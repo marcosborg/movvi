@@ -57,6 +57,14 @@
     {
       "key": "company_id",
       "value": ""
+    },
+    {
+      "key": "tvde_week_id",
+      "value": ""
+    },
+    {
+      "key": "page",
+      "value": "1"
     }
   ],
   "item": [
@@ -323,6 +331,119 @@
                 }
               ]
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard externo",
+      "item": [
+        {
+          "name": "Semanas paginadas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/v1/weeks?page={{page}}&per_page={{per_page}}",
+            "description": "Ver docs/api.md. Preencher IDs reais e token Movvi. Relatórios/Conta Azul: Admin; rentabilidade: vehicle_profitability_access."
+          }
+        },
+        {
+          "name": "Receita operacional",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/v1/company-reports/operational-revenue?company_id={{company_id}}&tvde_week_id={{tvde_week_id}}",
+            "description": "Ver docs/api.md. Preencher IDs reais e token Movvi. Relatórios/Conta Azul: Admin; rentabilidade: vehicle_profitability_access."
+          }
+        },
+        {
+          "name": "Relatório semanal completo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/v1/company-reports/weekly?company_id={{company_id}}&tvde_week_id={{tvde_week_id}}",
+            "description": "Ver docs/api.md. Preencher IDs reais e token Movvi. Relatórios/Conta Azul: Admin; rentabilidade: vehicle_profitability_access."
+          }
+        },
+        {
+          "name": "Rentabilidade por empresa",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/v1/vehicle-profitabilities?company_id={{company_id}}&tvde_week_id={{tvde_week_id}}",
+            "description": "Ver docs/api.md. Preencher IDs reais e token Movvi. Relatórios/Conta Azul: Admin; rentabilidade: vehicle_profitability_access."
+          }
+        },
+        {
+          "name": "Estado Conta Azul",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/v1/conta-azul/status?company_id={{company_id}}",
+            "description": "Ver docs/api.md. Preencher IDs reais e token Movvi. Relatórios/Conta Azul: Admin; rentabilidade: vehicle_profitability_access."
+          }
+        },
+        {
+          "name": "Despesas Conta Azul",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/v1/conta-azul/manager/expenses?company_id={{company_id}}&data_vencimento_de={{date_from}}&data_vencimento_ate={{date_to}}&page={{page}}&per_page={{per_page}}",
+            "description": "Ver docs/api.md. Preencher IDs reais e token Movvi. Relatórios/Conta Azul: Admin; rentabilidade: vehicle_profitability_access."
           }
         }
       ]

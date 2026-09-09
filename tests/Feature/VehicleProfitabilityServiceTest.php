@@ -70,6 +70,36 @@ class VehicleProfitabilityServiceTest extends TestCase
         $this->assertNull($row);
     }
 
+    public function test_api_filters_company_and_includes_new_eligible_vehicles(): void
+    {
+        [$company, $driver, $week, $vehicle, $operator] = $this->scenario();
+        $other = $this->scenario();
+        $this->createEntry($company, $driver, $week, $operator, [
+            'allocation_status' => 'pending', 'vehicle_item_id' => null, 'net' => 500,
+        ]);
+        $service = $vehicle->replicate();
+        $service->license_plate = 'SERVICE-TEST';
+        $service->is_service_vehicle = true;
+        $service->save();
+
+        $this->withoutMiddleware(\App\Http\Middleware\AuthGates::class);
+        $user = new \App\Models\User();
+        $user->id = 999;
+        \Laravel\Sanctum\Sanctum::actingAs($user);
+        \Illuminate\Support\Facades\Gate::define('vehicle_profitability_access', fn () => true);
+        $response = $this->getJson('/api/v1/vehicle-profitabilities?tvde_week_id='.$week->id.'&company_id='.$company->id)
+            ->assertOk();
+        $ids = collect($response->json('data.vehicles'))->pluck('id');
+        $this->assertTrue($ids->contains($vehicle->id));
+        $this->assertFalse($ids->contains($other[3]->id));
+        $this->assertFalse($ids->contains($service->id));
+        $global = $this->getJson('/api/v1/vehicle-profitabilities?tvde_week_id='.$week->id)->assertOk();
+        $this->assertTrue(collect($global->json('data.vehicles'))->pluck('id')->contains($other[3]->id));
+        $this->assertEqualsWithDelta(770, $response->json('data.totals.total_revenue'), 0.001);
+        $this->getJson('/api/v1/vehicle-profitabilities?tvde_week_id='.$week->id.'&company_id='.$company->id.'&vehicle_id='.$vehicle->id)
+            ->assertOk()->assertJsonPath('mode', 'vehicle');
+    }
+
     private function scenario(): array
     {
         $company = Company::create([

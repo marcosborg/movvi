@@ -395,18 +395,22 @@ class MobileController extends Controller
         $validated = $request->validate([
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $weeks = TvdeWeek::query()
+        $paginator = TvdeWeek::query()
             ->when($validated['date_from'] ?? null, fn ($query, $dateFrom) => $query->whereDate('start_date', '>=', $dateFrom))
             ->when($validated['date_to'] ?? null, fn ($query, $dateTo) => $query->whereDate('start_date', '<=', $dateTo))
             ->orderByDesc('start_date')
-            ->limit(24)
-            ->get()
+            ->orderByDesc('id')
+            ->paginate($validated['per_page'] ?? 24);
+        $weeks = $paginator->getCollection()
             ->map(function (TvdeWeek $week) {
                 return [
                     'id' => $week->id,
                     'number' => $week->display_number,
+                    'year' => $week->display_year,
                     'start_date' => $week->start_date,
                     'end_date' => $week->end_date,
                     'date_key' => Carbon::parse($week->getRawOriginal('start_date'))->format('d-m-Y'),
@@ -426,6 +430,12 @@ class MobileController extends Controller
                 'date_to' => $validated['date_to'] ?? null,
             ],
             'weeks' => $weeks,
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
         ]);
     }
 
