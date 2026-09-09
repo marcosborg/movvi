@@ -202,7 +202,9 @@
   });
   
 let visibleColumnsIndexes = null;
-$('.datatable thead').on('input', '.search', function () {
+$('.datatable thead').on('input', 'input.search', applyColumnSearch);
+$('.datatable thead').on('change', 'select.search', applyColumnSearch);
+function applyColumnSearch() {
       let strict = $(this).attr('strict') || false
       let value = strict && this.value ? "^" + this.value + "$" : this.value
 
@@ -215,7 +217,7 @@ $('.datatable thead').on('input', '.search', function () {
         .column(index)
         .search(value, strict)
         .draw()
-  });
+  }
 table.on('column-visibility.dt', function(e, settings, column, state) {
       visibleColumnsIndexes = []
       table.columns(":visible").every(function(colIdx) {
