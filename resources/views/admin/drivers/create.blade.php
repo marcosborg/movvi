@@ -140,8 +140,8 @@
                             <span class="help-block">{{ trans('cruds.driver.fields.reason_helper') }}</span>
                         </div>
                         <div class="form-group {{ $errors->has('phone') ? 'has-error' : '' }}">
-                            <label for="phone">{{ trans('cruds.driver.fields.phone') }}</label>
-                            <input class="form-control" type="text" name="phone" id="phone" value="{{ old('phone', '') }}">
+                            <label class="required" for="phone">{{ trans('cruds.driver.fields.phone') }}</label>
+                            <input class="form-control" type="text" name="phone" id="phone" value="{{ old('phone', '') }}" required>
                             @if($errors->has('phone'))
                                 <span class="help-block" role="alert">{{ $errors->first('phone') }}</span>
                             @endif
@@ -164,8 +164,8 @@
                             <span class="help-block">{{ trans('cruds.driver.fields.citizen_card_helper') }}</span>
                         </div>
                         <div class="form-group {{ $errors->has('email') ? 'has-error' : '' }}">
-                            <label for="email">{{ trans('cruds.driver.fields.email') }}</label>
-                            <input class="form-control" type="email" name="email" id="email" value="{{ old('email') }}">
+                            <label class="required" for="email">{{ trans('cruds.driver.fields.email') }}</label>
+                            <input class="form-control" type="email" name="email" id="email" value="{{ old('email') }}" required>
                             @if($errors->has('email'))
                                 <span class="help-block" role="alert">{{ $errors->first('email') }}</span>
                             @endif
@@ -232,8 +232,8 @@
                             <span class="help-block">{{ trans('cruds.driver.fields.driver_license_helper') }}</span>
                         </div>
                         <div class="form-group {{ $errors->has('driver_vat') ? 'has-error' : '' }}">
-                            <label for="driver_vat">{{ trans('cruds.driver.fields.driver_vat') }}</label>
-                            <input class="form-control" type="text" name="driver_vat" id="driver_vat" value="{{ old('driver_vat', '') }}">
+                            <label class="required" for="driver_vat">{{ trans('cruds.driver.fields.driver_vat') }}</label>
+                            <input class="form-control" type="text" name="driver_vat" id="driver_vat" value="{{ old('driver_vat', '') }}" required>
                             @if($errors->has('driver_vat'))
                                 <span class="help-block" role="alert">{{ $errors->first('driver_vat') }}</span>
                             @endif

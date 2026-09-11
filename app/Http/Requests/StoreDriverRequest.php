@@ -50,7 +50,7 @@ class StoreDriverRequest extends FormRequest
             ],
             'phone' => [
                 'string',
-                'nullable',
+                'required',
             ],
             'payment_vat' => [
                 'string',
@@ -86,7 +86,12 @@ class StoreDriverRequest extends FormRequest
             ],
             'driver_vat' => [
                 'string',
-                'nullable',
+                'required',
+            ],
+            'email' => [
+                'string',
+                'email',
+                'required',
             ],
             'uber_uuid' => [
                 'string',

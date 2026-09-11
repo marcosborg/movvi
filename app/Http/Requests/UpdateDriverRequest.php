@@ -67,7 +67,7 @@ class UpdateDriverRequest extends FormRequest
             ],
             'phone' => [
                 'string',
-                'nullable',
+                'required',
             ],
             'payment_vat' => [
                 'string',
@@ -103,7 +103,12 @@ class UpdateDriverRequest extends FormRequest
             ],
             'driver_vat' => [
                 'string',
-                'nullable',
+                'required',
+            ],
+            'email' => [
+                'string',
+                'email',
+                'required',
             ],
             'uber_uuid' => [
                 ...$uberUuidRules,
