@@ -6,10 +6,11 @@
     @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
     <form method="GET" action="{{ route('admin.vehicle-usage') }}" id="usage-filters">
         <div class="row">
+            <div class="col-md-2 form-group"><label for="month">Mês (atalho)</label><input class="form-control" type="month" id="month" name="month" value="{{ $month }}" max="{{ now()->format('Y-m') }}"><small class="help-block">Preenche o mês completo automaticamente.</small></div>
             <div class="col-md-2 form-group"><label for="from">De</label><input class="form-control" type="date" id="from" name="from" value="{{ $from }}" max="{{ now()->toDateString() }}" required></div>
             <div class="col-md-2 form-group"><label for="to">Até</label><input class="form-control" type="date" id="to" name="to" value="{{ $to }}" max="{{ now()->toDateString() }}" required></div>
-            <div class="col-md-4 form-group"><label for="group">Grupo de viaturas</label><select class="form-control" id="group" name="group"><option value="">Todas as marcas e modelos</option>@foreach($groups as $key => $label)<option value="{{ $key }}" @selected($group === $key)>{{ $label }}</option>@endforeach</select></div>
-            <div class="col-md-4 form-group"><label for="selection">Viaturas a incluir</label><select class="form-control" id="selection" name="selection"><option value="all" @selected(request('selection') !== 'selected')>Todas as viaturas do grupo</option><option value="selected" @selected(request('selection') === 'selected')>Escolher matrículas</option></select></div>
+            <div class="col-md-3 form-group"><label for="group">Grupo de viaturas</label><select class="form-control" id="group" name="group"><option value="">Todas as marcas e modelos</option>@foreach($groups as $key => $label)<option value="{{ $key }}" @selected($group === $key)>{{ $label }}</option>@endforeach</select></div>
+            <div class="col-md-3 form-group"><label for="selection">Viaturas a incluir</label><select class="form-control" id="selection" name="selection"><option value="all" @selected(request('selection') !== 'selected')>Todas as viaturas do grupo</option><option value="selected" @selected(request('selection') === 'selected')>Escolher matrículas</option></select></div>
         </div>
         <div id="vehicle-picker" style="display:{{ request('selection') === 'selected' ? 'block' : 'none' }};margin-bottom:15px">
             <label for="vehicle-search">Pesquisar matrícula ou modelo</label><input type="search" id="vehicle-search" class="form-control" placeholder="Ex.: CJ-17-XC ou Renault">
@@ -17,7 +18,7 @@
             <button type="button" class="btn btn-default btn-sm" id="clear-vehicles">Limpar seleção</button>
             <div style="max-height:220px;overflow:auto;border:1px solid #ddd;padding:10px" id="vehicle-options">
             @foreach($vehicles as $vehicle)
-                <label style="display:inline-block;width:300px;font-weight:normal" data-active="{{ !$vehicle->suspended && $vehicle->first_usage_at && substr($vehicle->first_usage_at,0,10) <= now()->toDateString() && (!$vehicle->getRawOriginal('sale_date') || $vehicle->getRawOriginal('sale_date') > now()->toDateString()) ? '1' : '0' }}" data-brand="brand:{{ $vehicle->vehicle_brand_id }}" data-model="model:{{ $vehicle->vehicle_model_id }}"><input type="checkbox" name="vehicle_ids[]" value="{{ $vehicle->id }}" @checked(in_array($vehicle->id,$ids))> {{ $vehicle->license_plate }} - {{ $vehicle->vehicle_brand?->name }} {{ $vehicle->vehicle_model?->name }}</label>
+                <label style="display:inline-block;width:300px;font-weight:normal" data-suspended="{{ $vehicle->suspended ? '1' : '0' }}" data-first-usage="{{ $vehicle->first_usage_at ? substr($vehicle->first_usage_at,0,10) : '' }}" data-sale-date="{{ $vehicle->getRawOriginal('sale_date') ?: '' }}" data-brand="brand:{{ $vehicle->vehicle_brand_id }}" data-model="model:{{ $vehicle->vehicle_model_id }}"><input type="checkbox" name="vehicle_ids[]" value="{{ $vehicle->id }}" @checked(in_array($vehicle->id,$ids))> {{ $vehicle->license_plate }} - {{ $vehicle->vehicle_brand?->name }} {{ $vehicle->vehicle_model?->name }}</label>
             @endforeach
             </div>
         </div>
@@ -52,12 +53,26 @@
 document.addEventListener('DOMContentLoaded', () => {
     const selection = document.getElementById('selection'), picker = document.getElementById('vehicle-picker');
     const labels = [...document.querySelectorAll('#vehicle-options label')];
+    const month = document.getElementById('month'), from = document.getElementById('from'), to = document.getElementById('to');
     function filterVehicles() {
         const group = document.getElementById('group').value;
         const search = document.getElementById('vehicle-search').value.toLocaleLowerCase();
         const activeOnly = document.getElementById('active_only').value === '1';
-        labels.forEach(label => { label.style.display = (!activeOnly || label.dataset.active === '1') && (!group || label.dataset.brand === group || label.dataset.model === group) && label.textContent.toLocaleLowerCase().includes(search) ? 'inline-block' : 'none'; });
+        labels.forEach(label => {
+            const activeInPeriod = label.dataset.suspended !== '1' && label.dataset.firstUsage && label.dataset.firstUsage <= to.value && (!label.dataset.saleDate || label.dataset.saleDate > to.value);
+            label.style.display = (!activeOnly || activeInPeriod) && (!group || label.dataset.brand === group || label.dataset.model === group) && label.textContent.toLocaleLowerCase().includes(search) ? 'inline-block' : 'none';
+        });
     }
+    month.addEventListener('change', () => {
+        if (!month.value) return;
+        const [year, monthNumber] = month.value.split('-').map(Number);
+        const firstDay = `${month.value}-01`;
+        const lastDay = new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10);
+        from.value = firstDay;
+        to.value = lastDay > to.max ? to.max : lastDay;
+        filterVehicles();
+    });
+    [from, to].forEach(input => input.addEventListener('change', () => { month.value = ''; filterVehicles(); }));
     selection.addEventListener('change', () => { picker.style.display = selection.value === 'selected' ? 'block' : 'none'; });
     document.getElementById('group').addEventListener('change', filterVehicles);
     document.getElementById('active_only').addEventListener('change', filterVehicles);
@@ -65,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('pick-visible').addEventListener('click', () => labels.filter(l=>l.style.display !== 'none').forEach(l=>l.querySelector('input').checked=true));
     document.getElementById('clear-vehicles').addEventListener('click', () => labels.forEach(l=>l.querySelector('input').checked=false));
     document.getElementById('usage-filters').addEventListener('submit', event => {
-        const from = document.getElementById('from'), to = document.getElementById('to');
         to.setCustomValidity(to.value < from.value ? 'A data final deve ser igual ou posterior à inicial.' : '');
         selection.setCustomValidity(selection.value === 'selected' && !labels.some(l=>l.querySelector('input').checked) ? 'Selecione pelo menos uma matrícula.' : '');
         if (!event.target.reportValidity()) event.preventDefault();

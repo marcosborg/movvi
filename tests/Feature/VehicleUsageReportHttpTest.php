@@ -48,6 +48,24 @@ class VehicleUsageReportHttpTest extends TestCase
         $view=$controller->usage(\Illuminate\Http\Request::create('/admin/vehicle-usage','GET',['active_only'=>'0']));
         $this->assertCount(3,$view->getData()['report']['rows']);
     }
+    public function test_month_shortcut_and_active_filter_use_the_selected_period(): void {
+        DB::table('vehicle_items')->insert([
+            ['id'=>6,'company_id'=>1,'license_plate'=>'ACTIVE-AUG','vehicle_model_id'=>1],
+            ['id'=>7,'company_id'=>1,'license_plate'=>'ACTIVE-OCT','vehicle_model_id'=>1],
+        ]);
+        DB::table('vehicle_usages')->insert([
+            ['vehicle_item_id'=>6,'start_date'=>'2026-07-15','end_date'=>null,'usage_exceptions'=>'usage'],
+            ['vehicle_item_id'=>7,'start_date'=>'2026-10-01','end_date'=>null,'usage_exceptions'=>'usage'],
+        ]);
+        session(['company_id'=>1]);
+        $view=(new \App\Http\Controllers\Admin\VehicleUsageController)->usage(
+            \Illuminate\Http\Request::create('/admin/vehicle-usage','GET',['month'=>'2026-08'])
+        );
+        $data=$view->getData();
+        $this->assertSame('2026-08-01',$data['from']);
+        $this->assertSame('2026-08-31',$data['to']);
+        $this->assertSame(['ACTIVE-AUG'],array_column($data['report']['rows'],'plate'));
+    }
     public function test_financial_values_require_profitability_permission(): void {
         session(['company_id'=>1]);
         Gate::shouldReceive('denies')->with('vehicle_usage_access')->andReturn(false);

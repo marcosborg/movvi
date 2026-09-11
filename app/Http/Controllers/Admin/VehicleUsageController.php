@@ -136,6 +136,7 @@ class VehicleUsageController extends Controller
         abort_if(Gate::denies('vehicle_usage_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         $today = now()->toDateString();
         $request->validate([
+            'month' => ['nullable', 'date_format:Y-m'],
             'from' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:'.$today],
             'to' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:'.$today],
             'vehicle_ids' => ['nullable', 'array'], 'vehicle_ids.*' => ['integer', 'distinct'],
@@ -146,8 +147,16 @@ class VehicleUsageController extends Controller
             'active_only' => ['nullable', 'boolean'],
             'breakdown' => ['nullable', 'in:years,months,weeks'],
         ]);
-        $from = $request->input('from') ?: now()->startOfYear()->toDateString();
-        $to = $request->input('to') ?: $today;
+        $month = $request->input('month', '');
+        if ($month) {
+            $monthStart = \Carbon\Carbon::createFromFormat('Y-m-d', $month.'-01')->startOfMonth();
+            abort_if($monthStart->isAfter(now()->startOfMonth()), 422, 'Selecione o mês atual ou um mês anterior.');
+            $from = $monthStart->toDateString();
+            $to = $monthStart->copy()->endOfMonth()->min(now())->toDateString();
+        } else {
+            $from = $request->input('from') ?: now()->startOfYear()->toDateString();
+            $to = $request->input('to') ?: $today;
+        }
         abort_if($from > $to, 422, 'A data inicial deve ser anterior à data final.');
         abort_if(\Carbon\Carbon::parse($from)->diffInDays($to) > 3660, 422, 'Selecione um período até 10 anos.');
         $companyId = session('company_id') ?: auth()->user()?->company_id;
@@ -172,10 +181,10 @@ class VehicleUsageController extends Controller
         $breakdown = $request->input('breakdown', 'years');
         abort_if(array_diff($ids, $vehicles->modelKeys()), 403, 'Viatura fora da empresa selecionada.');
         abort_if($request->input('selection') === 'selected' && !$ids, 422, 'Selecione pelo menos uma viatura.');
-        $selected = $vehicles->filter(function ($vehicle) use ($group, $ids, $request, $activeOnly, $today) {
+        $selected = $vehicles->filter(function ($vehicle) use ($group, $ids, $request, $activeOnly, $from, $to) {
             if ($activeOnly && ($vehicle->suspended || !$vehicle->first_usage_at
-                || substr($vehicle->first_usage_at, 0, 10) > $today
-                || ($vehicle->getRawOriginal('sale_date') && $vehicle->getRawOriginal('sale_date') <= $today))) return false;
+                || substr($vehicle->first_usage_at, 0, 10) > $to
+                || ($vehicle->getRawOriginal('sale_date') && $vehicle->getRawOriginal('sale_date') <= $to))) return false;
             if ($group) {
                 [$kind, $id] = explode(':', $group);
                 if ((int) $vehicle->{$kind === 'brand' ? 'vehicle_brand_id' : 'vehicle_model_id'} !== (int) $id) return false;
@@ -190,7 +199,7 @@ class VehicleUsageController extends Controller
         $report = (new \App\Services\VehicleUsageReportService)->build($selected, $usages, $from, $to, $revenueWeeks);
         $section = $request->input('section', 'all');
         $companyName = $companyId ? \App\Models\Company::find($companyId)?->name : 'Todas as empresas';
-        $data = compact('report', 'vehicles', 'groups', 'group', 'ids', 'from', 'to', 'section', 'companyName', 'activeOnly', 'breakdown', 'canViewRevenue');
+        $data = compact('report', 'vehicles', 'groups', 'group', 'ids', 'from', 'to', 'month', 'section', 'companyName', 'activeOnly', 'breakdown', 'canViewRevenue');
         if ($request->input('format') === 'pdf') {
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.vehicleUsages.usage-pdf', $data)->setPaper('a4', 'landscape');
             $pdf->render();
