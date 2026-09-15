@@ -247,7 +247,7 @@
                         <div class="form-inline">
                             <div class="input-group">
                                 <div class="input-group-addon">Saldo (€)</div>
-                                <input type="text" class="form-control" value="{{ number_format(($driver_balance->new_balance ?? 0), 2) }}" name="new_balance">
+                                <input type="number" step="0.01" required class="form-control" value="{{ number_format(($driver_balance->new_balance ?? 0), 2, '.', '') }}" name="new_balance">
                             </div>
                             <button type="submit" class="btn btn-success">Atualizar saldo</button>
                     </form>

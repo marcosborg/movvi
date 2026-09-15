@@ -227,15 +227,21 @@ class FinancialStatementController extends Controller
 
     public function updateBalance(Request $request)
     {
+        abort_unless($request->user()?->hasRole('Admin'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $request->validate([
+            'driver_balance_id' => 'required|integer|exists:drivers_balances,id,deleted_at,NULL',
             'new_balance' => 'required|numeric'
         ], [], [
             'new_balance' => 'Saldo'
         ]);
 
-        $drivers_balance = DriversBalance::find($request->driver_balance_id);
-        $drivers_balance->new_balance = $request->new_balance;
-        $drivers_balance->save();
+        app(\App\Services\DriverBalanceCorrectionService::class)->correct(
+            (int) $request->driver_balance_id,
+            (float) $request->new_balance
+        );
+
+        return response()->json(['message' => 'Saldo atualizado, incluindo as semanas seguintes.']);
     }
 
     private function buildStatementPdfData(int $tvde_week_id, int $driver_id, int $company_id): array

@@ -18,11 +18,19 @@ class CarTrackAssignmentService
 
     public function assignWithDiagnostics(CarTrack $carTrack, bool $persist = true, bool $logDiagnostics = true): array
     {
-        $vehicleItemId = $this->resolveVehicleItemIdFromPlate($carTrack->license_plate);
+        $vehicleItemIds = $this->resolveVehicleItemIdsFromPlate($carTrack->license_plate);
+        $vehicleItemId = $vehicleItemIds[0] ?? null;
         $usageMatches = [];
 
         if ($vehicleItemId && $carTrack->date) {
-            $usageMatches = $this->resolveDriverUsageMatches($vehicleItemId, $carTrack->date);
+            foreach ($vehicleItemIds as $candidateId) {
+                foreach ($this->resolveDriverUsageMatches($candidateId, $carTrack->date) as $match) {
+                    $usageMatches[] = $match + ['vehicle_item_id' => $candidateId];
+                }
+            }
+            if (count($usageMatches) === 1) {
+                $vehicleItemId = $usageMatches[0]['vehicle_item_id'];
+            }
         }
 
         $decision = $this->buildAssignmentDecision(
@@ -58,17 +66,20 @@ class CarTrackAssignmentService
         return $decision;
     }
 
-    protected function resolveVehicleItemIdFromPlate(?string $plate): ?int
+    protected function resolveVehicleItemIdsFromPlate(?string $plate): array
     {
         $normalizedPlate = $this->normalizePlate($plate);
 
         if ($normalizedPlate === '') {
-            return null;
+            return [];
         }
 
         return VehicleItem::withTrashed()
             ->whereRaw("REPLACE(REPLACE(UPPER(license_plate), '-', ''), ' ', '') = ?", [$normalizedPlate])
-            ->value('id');
+            ->orderBy('id')
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
     }
 
     protected function resolveDriverUsageMatches(int $vehicleItemId, $passageAt): array
