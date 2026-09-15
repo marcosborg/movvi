@@ -25,13 +25,14 @@
                             <span class="help-block">{{ trans('cruds.vehicleExpense.fields.vehicle_item_helper') }}</span>
                         </div>
                         <div class="form-group {{ $errors->has('expense_type') ? 'has-error' : '' }}">
-                            <label class="required">{{ trans('cruds.vehicleExpense.fields.expense_type') }}</label>
-                            @foreach(App\Models\VehicleExpense::EXPENSE_TYPE_RADIO as $key => $label)
-                                <div>
-                                    <input type="radio" id="expense_type_{{ $key }}" name="expense_type" value="{{ $key }}" {{ old('expense_type', $vehicleExpense->expense_type) === (string) $key ? 'checked' : '' }} required>
-                                    <label for="expense_type_{{ $key }}" style="font-weight: 400">{{ $label }}</label>
-                                </div>
-                            @endforeach
+                            <label class="required" for="expense_type">{{ trans('cruds.vehicleExpense.fields.expense_type') }}</label>
+                            <input class="form-control" id="expense_type" name="expense_type" list="expense-types" value="{{ old('expense_type', $vehicleExpense->expense_type) }}" maxlength="255" required>
+                            <datalist id="expense-types">
+                                @foreach(App\Models\VehicleExpense::expenseTypes() as $key => $label)
+                                    <option value="{{ $key }}">{{ $label }}</option>
+                                @endforeach
+                            </datalist>
+                            <p class="help-block">Escolha um grupo existente ou escreva um novo nome. Ao guardar a despesa, o grupo fica disponível para as próximas despesas.</p>
                             @if($errors->has('expense_type'))
                                 <span class="help-block" role="alert">{{ $errors->first('expense_type') }}</span>
                             @endif

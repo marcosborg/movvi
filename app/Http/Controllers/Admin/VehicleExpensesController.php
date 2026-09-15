@@ -54,7 +54,7 @@ class VehicleExpensesController extends Controller
             });
 
             $table->editColumn('expense_type', function ($row) {
-                return $row->expense_type ? VehicleExpense::EXPENSE_TYPE_RADIO[$row->expense_type] : '';
+                return $row->expense_type_label;
             });
 
             $table->editColumn('files', function ($row) {

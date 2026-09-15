@@ -69,8 +69,8 @@
                                 <td>
                                     <select class="search" strict="true">
                                         <option value>{{ trans('global.all') }}</option>
-                                        @foreach(App\Models\VehicleExpense::EXPENSE_TYPE_RADIO as $key => $item)
-                                            <option value="{{ $key }}">{{ $item }}</option>
+                                        @foreach(App\Models\VehicleExpense::expenseTypes() as $key => $item)
+                                            <option value="{{ $item }}">{{ $item }}</option>
                                         @endforeach
                                     </select>
                                 </td>

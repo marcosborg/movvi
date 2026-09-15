@@ -14,11 +14,18 @@ Read-only local verification of the five BX-53-OL passages billed in the week st
 
 The fix applies on import or when a passage is saved again. Existing production passages are not bulk reassigned: the client explicitly reported a manual €3.14 adjustment for week 37, so reassignment/revalidation must be coordinated with removal of that adjustment to prevent charging twice.
 
+## Follow-up release after customer replies
+
+- TKT-000016: the validation screenshot was a week without a saved balance. Such weeks now show an explanation and a link to the driver's last saved balance instead of submitting record ID 0. The link also selects the matching month/year. Invalid balance submissions have a readable Portuguese message. Local browser verification: Diogo's week 36 has no record; the link opens week 35 with the existing balance.
+- TKT-000008: customer confirmed week 37 refunds are already complete and requested week 38. From 2026-09-14, company 1 pays imported electric charging for contracts with company percentages 50/55/60. These charging costs no longer reduce driver expenses or the driver VAT base and appear as company expense. Other contracts, combustion charges and earlier weeks retain their existing rules. Imported totals remain visible for reconciliation. No past production financial records are changed.
+- TKT-000012: custom expense group names can be entered when creating/editing expenses and reused/filterable thereafter. Added authenticated company-scoped, paginated read API with stable source IDs and deletion markers, documented in `vehicle-expenses-api.md`. Carlos's XLS model was inspected read-only. No external Conta Azul postings, credentials or new permissions are created. Carlos still implements destination mapping and idempotency.
+- TKT-000014: customer chose to retain the manual week 37 adjustment and use the deployed assignment fix for subsequent imports.
+
+Validation of this follow-up: 25 focused tests / 91 assertions passed, including API authentication, permissions, company isolation, pagination, repeat IDs, deletion filtering, custom group compatibility and prior financial/import regressions. Read-only local report simulation passed for 10 eligible drivers; week 37 source records remained unchanged. New group form rendered successfully in localhost. No database migration required.
+
 ## Pending clarification
 
-- TKT-000008: confirmed company-paid charging and commission rates; requested exact first week (37 or 38) and whether manual refunds already exist.
-- TKT-000015: requested weekly/driver scope, start week and partial-week treatment of the 2,000 km allowance.
-- TKT-000012: requested Conta Azul import sample and the affected expense-registration page/user.
+- TKT-000015: confirmed only cedência, from week 38, default 2,000 km at €0.10/km. Awaiting names for 2,200 km / €0.05 exceptions and partial-week treatment (asked at 10:09). Automatic deductions are not enabled until these rules are supplied.
 - TKT-000013 concerns APP and was not handled.
 
 ## Validation

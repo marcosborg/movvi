@@ -17,6 +17,7 @@ Route::post('v1/public/contact', [PublicController::class, 'contact'])->name('ap
 Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin', 'middleware' => ['auth:sanctum']], function () {
     Route::get('sales-by-week/{date}', [SalesController::class,'salesByWeek'])->name('salesByWeek');
     Route::get('vehicle-profitabilities', [VehicleProfitabilityController::class, 'index'])->name('vehicleProfitabilities');
+    Route::get('vehicle-expenses', [\App\Http\Controllers\Api\V1\VehicleExpenseController::class, 'index'])->name('vehicleExpenses');
     Route::get('drivers', [DriverController::class, 'index'])->name('drivers');
     Route::get('vehicle-usages', [MobileController::class, 'vehicleUsages'])->name('vehicleUsages');
     Route::get('weeks', [MobileController::class, 'weeks'])->name('weeks');

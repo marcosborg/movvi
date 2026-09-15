@@ -198,6 +198,9 @@
                             </tr>
                         </tbody>
                     </table>
+                    @if(($company_paid_charging ?? 0) > 0)
+                        <p><small>Carregamentos pagos pela empresa: {{ number_format($company_paid_charging, 2, ',', '.') }} € (não descontados ao motorista).</small></p>
+                    @endif
                     <p><small>Saldo transitado: {{ $driver_balance->last_balance ?? 0.00 }} €</small></p>
                 </div>
             </div>
@@ -239,7 +242,7 @@
                     O motorista selecionado nao tem email configurado.
                 </div>
                 @endif
-                @if (auth()->user()->hasRole('Admin'))
+                @if (auth()->user()->hasRole('Admin') && $driver_balance)
                 <div class="panel-footer">
                     <form action="/admin/financial-statements/update-balance" method="post" id="update-balance">
                         @csrf
@@ -250,7 +253,17 @@
                                 <input type="number" step="0.01" required class="form-control" value="{{ number_format(($driver_balance->new_balance ?? 0), 2, '.', '') }}" name="new_balance">
                             </div>
                             <button type="submit" class="btn btn-success">Atualizar saldo</button>
+                        </div>
                     </form>
+                </div>
+                @elseif(auth()->user()->hasRole('Admin'))
+                <div class="panel-footer">
+                    <p>Esta semana não tem saldo registado para este motorista.</p>
+                    @if($previous_balance_week_id ?? null)
+                        <a class="btn btn-default" href="{{ url('/admin/financial-statements/week/' . $previous_balance_week_id) }}">Abrir a última semana com saldo</a>
+                    @else
+                        <p>Selecione uma semana com relatório validado para atualizar o saldo.</p>
+                    @endif
                 </div>
                 @endif
             </div>

@@ -56,6 +56,20 @@ class VehicleExpense extends Model implements HasMedia
         'deleted_at',
     ];
 
+    public static function expenseTypes(): array
+    {
+        $types = self::EXPENSE_TYPE_RADIO;
+        foreach (self::query()->whereNotNull('expense_type')->distinct()->pluck('expense_type') as $type) {
+            $types[$type] = $types[$type] ?? $type;
+        }
+        return $types;
+    }
+
+    public function getExpenseTypeLabelAttribute(): string
+    {
+        return self::EXPENSE_TYPE_RADIO[$this->expense_type] ?? (string) $this->expense_type;
+    }
+
     protected function serializeDate(DateTimeInterface $date)
     {
         return $date->format('Y-m-d H:i:s');

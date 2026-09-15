@@ -76,6 +76,10 @@ class FinancialStatementController extends Controller
 
         $car_track_details = $this->driverCarTrackDetails((int) $driver_id, (int) $tvde_week_id);
 
+        $previousBalance = !$driver_balance
+            ? $this->previousDriverBalanceBeforeWeek((int) $driver_id, TvdeWeek::find($tvde_week_id))
+            : null;
+
         //return $results;
 
         // Prefer the new commission total when available to avoid re-applying expenses.
@@ -117,7 +121,9 @@ class FinancialStatementController extends Controller
             'car_track_details' => $car_track_details,
             'car_hire' => isset($results) ? $results->car_hire : 0,
             'fuel_transactions' => isset($results) ? $results->fuel_transactions : 0,
+            'company_paid_charging' => (float) ($results->company_paid_charging ?? 0),
             'driver_balance' => $driver_balance ?? null,
+            'previous_balance_week_id' => $previousBalance?->tvde_week_id,
             'statement_sent_at' => $results && isset($currentAccount?->statement_sent_at) ? $currentAccount->statement_sent_at : null,
             'statement_sent_to' => $results && isset($currentAccount?->statement_sent_to) ? $currentAccount->statement_sent_to : null,
             'driver_email' => $drivers->firstWhere('id', $driver_id)?->email,
@@ -148,7 +154,12 @@ class FinancialStatementController extends Controller
 
     public function week($tvde_week_id)
     {
-        session()->put('tvde_week_id', $tvde_week_id);
+        $week = TvdeWeek::findOrFail($tvde_week_id);
+        session()->put('tvde_week_id', $week->id);
+        if ($week->tvde_month_id && ($month = TvdeMonth::find($week->tvde_month_id))) {
+            session()->put('tvde_month_id', $month->id);
+            session()->put('tvde_year_id', $month->year_id);
+        }
         return back();
     }
 
@@ -232,8 +243,11 @@ class FinancialStatementController extends Controller
         $request->validate([
             'driver_balance_id' => 'required|integer|exists:drivers_balances,id,deleted_at,NULL',
             'new_balance' => 'required|numeric'
-        ], [], [
-            'new_balance' => 'Saldo'
+        ], [
+            'driver_balance_id.exists' => 'Esta semana não tem saldo registado. Abra uma semana com saldo para fazer a correção.',
+        ], [
+            'new_balance' => 'Saldo',
+            'driver_balance_id' => 'registo de saldo desta semana',
         ]);
 
         app(\App\Services\DriverBalanceCorrectionService::class)->correct(
@@ -502,6 +516,7 @@ class FinancialStatementController extends Controller
             'car_hire_base' => $statementResults ? ($statementResults->car_hire_base ?? $statementResults->car_hire ?? 0) : 0,
             'car_track' => $statementResults ? ($statementResults->car_track ?? 0) : 0,
             'fuel_transactions' => $statementResults ? ($statementResults->fuel_transactions ?? 0) : 0,
+            'company_paid_charging' => (float) ($statementResults->company_paid_charging ?? 0),
             'total_earnings' => $total_earnings,
             'total_earnings_no_tip' => $total_earnings_no_tip,
             'total' => $total,

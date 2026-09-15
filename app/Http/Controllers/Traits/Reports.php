@@ -182,6 +182,7 @@ trait Reports
 
             // ---------- FUEL ----------
             $fuel_transactions = 0.0;
+            $electricCost = 0.0;
 
             if ($driver->electric) {
                 $electric_transactions = $this->uniqueElectricTransactions($tvde_week_id, $driver->electric->code);
@@ -189,6 +190,7 @@ trait Reports
 
                 if ($electric_total > 0) {
                     $fuel_transactions = $electric_total;
+                    $electricCost = $electric_total;
                 }
             }
 
@@ -200,17 +202,21 @@ trait Reports
             $combustionTransactions = $this->uniqueCombustionTransactionsForDriver($tvde_week_id, $driver, $cardCodes);
 
             if ($combustionTransactions->isNotEmpty()) {
+                $combustionTransactions->loadMissing('cardRef');
                 $combustion_total = (float) $combustionTransactions->sum(function ($t) {
                     return (float) $t->total;
                 });
 
                 if ($combustion_total > 0) {
                     $fuel_transactions = $combustion_total;
+                    $electricCost = (float) $combustionTransactions
+                        ->filter(fn ($transaction) => $transaction->unit === 'kWh')->sum('total');
                 }
             }
 
             if ($driver->half_tolls && $fuel_transactions > 0) {
                 $fuel_transactions = $fuel_transactions / 2;
+                $electricCost /= 2;
             }
 
             // ---------- OUTROS ABASTECIMENTOS ----------
@@ -223,6 +229,13 @@ trait Reports
 
             // Garantir número em fuel
             $driver->fuel = (float) $fuel_transactions + $other_fuel_total + $movvi_charge_total;
+            $driver->company_paid_charging = app(\App\Services\WeeklyDriverChargePolicy::class)->companyPaidCharging(
+                (int) $company_id,
+                $weekStart->toDateString(),
+                (float) ($driver->contract_vat->percent ?? 0),
+                $electricCost + $other_fuel_total + $movvi_charge_total
+            );
+            $driver->fuel -= $driver->company_paid_charging;
             $total_fuel_transactions[] = $driver->fuel;
 
             // ---------- CAR HIRE ----------
@@ -248,7 +261,7 @@ trait Reports
             $refunds = $adjustmentBreakdown['refunds_total'];
             $deducts = $adjustmentBreakdown['deducts_total'];
             $fleet_management = $adjustmentBreakdown['fleet_management_total'];
-            $company_expense = $adjustmentBreakdown['company_expense_total'];
+            $company_expense = $adjustmentBreakdown['company_expense_total'] - $driver->company_paid_charging;
             $general_adjustments = $adjustmentBreakdown['general_total'];
             $rent_discount = $adjustmentBreakdown['rent_discount_total'];
             $minimum_billing_difference = $adjustmentBreakdown['minimum_billing_difference_total'];
@@ -348,6 +361,7 @@ trait Reports
                 // Custos e ajustes
                 'car_track' => $car_track,
                 'fuel_transactions' => $driver->fuel,
+                'company_paid_charging' => $driver->company_paid_charging,
                 'movvi_charge' => $movvi_charge_total,
                 'car_hire' => $rent_value,
                 'car_hire_base' => $rent_base_value,
@@ -506,6 +520,7 @@ trait Reports
 
             // Custos/Ajustes
             'total_fuel_transactions' => array_sum($total_fuel_transactions),
+            'total_company_paid_charging' => (float) $drivers->sum('company_paid_charging'),
             'total_adjustments' => array_sum($total_adjustments),
             'total_general_adjustments' => array_sum($total_general_adjustments),
             'total_rent_discounts' => array_sum($total_rent_discounts),

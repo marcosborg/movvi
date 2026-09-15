@@ -399,7 +399,11 @@
                                     <td style="text-align: right;">{{ number_format($driver->earnings['tips_total'], 2) }} <small>€</small></td>
                                     <td style="text-align: right; color: red;">{{ number_format($driver->earnings['iva_value'], 2) }} <small>€</small></td>
                                     <td style="text-align: right; display: none;">{{ number_format($driver->earnings['total_after_vat'], 2) }} <small>€</small></td>
-                                    <td style="text-align: right;">-{{ number_format($driver->fuel, 2) }} <small>€</small></td>
+                                    <td style="text-align: right;">-{{ number_format($driver->fuel, 2) }} <small>€</small>
+                                        @if($driver->company_paid_charging > 0)
+                                            <br><small>Empresa: {{ number_format($driver->company_paid_charging, 2) }} €</small>
+                                        @endif
+                                    </td>
                                     <td style="text-align: right">{{ number_format($driver->adjustments, 2) }} <small>€</small><button class="btn btn-sm" data-toggle="popover" title="Movimentos" data-html="true" data-content="
                                         @foreach($driver->earnings['adjustments_array'] as $adjustment)
                                             <strong>{{ $adjustment['name'] }} ({{ $adjustment['category_label'] ?? ($adjustment['category'] ?? 'geral') }}): </strong>{{ $adjustment['type'] == 'deduct' ? '-' : '' }}{{ $adjustment['amount'] }}€<br>
@@ -478,7 +482,12 @@
                             <th style="text-align: right;">{{ number_format($totals['tips_total'], 2) }} <small>&euro;</small></th>
                             <th style="text-align: right; color: red;">{{ number_format($totals['total_iva_value'], 2) }} <small>&euro;</small></th>
                             <th style="text-align: right; display: none;">{{ number_format($totals['total_earnings_after_vat'], 2) }} <small>&euro;</small></th>
-                            <th style="text-align: right;">-{{ number_format($totals['total_fuel_transactions'], 2) }} <small>&euro;</small></th>
+                            <th style="text-align: right;">-{{ number_format($totals['total_fuel_transactions'], 2) }} <small>&euro;</small>
+                                @if(($totals['total_company_paid_charging'] ?? 0) > 0)
+                                    <br><small>Empresa: {{ number_format($totals['total_company_paid_charging'], 2) }} €</small>
+                                    <br><small>Total importado: {{ number_format($totals['total_fuel_transactions'] + $totals['total_company_paid_charging'], 2) }} €</small>
+                                @endif
+                            </th>
                             <th style="text-align: right;">{{ number_format($totals['total_adjustments'], 2) }} <small>&euro;</small></th>
                             <th style="text-align: right;">{{ number_format($totals['total_car_track'], 2) }} <small>&euro;</small></th>
                             <th style="text-align: right; color: red;">{{ ($totals['total_percent_value'] ?? 0) > 0 ? '-' : '' }}{{ number_format($totals['total_percent_value'], 2) }} <small>&euro;</small></th>
