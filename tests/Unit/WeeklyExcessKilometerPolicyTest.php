@@ -11,12 +11,12 @@ class WeeklyExcessKilometerPolicyTest extends TestCase
     {
         $policy = new WeeklyExcessKilometerPolicy;
 
-        $result = $policy->calculate(1, '2026-09-14', 0, 2150, 2000, 0.10);
+        $result = $policy->calculate(1, '2026-09-14', 0, 2150, 'Motorista normal');
         $this->assertTrue($result['eligible']);
         $this->assertSame(150.0, $result['kilometers']);
         $this->assertSame(15.0, $result['charge']);
 
-        $exception = $policy->calculate(1, '2026-09-14', 0, 2300, 2200, 0.05);
+        $exception = $policy->calculate(1, '2026-09-14', 0, 2300, 'Celso Cristiano');
         $this->assertSame(100.0, $exception['kilometers']);
         $this->assertSame(5.0, $exception['charge']);
 

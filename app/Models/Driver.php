@@ -55,8 +55,6 @@ class Driver extends Model
         'notes',
         'half_tolls',
         'pays_fuel',
-        'weekly_km_limit',
-        'excess_km_rate',
         'company_id',
         'created_at',
         'updated_at',
@@ -66,8 +64,6 @@ class Driver extends Model
     protected $casts = [
         'half_tolls' => 'boolean',
         'pays_fuel' => 'boolean',
-        'weekly_km_limit' => 'float',
-        'excess_km_rate' => 'float',
     ];
 
     protected function serializeDate(DateTimeInterface $date)

@@ -137,8 +137,6 @@ class UpdateDriverRequest extends FormRequest
                 'required',
                 'boolean',
             ],
-            'weekly_km_limit' => ['nullable', 'numeric', 'min:0'],
-            'excess_km_rate' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

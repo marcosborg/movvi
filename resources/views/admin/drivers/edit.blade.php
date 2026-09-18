@@ -127,15 +127,6 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.driver.fields.contract_vat_helper') }}</span>
                         </div>
-                        <div class="form-group">
-                            <label class="required" for="weekly_km_limit">Limite semanal de km</label>
-                            <input class="form-control" type="number" min="0" step="1" name="weekly_km_limit" id="weekly_km_limit" value="{{ old('weekly_km_limit', $driver->weekly_km_limit ?? 2000) }}" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="required" for="excess_km_rate">Valor por km excedido (€)</label>
-                            <input class="form-control" type="number" min="0" step="0.01" name="excess_km_rate" id="excess_km_rate" value="{{ old('excess_km_rate', $driver->excess_km_rate ?? 0.10) }}" required>
-                            <span class="help-block">Aplicado automaticamente aos contratos de cedência desde a semana 38.</span>
-                        </div>
                         <div class="form-group {{ $errors->has('start_date') ? 'has-error' : '' }}">
                             <label for="start_date">{{ trans('cruds.driver.fields.start_date') }}</label>
                             <input class="form-control date" type="text" name="start_date" id="start_date"

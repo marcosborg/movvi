@@ -313,8 +313,7 @@ trait Reports
                 $weekStart->toDateString(),
                 $percent_percent,
                 (float) $driver->weekly_km,
-                (float) ($driver->weekly_km_limit ?? 2000),
-                (float) ($driver->excess_km_rate ?? 0.10)
+                (string) $driver->name
             );
 
             // Expenses (rent, fuel, Via Verde, fleet fees and excess km) are deducted after company percentage.
@@ -1561,7 +1560,6 @@ trait Reports
         $company_data->save();
     }
 }
-
 
 
 
