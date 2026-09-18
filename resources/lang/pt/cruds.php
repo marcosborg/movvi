@@ -1019,6 +1019,8 @@ return [
             'cards_helper'                         => ' ',
             'half_tolls'                                => 'Pagar metade do abastecimento',
             'half_tolls_helper'                         => ' ',
+            'pays_fuel'                                 => 'Cobrar combustível/eletricidade ao motorista',
+            'pays_fuel_helper'                          => 'Quando desativado, os consumos ficam registados mas não são descontados nem faturados ao motorista.',
         ],
     ],
     'card' => [
@@ -2536,4 +2538,3 @@ return [
         ],
     ],
 ];
-

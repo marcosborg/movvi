@@ -133,6 +133,10 @@ class UpdateDriverRequest extends FormRequest
                 'string',
                 'nullable',
             ],
+            'pays_fuel' => [
+                'required',
+                'boolean',
+            ],
         ];
     }
 }

@@ -273,6 +273,14 @@
                                         {{ $driver->company->name ?? '' }}
                                     </td>
                                 </tr>
+                                <tr>
+                                    <th>
+                                        {{ trans('cruds.driver.fields.pays_fuel') }}
+                                    </th>
+                                    <td>
+                                        {{ $driver->pays_fuel ? 'Sim' : 'Não' }}
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                         <div class="form-group">

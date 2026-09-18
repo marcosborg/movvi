@@ -228,14 +228,16 @@ trait Reports
             $movvi_charge_total = (float) ($movviChargeTotals[$driver->id] ?? 0);
 
             // Garantir número em fuel
-            $driver->fuel = (float) $fuel_transactions + $other_fuel_total + $movvi_charge_total;
+            $totalFuel = (float) $fuel_transactions + $other_fuel_total + $movvi_charge_total;
             $driver->company_paid_charging = app(\App\Services\WeeklyDriverChargePolicy::class)->companyPaidCharging(
                 (int) $company_id,
                 $weekStart->toDateString(),
                 (float) ($driver->contract_vat->percent ?? 0),
                 $electricCost + $other_fuel_total + $movvi_charge_total
             );
-            $driver->fuel -= $driver->company_paid_charging;
+            $driver->fuel = $driver->billableFuelAmount(
+                max(0.0, $totalFuel - $driver->company_paid_charging)
+            );
             $total_fuel_transactions[] = $driver->fuel;
 
             // ---------- CAR HIRE ----------
@@ -1540,8 +1542,6 @@ trait Reports
         $company_data->save();
     }
 }
-
-
 
 
 

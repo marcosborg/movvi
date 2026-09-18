@@ -352,6 +352,17 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.driver.fields.half_tolls_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('pays_fuel') ? 'has-error' : '' }}">
+                            <div>
+                                <input type="hidden" name="pays_fuel" value="0">
+                                <input type="checkbox" name="pays_fuel" id="pays_fuel" value="1" {{ old('pays_fuel', $driver->pays_fuel) ? 'checked' : '' }}>
+                                <label for="pays_fuel" style="font-weight: 400">{{ trans('cruds.driver.fields.pays_fuel') }}</label>
+                            </div>
+                            @if($errors->has('pays_fuel'))
+                                <span class="help-block" role="alert">{{ $errors->first('pays_fuel') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.driver.fields.pays_fuel_helper') }}</span>
+                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}

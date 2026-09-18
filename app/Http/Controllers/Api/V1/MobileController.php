@@ -1175,6 +1175,7 @@ class MobileController extends Controller
             'name' => $driver->name,
             'email' => $driver->email,
             'phone' => $driver->phone,
+            'pays_fuel' => (bool) $driver->pays_fuel,
             'company' => $driver->company ? [
                 'id' => $driver->company->id,
                 'name' => $driver->company->name,

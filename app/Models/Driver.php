@@ -54,10 +54,16 @@ class Driver extends Model
         'model',
         'notes',
         'half_tolls',
+        'pays_fuel',
         'company_id',
         'created_at',
         'updated_at',
         'deleted_at',
+    ];
+
+    protected $casts = [
+        'half_tolls' => 'boolean',
+        'pays_fuel' => 'boolean',
     ];
 
     protected function serializeDate(DateTimeInterface $date)
@@ -209,6 +215,11 @@ class Driver extends Model
         $userEmail = trim((string) optional($this->user)->email);
 
         return $userEmail !== '' ? $userEmail : null;
+    }
+
+    public function billableFuelAmount(float $amount): float
+    {
+        return $this->pays_fuel ? $amount : 0.0;
     }
 
 }

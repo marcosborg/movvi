@@ -118,6 +118,10 @@ class StoreDriverRequest extends FormRequest
                 'string',
                 'nullable',
             ],
+            'pays_fuel' => [
+                'required',
+                'boolean',
+            ],
         ];
     }
 }
