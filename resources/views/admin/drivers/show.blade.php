@@ -97,6 +97,8 @@
                                         {{ $driver->start_date }}
                                     </td>
                                 </tr>
+                                <tr><th>Limite semanal de km</th><td>{{ number_format($driver->weekly_km_limit ?? 2000, 0, ',', '.') }} km</td></tr>
+                                <tr><th>Valor por km excedido</th><td>{{ number_format($driver->excess_km_rate ?? 0.10, 2, ',', '.') }} €</td></tr>
                                 <tr>
                                     <th>
                                         {{ trans('cruds.driver.fields.end_date') }}

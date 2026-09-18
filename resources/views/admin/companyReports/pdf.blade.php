@@ -54,6 +54,7 @@
                 <th>Líquido Uber</th>
                 <th>Líquido Bolt</th>
                 <th>KM</th>
+                <th>KM excedidos</th>
                 <th>€/km</th>
                 <th>Gorjetas</th>
                 <th>Taxa 6%</th>
@@ -77,6 +78,7 @@
                     <td class="nowrap">{{ number_format($driver->earnings['uber']['uber_net'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['bolt']['bolt_net'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->weekly_km ?? 0, 1) }} km</td>
+                    <td class="nowrap">{{ number_format($driver->earnings['excess_km'] ?? 0, 1) }} km / -{{ number_format($driver->earnings['excess_km_charge'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings_per_km ?? 0, 3) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['tips_total'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['iva_value'] ?? 0, 2) }} &euro;</td>
@@ -105,6 +107,7 @@
                 <th>{{ number_format($totals['net_uber'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['net_bolt'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_weekly_km'] ?? 0, 1) }} km</th>
+                <th>{{ number_format($totals['total_excess_km'] ?? 0, 1) }} km / -{{ number_format($totals['total_excess_km_charge'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_earnings_per_km'] ?? 0, 3) }} &euro;</th>
                 <th>{{ number_format($totals['tips_total'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_iva_value'] ?? 0, 2) }} &euro;</th>

@@ -151,6 +151,8 @@
                             Gerais: {{ number_format($result['revenues']['general_adjustments_total'] ?? 0, 2, ',', '.') }}
                             <br>
                             Fat. mínima: {{ number_format($result['revenues']['minimum_billing_difference_total'] ?? 0, 2, ',', '.') }}
+                            <br>KM excedidos: {{ number_format($result['revenues']['excess_kilometers_total'] ?? 0, 2, ',', '.') }}
+                            <br>Energia empresa: -{{ number_format($result['revenues']['company_paid_charging_total'] ?? 0, 2, ',', '.') }}
                         </small>
                     </div>
                 </div>
@@ -181,6 +183,8 @@
                                     <th style="text-align:right;">Percentagem</th>
                                     <th style="text-align:right;">Ajustes</th>
                                     <th style="text-align:right;">Fat. mínima</th>
+                                    <th style="text-align:right;">KM excedidos</th>
+                                    <th style="text-align:right;">Energia empresa</th>
                                     <th style="text-align:right;">Uso (segundos)</th>
                                 </tr>
                             </thead>
@@ -193,6 +197,8 @@
                                         <td style="text-align:right;">{{ number_format($d['commission'] ?? 0, 2, ',', '.') }}</td>
                                         <td style="text-align:right;">{{ number_format($d['adjustments'] ?? 0, 2, ',', '.') }}</td>
                                         <td style="text-align:right;">{{ number_format($d['minimum_billing_difference'] ?? 0, 2, ',', '.') }}</td>
+                                        <td style="text-align:right;">{{ number_format($d['excess_kilometers'] ?? 0, 2, ',', '.') }}</td>
+                                        <td style="text-align:right;">-{{ number_format($d['company_paid_charging'] ?? 0, 2, ',', '.') }}</td>
                                         <td style="text-align:right;">{{ number_format($d['usage_seconds'] ?? 0, 0, ',', '.') }}</td>
                                     </tr>
                                 @endforeach

@@ -97,6 +97,8 @@ class VehicleProfitabilityService
         $totalCommission = 0.0;
         $totalGeneralAdjustments = 0.0;
         $totalMinimumBillingDifference = 0.0;
+        $totalExcessKilometers = 0.0;
+        $totalCompanyPaidCharging = 0.0;
         $missingAccounts = [];
 
         foreach ($driverIds as $driverId) {
@@ -129,6 +131,8 @@ class VehicleProfitabilityService
                     'adjustments' => $allocatedProfitabilityAdjustments,
                     'general_adjustments' => $allocatedGeneralAdjustments,
                     'minimum_billing_difference' => $allocatedMinimumBillingDifference,
+                    'excess_kilometers' => 0.0,
+                    'company_paid_charging' => 0.0,
                     'has_current_account' => false,
                 ];
                 continue;
@@ -139,6 +143,8 @@ class VehicleProfitabilityService
             $commission = (float) ($earnings['percent_value'] ?? 0);
             $allocatedRental = $rental * $allocationRatio;
             $allocatedCommission = $commission * $allocationRatio;
+            $allocatedExcessKilometers = (float) ($earnings['excess_km_charge'] ?? 0) * $allocationRatio;
+            $allocatedCompanyPaidCharging = (float) ($earnings['company_paid_charging'] ?? 0) * $allocationRatio;
             $allocatedGeneralAdjustments = $profitabilityAdjustments['general_adjustments_total'] * $allocationRatio;
             $allocatedMinimumBillingDifference = $profitabilityAdjustments['minimum_billing_difference_total'] * $allocationRatio;
             $adjustments = $profitabilityAdjustments['total'] * $allocationRatio;
@@ -158,6 +164,8 @@ class VehicleProfitabilityService
             $totalCommission += $allocatedCommission;
             $totalGeneralAdjustments += $allocatedGeneralAdjustments;
             $totalMinimumBillingDifference += $allocatedMinimumBillingDifference;
+            $totalExcessKilometers += $allocatedExcessKilometers;
+            $totalCompanyPaidCharging += $allocatedCompanyPaidCharging;
 
             $drivers[] = [
                 'id' => (int) $account->driver->id,
@@ -170,12 +178,15 @@ class VehicleProfitabilityService
                 'adjustments' => $adjustments,
                 'general_adjustments' => $allocatedGeneralAdjustments,
                 'minimum_billing_difference' => $allocatedMinimumBillingDifference,
+                'excess_kilometers' => $allocatedExcessKilometers,
+                'company_paid_charging' => $allocatedCompanyPaidCharging,
                 'has_current_account' => true,
             ];
         }
 
         $totalAdjustments = $totalGeneralAdjustments + $totalMinimumBillingDifference;
-        $totalRevenue = $totalRental + $totalCommission + $totalAdjustments;
+        $totalRevenue = $totalRental + $totalCommission + $totalAdjustments
+            + $totalExcessKilometers - $totalCompanyPaidCharging;
 
         return [
             'vehicle' => [
@@ -194,6 +205,8 @@ class VehicleProfitabilityService
                 'general_adjustments_total' => $totalGeneralAdjustments,
                 'minimum_billing_difference_total' => $totalMinimumBillingDifference,
                 'adjustments_total' => $totalAdjustments,
+                'excess_kilometers_total' => $totalExcessKilometers,
+                'company_paid_charging_total' => $totalCompanyPaidCharging,
                 'total_revenue' => $totalRevenue,
             ],
             'meta' => [
@@ -318,6 +331,8 @@ class VehicleProfitabilityService
         $totCommission = 0.0;
         $totGeneralAdjustments = 0.0;
         $totMinimumBillingDifference = 0.0;
+        $totExcessKilometers = 0.0;
+        $totCompanyPaidCharging = 0.0;
 
         foreach ($vehicles as $vehicle) {
             $vehicleId = (int) $vehicle->id;
@@ -327,6 +342,8 @@ class VehicleProfitabilityService
             $commissionTotal = 0.0;
             $generalAdjustmentsTotal = 0.0;
             $minimumBillingDifferenceTotal = 0.0;
+            $excessKilometersTotal = 0.0;
+            $companyPaidChargingTotal = 0.0;
             $missingAccountsCount = 0;
 
             foreach ($drivers as $driverId => $seconds) {
@@ -351,6 +368,8 @@ class VehicleProfitabilityService
 
                 $rentalTotal += (float) ($earnings['car_hire'] ?? 0) * $allocationRatio;
                 $commissionTotal += (float) ($earnings['percent_value'] ?? 0) * $allocationRatio;
+                $excessKilometersTotal += (float) ($earnings['excess_km_charge'] ?? 0) * $allocationRatio;
+                $companyPaidChargingTotal += (float) ($earnings['company_paid_charging'] ?? 0) * $allocationRatio;
                 $generalAdjustmentsTotal += $profitabilityAdjustments['general_adjustments_total'] * $allocationRatio;
                 $minimumBillingDifferenceTotal += $profitabilityAdjustments['minimum_billing_difference_total'] * $allocationRatio;
             }
@@ -360,6 +379,8 @@ class VehicleProfitabilityService
             $totCommission += $commissionTotal;
             $totGeneralAdjustments += $generalAdjustmentsTotal;
             $totMinimumBillingDifference += $minimumBillingDifferenceTotal;
+            $totExcessKilometers += $excessKilometersTotal;
+            $totCompanyPaidCharging += $companyPaidChargingTotal;
 
             $rows[] = [
                 'id' => $vehicleId,
@@ -370,7 +391,9 @@ class VehicleProfitabilityService
                 'general_adjustments_total' => $generalAdjustmentsTotal,
                 'minimum_billing_difference_total' => $minimumBillingDifferenceTotal,
                 'adjustments_total' => $adjustmentsTotal,
-                'total_revenue' => $rentalTotal + $commissionTotal + $adjustmentsTotal,
+                'excess_kilometers_total' => $excessKilometersTotal,
+                'company_paid_charging_total' => $companyPaidChargingTotal,
+                'total_revenue' => $rentalTotal + $commissionTotal + $adjustmentsTotal + $excessKilometersTotal - $companyPaidChargingTotal,
                 'drivers_count' => count($drivers),
                 'missing_accounts_count' => $missingAccountsCount,
             ];
@@ -391,7 +414,9 @@ class VehicleProfitabilityService
                 'general_adjustments_total' => $totGeneralAdjustments,
                 'minimum_billing_difference_total' => $totMinimumBillingDifference,
                 'adjustments_total' => $totAdjustments,
-                'total_revenue' => $totRental + $totCommission + $totAdjustments,
+                'excess_kilometers_total' => $totExcessKilometers,
+                'company_paid_charging_total' => $totCompanyPaidCharging,
+                'total_revenue' => $totRental + $totCommission + $totAdjustments + $totExcessKilometers - $totCompanyPaidCharging,
             ],
             'meta' => [
                 'exclusions' => self::profitabilityExclusions(),
@@ -596,6 +621,8 @@ class VehicleProfitabilityService
                 'general_adjustments_total' => 0.0,
                 'minimum_billing_difference_total' => 0.0,
                 'adjustments_total' => 0.0,
+                'excess_kilometers_total' => 0.0,
+                'company_paid_charging_total' => 0.0,
                 'total_revenue' => 0.0,
             ],
             'meta' => [
@@ -621,6 +648,8 @@ class VehicleProfitabilityService
                 'general_adjustments_total' => 0.0,
                 'minimum_billing_difference_total' => 0.0,
                 'adjustments_total' => 0.0,
+                'excess_kilometers_total' => 0.0,
+                'company_paid_charging_total' => 0.0,
                 'total_revenue' => 0.0,
             ],
             'meta' => [

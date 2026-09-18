@@ -355,6 +355,7 @@
                             <th style="text-align: right;">Líquido Uber</th>
                             <th style="text-align: right;">Líquido Bolt</th>
                             <th style="text-align: right;">KM</th>
+                            <th style="text-align: right;">KM excedidos</th>
                             <th style="text-align: right;">€/km</th>
                             <th style="text-align: right; display: none;">Líquido operadores</th>
                             <th style="text-align: right;">Gorjetas</th>
@@ -394,6 +395,12 @@
                                     <td style="text-align: right">{{ number_format($driver->earnings['uber']['uber_net'] ?? 0, 2) }}<small> €</small></td>
                                     <td style="text-align: right">{{ number_format($driver->earnings['bolt']['bolt_net'] ?? 0, 2) }} <small>€</small></td>
                                     <td style="text-align: right">{{ number_format($driver->weekly_km ?? 0, 1) }} <small>km</small></td>
+                                    <td style="text-align: right">
+                                        {{ number_format($driver->earnings['excess_km'] ?? 0, 1) }} <small>km</small>
+                                        @if(($driver->earnings['excess_km_charge'] ?? 0) > 0)
+                                            <br><strong class="text-danger">-{{ number_format($driver->earnings['excess_km_charge'], 2) }} €</strong>
+                                        @endif
+                                    </td>
                                     <td style="text-align: right">{{ number_format($driver->earnings_per_km ?? 0, 3) }} <small>€</small></td>
                                     <td style="text-align: right; display: none;">{{ number_format($driver->earnings['total_net'] ?? 0, 2) }} <small>€</small></td>
                                     <td style="text-align: right;">{{ number_format($driver->earnings['tips_total'], 2) }} <small>€</small></td>
@@ -477,6 +484,7 @@
                             <th style="text-align: right;">{{ number_format($totals['net_uber'], 2) }} <small>&euro;</small></th>
                             <th style="text-align: right;">{{ number_format($totals['net_bolt'], 2) }} <small>&euro;</small></th>
                             <th style="text-align: right;">{{ number_format($totals['total_weekly_km'] ?? 0, 1) }} <small>km</small></th>
+                            <th style="text-align: right;">{{ number_format($totals['total_excess_km'] ?? 0, 1) }} <small>km</small><br>-{{ number_format($totals['total_excess_km_charge'] ?? 0, 2) }} <small>€</small></th>
                             <th style="text-align: right;">{{ number_format($totals['total_earnings_per_km'] ?? 0, 3) }} <small>&euro;/km</small></th>
                             <th style="text-align: right; display: none;">{{ number_format($totals['total_net_operators'], 2) }} <small>&euro;</small></th>
                             <th style="text-align: right;">{{ number_format($totals['tips_total'], 2) }} <small>&euro;</small></th>

@@ -303,6 +303,31 @@ class MobileInspectionController extends Controller
                 })
                 ->when(!$showAll, fn ($collection) => $collection->filter(fn (array $driver) => empty($driver['current_vehicle_id'])))
                 ->values(),
+            'recent_movements' => VehicleUsage::query()
+                ->with(['vehicle_item:id,license_plate', 'driver:id,name'])
+                ->where(function ($query) {
+                    $query->where('usage_exceptions', 'usage')
+                        ->orWhere(function ($legacyQuery) {
+                            $legacyQuery->whereNull('usage_exceptions')->whereNotNull('driver_id');
+                        });
+                })
+                ->latest('id')
+                ->limit(10)
+                ->get()
+                ->map(function (VehicleUsage $usage) use ($now) {
+                    $ended = $usage->end_date && \Carbon\Carbon::parse($usage->end_date)->lt($now);
+
+                    return [
+                        'id' => (int) $usage->id,
+                        'vehicle_license_plate' => $usage->vehicle_item?->license_plate,
+                        'driver_name' => $usage->driver?->name,
+                        'start_date' => $usage->start_date,
+                        'end_date' => $usage->end_date,
+                        'status' => $ended ? 'ended' : 'active',
+                        'status_label' => $ended ? 'Terminou' : 'Em utilização',
+                    ];
+                })
+                ->values(),
         ]);
     }
 

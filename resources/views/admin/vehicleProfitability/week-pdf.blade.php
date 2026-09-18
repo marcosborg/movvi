@@ -164,6 +164,8 @@
                 <th class="text-right">Cedência</th>
                 <th class="text-right">Percentual</th>
                 <th class="text-right">Ajustes</th>
+                <th class="text-right">KM excedidos</th>
+                <th class="text-right">Energia empresa</th>
                 <th class="text-right">Total</th>
                 <th class="text-right">Motoristas</th>
                 <th class="text-right">Sem validacao</th>
@@ -177,6 +179,8 @@
                     <td class="text-right">{{ number_format($vehicle['rental_total'] ?? 0, 2, ',', '.') }}</td>
                     <td class="text-right">{{ number_format($vehicle['commission_total'] ?? 0, 2, ',', '.') }}</td>
                     <td class="text-right">{{ number_format($vehicle['adjustments_total'] ?? 0, 2, ',', '.') }}</td>
+                    <td class="text-right">{{ number_format($vehicle['excess_kilometers_total'] ?? 0, 2, ',', '.') }}</td>
+                    <td class="text-right">-{{ number_format($vehicle['company_paid_charging_total'] ?? 0, 2, ',', '.') }}</td>
                     <td class="text-right">{{ number_format($vehicle['total_revenue'] ?? 0, 2, ',', '.') }}</td>
                     <td class="text-right">{{ number_format($vehicle['drivers_count'] ?? 0, 0, ',', '.') }}</td>
                     <td class="text-right">{{ number_format($vehicle['missing_accounts_count'] ?? 0, 0, ',', '.') }}</td>
@@ -189,6 +193,8 @@
                 <td class="text-right">{{ number_format($totals['rental_total'] ?? 0, 2, ',', '.') }}</td>
                 <td class="text-right">{{ number_format($totals['commission_total'] ?? 0, 2, ',', '.') }}</td>
                 <td class="text-right">{{ number_format($totals['adjustments_total'] ?? 0, 2, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($totals['excess_kilometers_total'] ?? 0, 2, ',', '.') }}</td>
+                <td class="text-right">-{{ number_format($totals['company_paid_charging_total'] ?? 0, 2, ',', '.') }}</td>
                 <td class="text-right">{{ number_format($totals['total_revenue'] ?? 0, 2, ',', '.') }}</td>
                 <td colspan="2"></td>
             </tr>

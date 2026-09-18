@@ -26,6 +26,8 @@
             <th>Liquido Uber</th>
             <th>Liquido Bolt</th>
             <th>KM</th>
+            <th>KM excedidos</th>
+            <th>Custo KM excedidos</th>
             <th>EUR/km</th>
             <th>Gorjetas</th>
             <th>Taxa 6%</th>
@@ -50,6 +52,8 @@
                 <td>{{ $driver->earnings['uber']['uber_net'] ?? 0 }}</td>
                 <td>{{ $driver->earnings['bolt']['bolt_net'] ?? 0 }}</td>
                 <td>{{ $driver->weekly_km ?? 0 }}</td>
+                <td>{{ $driver->earnings['excess_km'] ?? 0 }}</td>
+                <td>{{ -($driver->earnings['excess_km_charge'] ?? 0) }}</td>
                 <td>{{ $driver->earnings_per_km ?? 0 }}</td>
                 <td>{{ $driver->earnings['tips_total'] ?? 0 }}</td>
                 <td>{{ $driver->earnings['iva_value'] ?? 0 }}</td>
@@ -74,6 +78,8 @@
             <th>{{ $totals['net_uber'] ?? 0 }}</th>
             <th>{{ $totals['net_bolt'] ?? 0 }}</th>
             <th>{{ $totals['total_weekly_km'] ?? 0 }}</th>
+            <th>{{ $totals['total_excess_km'] ?? 0 }}</th>
+            <th>{{ -($totals['total_excess_km_charge'] ?? 0) }}</th>
             <th>{{ $totals['total_earnings_per_km'] ?? 0 }}</th>
             <th>{{ $totals['tips_total'] ?? 0 }}</th>
             <th>{{ $totals['total_iva_value'] ?? 0 }}</th>

@@ -100,6 +100,8 @@ trait Reports
         $total_car_hire = [];
         $total_net_operators = [];
         $total_weekly_km = [];
+        $total_excess_km = [];
+        $total_excess_km_charge = [];
 
         // Novos agregados úteis
         $gross_uber = [];
@@ -306,9 +308,18 @@ trait Reports
             $base_after_iva = $base_before_taxes - $iva_value + $driver->fuel;
             $percent_value = max(0.0, $base_after_iva) * $percent_rate;
 
-            // Expenses (rent, fuel, Via Verde, fleet fees) are deducted after company percentage per payout rule.
+            $excessKilometers = app(\App\Services\WeeklyExcessKilometerPolicy::class)->calculate(
+                (int) $company_id,
+                $weekStart->toDateString(),
+                $percent_percent,
+                (float) $driver->weekly_km,
+                (float) ($driver->weekly_km_limit ?? 2000),
+                (float) ($driver->excess_km_rate ?? 0.10)
+            );
+
+            // Expenses (rent, fuel, Via Verde, fleet fees and excess km) are deducted after company percentage.
             $base_after_company = $base_after_iva - $percent_value;
-            $expenses_total = $rent_value + $driver->fuel + $car_track + $fleet_management;
+            $expenses_total = $rent_value + $driver->fuel + $car_track + $fleet_management + $excessKilometers['charge'];
 
             // Final driver total: base after taxes/percent - expenses + adjustments + caution movements + tips.
             $subtotal_after_tips = $base_after_company - $expenses_total;
@@ -358,6 +369,10 @@ trait Reports
                 'subtotal_after_tips' => $subtotal_after_tips,
                 'driver_total' => $final_total,
                 'weekly_km' => $driver->weekly_km,
+                'weekly_km_limit' => $excessKilometers['limit'],
+                'excess_km_rate' => $excessKilometers['rate'],
+                'excess_km' => $excessKilometers['kilometers'],
+                'excess_km_charge' => $excessKilometers['charge'],
                 'earnings_per_km' => $earnings_per_km,
 
                 // Custos e ajustes
@@ -472,6 +487,8 @@ trait Reports
             $total_car_hire[] = $rent_value;
             $total_drivers[] = $driver->total;
             $total_weekly_km[] = $driver->weekly_km;
+            $total_excess_km[] = $excessKilometers['kilometers'];
+            $total_excess_km_charge[] = $excessKilometers['charge'];
 
             // Novos totais
             $uber_tips_total[] = $uber_tips;
@@ -533,6 +550,8 @@ trait Reports
             'total_car_track' => array_sum($total_car_track),
             'total_car_hire' => array_sum($total_car_hire),
             'total_weekly_km' => array_sum($total_weekly_km),
+            'total_excess_km' => array_sum($total_excess_km),
+            'total_excess_km_charge' => array_sum($total_excess_km_charge),
 
             // Total final (após tudo)
             'total_drivers' => array_sum($total_drivers),
@@ -1542,7 +1561,6 @@ trait Reports
         $company_data->save();
     }
 }
-
 
 
 

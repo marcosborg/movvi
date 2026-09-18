@@ -80,6 +80,8 @@
                                         <th style="text-align:right;">Cedência (EUR)</th>
                                         <th style="text-align:right;">Percentagem (EUR)</th>
                                         <th style="text-align:right;">Ajustes (EUR)</th>
+                                        <th style="text-align:right;">KM excedidos (EUR)</th>
+                                        <th style="text-align:right;">Energia empresa (EUR)</th>
                                         <th style="text-align:right;">Total (EUR)</th>
                                         <th style="text-align:right;">Motoristas</th>
                                         <th style="text-align:right;">Sem validacao</th>
@@ -109,6 +111,8 @@
                                             <td style="text-align:right;">{{ number_format($v['rental_total'] ?? 0, 2, ',', '.') }}</td>
                                             <td style="text-align:right;">{{ number_format($v['commission_total'] ?? 0, 2, ',', '.') }}</td>
                                             <td style="text-align:right;">{{ number_format($v['adjustments_total'] ?? 0, 2, ',', '.') }}</td>
+                                            <td style="text-align:right;">{{ number_format($v['excess_kilometers_total'] ?? 0, 2, ',', '.') }}</td>
+                                            <td style="text-align:right;">-{{ number_format($v['company_paid_charging_total'] ?? 0, 2, ',', '.') }}</td>
                                             <td style="text-align:right;"><strong>{{ number_format($v['total_revenue'] ?? 0, 2, ',', '.') }}</strong></td>
                                             <td style="text-align:right;">{{ $v['drivers_count'] ?? 0 }}</td>
                                             <td style="text-align:right;">{{ $v['missing_accounts_count'] ?? 0 }}</td>
@@ -144,6 +148,8 @@
                                         <th style="text-align:right;">{{ number_format($result['totals']['rental_total'] ?? 0, 2, ',', '.') }}</th>
                                         <th style="text-align:right;">{{ number_format($result['totals']['commission_total'] ?? 0, 2, ',', '.') }}</th>
                                         <th style="text-align:right;">{{ number_format($result['totals']['adjustments_total'] ?? 0, 2, ',', '.') }}</th>
+                                        <th style="text-align:right;">{{ number_format($result['totals']['excess_kilometers_total'] ?? 0, 2, ',', '.') }}</th>
+                                        <th style="text-align:right;">-{{ number_format($result['totals']['company_paid_charging_total'] ?? 0, 2, ',', '.') }}</th>
                                         <th style="text-align:right;"><strong>{{ number_format($result['totals']['total_revenue'] ?? 0, 2, ',', '.') }}</strong></th>
                                         <th colspan="4"></th>
                                     </tr>

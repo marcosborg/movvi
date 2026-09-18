@@ -70,6 +70,25 @@ class VehicleProfitabilityServiceTest extends TestCase
         $this->assertNull($row);
     }
 
+    public function test_company_energy_reduces_and_excess_kilometers_increase_vehicle_profitability(): void
+    {
+        [$company, $driver, $week, $vehicle] = $this->scenario();
+        CurrentAccount::where('driver_id', $driver->id)->where('tvde_week_id', $week->id)->update([
+            'data' => json_encode([
+                'car_hire' => 700,
+                'percent_value' => 70,
+                'company_paid_charging' => 125.50,
+                'excess_km_charge' => 20,
+            ]),
+        ]);
+
+        $result = VehicleProfitabilityService::make($vehicle->id, $week->id);
+
+        $this->assertEqualsWithDelta(125.50, $result['revenues']['company_paid_charging_total'], 0.001);
+        $this->assertEqualsWithDelta(20, $result['revenues']['excess_kilometers_total'], 0.001);
+        $this->assertEqualsWithDelta(664.50, $result['revenues']['total_revenue'], 0.001);
+    }
+
     public function test_api_filters_company_and_includes_new_eligible_vehicles(): void
     {
         [$company, $driver, $week, $vehicle, $operator] = $this->scenario();

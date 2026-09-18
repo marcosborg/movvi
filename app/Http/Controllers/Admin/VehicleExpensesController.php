@@ -80,7 +80,7 @@ class VehicleExpensesController extends Controller
             return $table->make(true);
         }
 
-        $vehicle_items = VehicleItem::get();
+        $vehicle_items = $this->activeVehicleItems()->get();
 
         return view('admin.vehicleExpenses.index', compact('vehicle_items'));
     }
@@ -89,7 +89,9 @@ class VehicleExpensesController extends Controller
     {
         abort_if(Gate::denies('vehicle_expense_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $vehicle_items = VehicleItem::pluck('license_plate', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $vehicle_items = $this->activeVehicleItems()
+            ->pluck('license_plate', 'id')
+            ->prepend(trans('global.pleaseSelect'), '');
 
         return view('admin.vehicleExpenses.create', compact('vehicle_items'));
     }
@@ -113,7 +115,9 @@ class VehicleExpensesController extends Controller
     {
         abort_if(Gate::denies('vehicle_expense_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $vehicle_items = VehicleItem::pluck('license_plate', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $vehicle_items = $this->activeVehicleItems($vehicleExpense->vehicle_item_id)
+            ->pluck('license_plate', 'id')
+            ->prepend(trans('global.pleaseSelect'), '');
 
         $vehicleExpense->load('vehicle_item');
 
@@ -180,5 +184,39 @@ class VehicleExpensesController extends Controller
         $media         = $model->addMediaFromRequest('upload')->toMediaCollection('ck-media');
 
         return response()->json(['id' => $media->id, 'url' => $media->getUrl()], Response::HTTP_CREATED);
+    }
+
+    private function activeVehicleItems(?int $includeVehicleId = null)
+    {
+        $now = now();
+        $companyId = session()->get('company_id');
+
+        return VehicleItem::query()
+            ->when($companyId && (int) $companyId !== 0, fn ($query) => $query->where('company_id', (int) $companyId))
+            ->where(function ($query) use ($includeVehicleId) {
+                $query->whereNull('suspended')->orWhere('suspended', false);
+                if ($includeVehicleId) {
+                    $query->orWhereKey($includeVehicleId);
+                }
+            })
+            ->where(function ($vehicleQuery) use ($now, $includeVehicleId) {
+                $vehicleQuery->whereHas('vehicle_usage', function ($query) use ($now) {
+                    $query->where('start_date', '<=', $now)
+                        ->where(function ($dateQuery) use ($now) {
+                            $dateQuery->whereNull('end_date')->orWhere('end_date', '>=', $now);
+                        })
+                        ->where(function ($usageQuery) {
+                            $usageQuery->where('usage_exceptions', 'usage')
+                                ->orWhere(function ($legacyQuery) {
+                                    $legacyQuery->whereNull('usage_exceptions')->whereNotNull('driver_id');
+                                });
+                        });
+                });
+
+                if ($includeVehicleId) {
+                    $vehicleQuery->orWhereKey($includeVehicleId);
+                }
+            })
+            ->orderBy('license_plate');
     }
 }
