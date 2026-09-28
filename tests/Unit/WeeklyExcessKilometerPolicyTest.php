@@ -20,6 +20,22 @@ class WeeklyExcessKilometerPolicyTest extends TestCase
         $this->assertSame(100.0, $exception['kilometers']);
         $this->assertSame(5.0, $exception['charge']);
 
+        $fullNameRateException = $policy->calculate(1, '2026-09-14', 0, 2150, 'João Luiz Souza Sales da Silva');
+        $this->assertSame(150.0, $fullNameRateException['kilometers']);
+        $this->assertSame(7.5, $fullNameRateException['charge']);
+
+        $fullNameLimitAndRateException = $policy->calculate(1, '2026-09-14', 0, 2300, 'Luiz Carlos Chaves Junior');
+        $this->assertSame(100.0, $fullNameLimitAndRateException['kilometers']);
+        $this->assertSame(5.0, $fullNameLimitAndRateException['charge']);
+
+        $reorderedNameException = $policy->calculate(1, '2026-09-14', 0, 2150, 'Marcelo Verde Capeleiro de Almeida');
+        $this->assertSame(150.0, $reorderedNameException['kilometers']);
+        $this->assertSame(7.5, $reorderedNameException['charge']);
+
+        $nonContiguousNameException = $policy->calculate(1, '2026-09-14', 0, 2150, 'Antonio Jose Bessa Telinhos');
+        $this->assertSame(150.0, $nonContiguousNameException['kilometers']);
+        $this->assertSame(7.5, $nonContiguousNameException['charge']);
+
         $this->assertSame(0.0, $policy->calculate(1, '2026-09-07', 0, 2300)['charge']);
         $this->assertSame(0.0, $policy->calculate(1, '2026-09-14', 50, 2300)['charge']);
         $this->assertSame(0.0, $policy->calculate(2, '2026-09-14', 0, 2300)['charge']);
