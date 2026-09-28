@@ -211,8 +211,12 @@ trait Reports
 
                 if ($combustion_total > 0) {
                     $fuel_transactions = $combustion_total;
+                    $chargePolicy = app(\App\Services\WeeklyDriverChargePolicy::class);
                     $electricCost = (float) $combustionTransactions
-                        ->filter(fn ($transaction) => $transaction->unit === 'kWh')->sum('total');
+                        ->filter(fn ($transaction) => $chargePolicy->isElectricTransaction(
+                            (string) $transaction->supplier,
+                            (string) $transaction->unit
+                        ))->sum('total');
                 }
             }
 

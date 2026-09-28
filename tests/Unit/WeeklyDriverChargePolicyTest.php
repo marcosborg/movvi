@@ -20,4 +20,14 @@ class WeeklyDriverChargePolicyTest extends TestCase
         $this->assertSame(0.0, $policy->companyPaidCharging(2, '2026-09-14', 60.0, 123.45));
         $this->assertSame(0.0, $policy->companyPaidCharging(1, '2026-09-14', 60.0, -2));
     }
+
+    public function test_prio_transactions_are_charging_even_when_the_card_type_is_missing(): void
+    {
+        $policy = new WeeklyDriverChargePolicy;
+
+        $this->assertTrue($policy->isElectricTransaction('prio', 'L'));
+        $this->assertTrue($policy->isElectricTransaction('repsol', 'kWh'));
+        $this->assertFalse($policy->isElectricTransaction('prio_combustao', 'L'));
+        $this->assertFalse($policy->isElectricTransaction('repsol', 'L'));
+    }
 }
