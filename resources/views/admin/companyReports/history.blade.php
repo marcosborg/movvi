@@ -98,8 +98,6 @@
                         <th style="text-align: right;">Liquido Bolt</th>
                         <th style="text-align: right; display: none;">Liquido operadores</th>
                         <th style="text-align: right;">Gorjetas</th>
-                        <th style="text-align: right;">Taxa 6%</th>
-                        <th style="text-align: right; display: none;">Depois da taxa 6%</th>
                         <th style="text-align: right;">Abastecimento</th>
                         <th style="text-align: right;">Ajustes</th>
                         <th style="text-align: right;">Via verde</th>
@@ -136,14 +134,6 @@
                             0, 2) }} <small>€</small>
                         </td>
                         <td style="text-align: right;">{{ number_format($driver->earnings['tips_total'], 2)
-                            }}
-                            <small>€</small>
-                        </td>
-                        <td style="text-align: right; color: red;">{{ number_format($driver->earnings['iva_value'], 2)
-                            }}
-                            <small>€</small>
-                        </td>
-                        <td style="text-align: right; display: none;">{{ number_format($driver->earnings['total_after_vat'], 2)
                             }}
                             <small>€</small>
                         </td>
@@ -188,12 +178,6 @@
                             }} <small>€</small>
                         </th>
                         <th style="text-align: right;">{{ number_format($totals['tips_total'], 2)
-                            }} <small>€</small>
-                        </th>
-                        <th style="text-align: right; color: red;">{{ number_format($totals['total_iva_value'], 2) }}
-                            <small>€</small>
-                        </th>
-                        <th style="text-align: right; display: none;">{{ number_format($totals['total_earnings_after_vat'], 2)
                             }} <small>€</small>
                         </th>
                         <th style="text-align: right;">-{{ number_format($totals['total_fuel_transactions'], 2) }}

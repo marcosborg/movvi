@@ -292,7 +292,18 @@ class VehicleProfitabilityController extends Controller
         $companyId = session('company_id');
 
         if (! $companyId || $companyId === '0' || $companyId === 0) {
-            return null;
+            $connectedCompanyIds = Company::query()
+                ->whereHas('conta_azul_connection', fn ($query) => $query->whereNotNull('access_token'))
+                ->orderBy('id')
+                ->limit(2)
+                ->pluck('id');
+
+            if ($connectedCompanyIds->count() !== 1) {
+                return null;
+            }
+
+            $companyId = (int) $connectedCompanyIds->first();
+            session()->put('company_id', $companyId);
         }
 
         return (int) $companyId;

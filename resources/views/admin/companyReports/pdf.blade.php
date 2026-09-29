@@ -57,7 +57,6 @@
                 <th>KM excedidos</th>
                 <th>€/km</th>
                 <th>Gorjetas</th>
-                <th>Taxa 6%</th>
                 <th>Combustível</th>
                 <th>Ajustes</th>
                 <th>Via Verde</th>
@@ -81,7 +80,6 @@
                     <td class="nowrap">{{ number_format($driver->earnings['excess_km'] ?? 0, 1) }} km / -{{ number_format($driver->earnings['excess_km_charge'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings_per_km ?? 0, 3) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['tips_total'] ?? 0, 2) }} &euro;</td>
-                    <td class="nowrap">{{ number_format($driver->earnings['iva_value'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->fuel ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->adjustments ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['car_track'] ?? 0, 2) }} &euro;</td>
@@ -110,7 +108,6 @@
                 <th>{{ number_format($totals['total_excess_km'] ?? 0, 1) }} km / -{{ number_format($totals['total_excess_km_charge'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_earnings_per_km'] ?? 0, 3) }} &euro;</th>
                 <th>{{ number_format($totals['tips_total'] ?? 0, 2) }} &euro;</th>
-                <th>{{ number_format($totals['total_iva_value'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_fuel_transactions'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_adjustments'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_car_track'] ?? 0, 2) }} &euro;</th>
@@ -175,31 +172,5 @@
         </tbody>
     </table>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Duplo check Uber/Bolt vs conta</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Sem diferença</td>
-                <td>{{ number_format($totals['receipt_check_match_count'] ?? 0, 0) }}</td>
-            </tr>
-            <tr>
-                <td>Divergente</td>
-                <td>{{ number_format($totals['receipt_check_mismatch_count'] ?? 0, 0) }}</td>
-            </tr>
-            <tr>
-                <td>Sem recibo validado</td>
-                <td>{{ number_format($totals['receipt_check_missing_count'] ?? 0, 0) }}</td>
-            </tr>
-            <tr>
-                <td>Diferenca agregada</td>
-                <td>{{ number_format($totals['receipt_check_difference_total'] ?? 0, 2) }} &euro;</td>
-            </tr>
-        </tbody>
-    </table>
 </body>
 </html>

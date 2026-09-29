@@ -6,15 +6,15 @@
 
 <table>
     <tr>
-        <th colspan="19">Extrato de Condutores</th>
+        <th colspan="20">Extrato de Condutores</th>
     </tr>
     <tr>
         <th>Empresa</th>
-        <td colspan="18">{{ $company->name ?? 'Empresa' }}</td>
+        <td colspan="19">{{ $company->name ?? 'Empresa' }}</td>
     </tr>
     <tr>
         <th>Semana</th>
-        <td colspan="18">{{ optional($tvde_week)->start_date }} a {{ optional($tvde_week)->end_date }} (Semana {{ $weekNumber }}/{{ $weekYear }})</td>
+        <td colspan="19">{{ optional($tvde_week)->start_date }} a {{ optional($tvde_week)->end_date }} (Semana {{ $weekNumber }}/{{ $weekYear }})</td>
     </tr>
 </table>
 
@@ -30,7 +30,6 @@
             <th>Custo KM excedidos</th>
             <th>EUR/km</th>
             <th>Gorjetas</th>
-            <th>Taxa 6%</th>
             <th>Combustivel</th>
             <th>Ajustes</th>
             <th>Via Verde</th>
@@ -56,7 +55,6 @@
                 <td>{{ -($driver->earnings['excess_km_charge'] ?? 0) }}</td>
                 <td>{{ $driver->earnings_per_km ?? 0 }}</td>
                 <td>{{ $driver->earnings['tips_total'] ?? 0 }}</td>
-                <td>{{ $driver->earnings['iva_value'] ?? 0 }}</td>
                 <td>{{ $driver->fuel ?? 0 }}</td>
                 <td>{{ $driver->adjustments ?? 0 }}</td>
                 <td>{{ $driver->earnings['car_track'] ?? 0 }}</td>
@@ -82,7 +80,6 @@
             <th>{{ -($totals['total_excess_km_charge'] ?? 0) }}</th>
             <th>{{ $totals['total_earnings_per_km'] ?? 0 }}</th>
             <th>{{ $totals['tips_total'] ?? 0 }}</th>
-            <th>{{ $totals['total_iva_value'] ?? 0 }}</th>
             <th>{{ $totals['total_fuel_transactions'] ?? 0 }}</th>
             <th>{{ $totals['total_adjustments'] ?? 0 }}</th>
             <th>{{ $totals['total_car_track'] ?? 0 }}</th>
@@ -125,33 +122,6 @@
         <tr>
             <td>Caucao devolvida</td>
             <td>{{ $totals['total_caution_returned'] ?? 0 }}</td>
-        </tr>
-    </tbody>
-</table>
-
-<table>
-    <thead>
-        <tr>
-            <th>Duplo check Uber/Bolt vs conta</th>
-            <th>Total</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>Sem diferenca</td>
-            <td>{{ $totals['receipt_check_match_count'] ?? 0 }}</td>
-        </tr>
-        <tr>
-            <td>Divergente</td>
-            <td>{{ $totals['receipt_check_mismatch_count'] ?? 0 }}</td>
-        </tr>
-        <tr>
-            <td>Sem recibo validado</td>
-            <td>{{ $totals['receipt_check_missing_count'] ?? 0 }}</td>
-        </tr>
-        <tr>
-            <td>Diferenca agregada</td>
-            <td>{{ $totals['receipt_check_difference_total'] ?? 0 }}</td>
         </tr>
     </tbody>
 </table>

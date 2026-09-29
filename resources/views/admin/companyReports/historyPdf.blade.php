@@ -39,7 +39,6 @@
                 <th class="text-right">Liquido Uber</th>
                 <th class="text-right">Liquido Bolt</th>
                 <th class="text-right">Gorjetas</th>
-                <th class="text-right">Taxa 6%</th>
                 <th class="text-right">Abastecimento</th>
                 <th class="text-right">Ajustes</th>
                 <th class="text-right">Via verde</th>
@@ -59,7 +58,6 @@
                 <td class="text-right">{{ number_format($driver->earnings['uber']['uber_net'] ?? 0, 2) }}</td>
                 <td class="text-right">{{ number_format($driver->earnings['bolt']['bolt_net'] ?? 0, 2) }}</td>
                 <td class="text-right">{{ number_format($driver->earnings['tips_total'] ?? 0, 2) }}</td>
-                <td class="text-right">{{ number_format($driver->earnings['iva_value'] ?? 0, 2) }}</td>
                 <td class="text-right">{{ number_format($driver->fuel ?? 0, 2) }}</td>
                 <td class="text-right">{{ number_format($driver->adjustments ?? 0, 2) }}</td>
                 <td class="text-right">{{ number_format($driver->earnings['car_track'] ?? 0, 2) }}</td>
@@ -79,7 +77,6 @@
                 <th class="text-right">{{ number_format($totals['net_uber'] ?? 0, 2) }}</th>
                 <th class="text-right">{{ number_format($totals['net_bolt'] ?? 0, 2) }}</th>
                 <th class="text-right">{{ number_format($totals['tips_total'] ?? 0, 2) }}</th>
-                <th class="text-right">{{ number_format($totals['total_iva_value'] ?? 0, 2) }}</th>
                 <th class="text-right">{{ number_format($totals['total_fuel_transactions'] ?? 0, 2) }}</th>
                 <th class="text-right">{{ number_format($totals['total_adjustments'] ?? 0, 2) }}</th>
                 <th class="text-right">{{ number_format($totals['total_car_track'] ?? 0, 2) }}</th>

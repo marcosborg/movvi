@@ -34,10 +34,6 @@
         color: #00a65a;
     }
 
-    .receipt-check-cell {
-        min-width: 150px;
-    }
-
     .report-toolbar {
         display: flex;
         gap: 10px;
@@ -159,15 +155,6 @@
         @include('admin.partials.weekQuickSelect', ['tvde_weeks' => $tvde_weeks, 'tvde_week_id' => $tvde_week_id])
 
         <div class="row" style="margin-top: 20px;">
-            <div class="col-md-3">
-                <div class="panel panel-default">
-                    <div class="panel-heading">Duplo check OK</div>
-                    <div class="panel-body">
-                        <h3 style="margin: 0;">{{ $totals['receipt_check_match_count'] ?? 0 }}</h3>
-                        <small>Sem diferenca entre Uber/Bolt e valor recebido</small>
-                    </div>
-                </div>
-            </div>
             <div class="col-md-3">
                 <div class="panel panel-default">
                     <div class="panel-heading">Total motoristas</div>
@@ -335,12 +322,6 @@
                         <option value="validated">Validados</option>
                         <option value="pending">Pendentes</option>
                     </select>
-                    <select id="reportReceiptCheckFilter" class="form-control">
-                        <option value="all">Todos os duplos checks</option>
-                        <option value="match">Duplo check OK</option>
-                        <option value="mismatch">Duplo check divergente</option>
-                        <option value="missing">Sem recibo validado</option>
-                    </select>
                 </div>
             </div>
             <div class="table-sticky-container">
@@ -359,8 +340,6 @@
                             <th style="text-align: right;">€/km</th>
                             <th style="text-align: right; display: none;">Líquido operadores</th>
                             <th style="text-align: right;">Gorjetas</th>
-                            <th style="text-align: right;">Taxa 6%</th>
-                            <th style="text-align: right; display: none;">Depois da taxa 6%</th>
                             <th style="text-align: right;">Abastecimento</th>
                             <th style="text-align: right;">Ajustes</th>
                             <th style="text-align: right;">Via verde</th>
@@ -370,8 +349,6 @@
                             <th style="text-align: right">Valor da semana</th>
                             <th style="text-align: right">Último saldo</th>
                             <th style="text-align: right">Novo saldo</th>
-                            <th style="text-align: right;">Recebido conta</th>
-                            <th style="text-align: right;">Dif. conta</th>
                             <th style="text-align: center">Estado saldo</th>
                             <th style="text-align: right">Validar</th>
                             <th></th>
@@ -385,7 +362,6 @@
                                     data-driver="{{ mb_strtolower($driver->name ?? '') }}"
                                     data-plate="{{ mb_strtolower($driver->license_plate ?? '') }}"
                                     data-validation="{{ $driver->current_account ? 'validated' : 'pending' }}"
-                                    data-receipt-check="{{ $driver->receipt_check['status'] ?? 'missing' }}"
                                 >
                                     <td>{{ $driver->name }}</td>
                                     <td>{{ $driver->license_plate ?? '-' }}</td>
@@ -404,8 +380,6 @@
                                     <td style="text-align: right">{{ number_format($driver->earnings_per_km ?? 0, 3) }} <small>€</small></td>
                                     <td style="text-align: right; display: none;">{{ number_format($driver->earnings['total_net'] ?? 0, 2) }} <small>€</small></td>
                                     <td style="text-align: right;">{{ number_format($driver->earnings['tips_total'], 2) }} <small>€</small></td>
-                                    <td style="text-align: right; color: red;">{{ number_format($driver->earnings['iva_value'], 2) }} <small>€</small></td>
-                                    <td style="text-align: right; display: none;">{{ number_format($driver->earnings['total_after_vat'], 2) }} <small>€</small></td>
                                     <td style="text-align: right;">-{{ number_format($driver->fuel, 2) }} <small>€</small>
                                         @if($driver->company_paid_charging > 0)
                                             <br><small>Empresa: {{ number_format($driver->company_paid_charging, 2) }} €</small>
@@ -429,27 +403,6 @@
                                     <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>€</small></td>
                                     <td style="text-align: right">{{ number_format($driver->last_balance, 2) }} <small>€</small></td>
                                     <td style="text-align: right">{{ number_format($driver->new_balance, 2) }} <small>€</small></td>
-                                    <td style="text-align: right" class="receipt-check-cell">
-                                        @if(($driver->receipt_check['received_in_account'] ?? null) !== null)
-                                            {{ number_format($driver->receipt_check['received_in_account'], 2) }} <small>&euro;</small>
-                                        @else
-                                            <span class="text-muted">Sem recibo validado</span>
-                                        @endif
-                                    </td>
-                                    <td style="text-align: right" class="receipt-check-cell">
-                                        @if(($driver->receipt_check['difference'] ?? null) !== null)
-                                            @php $receiptDifference = $driver->receipt_check['difference']; @endphp
-                                            <strong class="{{ abs($receiptDifference) <= 0.01 ? 'text-success' : 'text-danger' }}">
-                                                {{ number_format($receiptDifference, 2) }} <small>&euro;</small>
-                                            </strong>
-                                            <br>
-                                            <span class="label {{ abs($receiptDifference) <= 0.01 ? 'label-success' : 'label-danger' }}">
-                                                {{ abs($receiptDifference) <= 0.01 ? 'OK' : 'Divergente' }}
-                                            </span>
-                                        @else
-                                            <span class="label label-default">Sem recibo validado</span>
-                                        @endif
-                                    </td>
                                     <td style="text-align: center">
                                         @if($driver->balance_manual_status_label)
                                             <span class="label label-primary">{{ $driver->balance_manual_status_label }}</span>
@@ -488,8 +441,6 @@
                             <th style="text-align: right;">{{ number_format($totals['total_earnings_per_km'] ?? 0, 3) }} <small>&euro;/km</small></th>
                             <th style="text-align: right; display: none;">{{ number_format($totals['total_net_operators'], 2) }} <small>&euro;</small></th>
                             <th style="text-align: right;">{{ number_format($totals['tips_total'], 2) }} <small>&euro;</small></th>
-                            <th style="text-align: right; color: red;">{{ number_format($totals['total_iva_value'], 2) }} <small>&euro;</small></th>
-                            <th style="text-align: right; display: none;">{{ number_format($totals['total_earnings_after_vat'], 2) }} <small>&euro;</small></th>
                             <th style="text-align: right;">-{{ number_format($totals['total_fuel_transactions'], 2) }} <small>&euro;</small>
                                 @if(($totals['total_company_paid_charging'] ?? 0) > 0)
                                     <br><small>Empresa: {{ number_format($totals['total_company_paid_charging'], 2) }} €</small>
@@ -506,13 +457,6 @@
                             <th style="text-align: right;">{{ number_format($totals['total_drivers'], 2) }} <small>&euro;</small></th>
                             <th></th>
                             <th></th>
-                            <th style="text-align: right;">{{ number_format($totals['receipt_check_received_total'] ?? 0, 2) }} <small>&euro;</small></th>
-                            <th style="text-align: right;">
-                                @php $receiptDifferenceTotal = $totals['receipt_check_difference_total'] ?? 0; @endphp
-                                <span class="{{ abs($receiptDifferenceTotal) <= 0.01 ? 'text-success' : 'text-danger' }}">
-                                    {{ number_format($receiptDifferenceTotal, 2) }} <small>&euro;</small>
-                                </span>
-                            </th>
                             <th></th>
                             <th></th>
                             <th></th>
@@ -590,7 +534,6 @@
         const sortByFilter = document.getElementById('reportSortBy');
         const sortDirectionFilter = document.getElementById('reportSortDirection');
         const validationFilter = document.getElementById('reportValidationFilter');
-        const receiptCheckFilter = document.getElementById('reportReceiptCheckFilter');
         const rows = Array.from(document.querySelectorAll('.report-driver-row'));
 
         const updateSortParams = () => {
@@ -606,25 +549,21 @@
         const applyReportFilters = () => {
             const search = (searchInput?.value || '').trim().toLowerCase();
             const validation = validationFilter?.value || 'all';
-            const receiptCheck = receiptCheckFilter?.value || 'all';
 
             rows.forEach((row) => {
                 const driver = row.dataset.driver || '';
                 const plate = row.dataset.plate || '';
                 const rowValidation = row.dataset.validation || 'pending';
-                const rowReceiptCheck = row.dataset.receiptCheck || 'missing';
 
                 const matchesSearch = search === '' || driver.includes(search) || plate.includes(search);
                 const matchesValidation = validation === 'all' || rowValidation === validation;
-                const matchesReceiptCheck = receiptCheck === 'all' || rowReceiptCheck === receiptCheck;
 
-                row.style.display = matchesSearch && matchesValidation && matchesReceiptCheck ? '' : 'none';
+                row.style.display = matchesSearch && matchesValidation ? '' : 'none';
             });
         };
 
         searchInput?.addEventListener('input', applyReportFilters);
         validationFilter?.addEventListener('change', applyReportFilters);
-        receiptCheckFilter?.addEventListener('change', applyReportFilters);
     });
 
     function deleteData(tvde_week_id, driver_id) {
