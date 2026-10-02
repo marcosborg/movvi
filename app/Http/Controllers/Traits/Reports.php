@@ -113,6 +113,7 @@ trait Reports
         $uber_tips_total = [];
         $bolt_tips_total = [];
         $tips_total_all = [];
+        $referral_bonus_total_all = [];
         $total_base_before_vat = [];
         $total_after_vat_arr = [];
         $total_after_vat_plus_tips = [];
@@ -152,6 +153,7 @@ trait Reports
             $uber_tips = (float) $uber_activities->sum(function ($a) {
                 return $a->tips ?? 0;
             });
+            $uber_referral_bonus = (float) $uber_activities->sum('referral_bonus');
 
             // ---------- Atividades BOLT ----------
             $bolt_activities = TvdeActivity::where([
@@ -165,18 +167,21 @@ trait Reports
             $bolt_tips = (float) $bolt_activities->sum(function ($a) {
                 return $a->tips ?? 0;
             });
+            $bolt_referral_bonus = (float) $bolt_activities->sum('referral_bonus');
 
             // EARNINGS (por operador)
             $uber = collect([
                 'uber_gross' => $uber_gross,
                 'uber_net' => $uber_net,
                 'uber_tips' => $uber_tips,
+                'uber_referral_bonus' => $uber_referral_bonus,
             ]);
 
             $bolt = collect([
                 'bolt_gross' => $bolt_gross,
                 'bolt_net' => $bolt_net,
                 'bolt_tips' => $bolt_tips,
+                'bolt_referral_bonus' => $bolt_referral_bonus,
             ]);
 
             $gross_total = $uber_gross + $bolt_gross;
@@ -297,10 +302,11 @@ trait Reports
             // DRIVER PAYOUT (NET - TIPS - IVA 6% - COMPANY % - EXPENSES + ADJUSTMENTS + TIPS)
             // =======================
             $tips_total = $uber_tips + $bolt_tips;
+            $referral_bonus_total = $uber_referral_bonus + $bolt_referral_bonus;
 
             // Base from platforms excludes tips and fuel (tips are passed through in full at the end).
             // Fuel is removed only to compute IVA, then added back before company percentage.
-            $base_before_taxes = $net_total - $tips_total - $driver->fuel;
+            $base_before_taxes = $net_total - $tips_total - $referral_bonus_total - $driver->fuel;
 
             // IVA comes from the contract VAT model (default 6%) per payout rule.
             $iva_rate = (($driver->contract_vat ? (float) ($driver->contract_vat->iva ?? 6.0) : 6.0) / 100.0);
@@ -326,7 +332,7 @@ trait Reports
 
             // Final driver total: base after taxes/percent - expenses + adjustments + caution movements + tips.
             $subtotal_after_tips = $base_after_company - $expenses_total;
-            $final_total = $subtotal_after_tips + $adjustments + $caution_received + $caution_returned + $tips_total;
+            $final_total = $subtotal_after_tips + $adjustments + $caution_received + $caution_returned + $tips_total + $referral_bonus_total;
             $earnings_per_km = $driver->weekly_km > 0
                 ? round($net_total / $driver->weekly_km, 6)
                 : 0.0;
@@ -355,6 +361,7 @@ trait Reports
 
                 // Tips e pipeline
                 'tips_total' => $tips_total,
+                'referral_bonus' => $referral_bonus_total,
                 'base_before_vat' => $base_before_taxes,
                 'base_after_company' => $base_after_company,
 
@@ -497,6 +504,7 @@ trait Reports
             $uber_tips_total[] = $uber_tips;
             $bolt_tips_total[] = $bolt_tips;
             $tips_total_all[] = $tips_total;
+            $referral_bonus_total_all[] = $referral_bonus_total;
             $total_base_before_vat[] = $base_before_taxes;
             $total_after_vat_arr[] = $after_vat;
             $total_after_vat_plus_tips[] = $subtotal_after_tips;
@@ -532,6 +540,7 @@ trait Reports
             'uber_tips_total' => array_sum($uber_tips_total),
             'bolt_tips_total' => array_sum($bolt_tips_total),
             'tips_total' => array_sum($tips_total_all),
+            'total_referral_bonus' => array_sum($referral_bonus_total_all),
 
             // Pipeline
             'total_base_before_vat' => array_sum($total_base_before_vat),
@@ -1564,7 +1573,6 @@ trait Reports
         $company_data->save();
     }
 }
-
 
 
 

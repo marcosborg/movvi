@@ -27,6 +27,7 @@ class TvdeActivity extends Model
         'gross',
         'net',
         'tips',
+        'referral_bonus',
         'created_at',
         'updated_at',
         'deleted_at',

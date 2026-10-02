@@ -31,7 +31,11 @@ class DriverController extends Controller
         abort_if(Gate::denies('driver_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
-            $query = Driver::with(['user', 'card', 'cards', 'electric', 'tool_card', 'local', 'contract_vat', 'state', 'company'])->select(sprintf('%s.*', (new Driver)->table));
+            $query = Driver::with([
+                'user', 'card', 'cards', 'electric', 'tool_card', 'local', 'contract_vat', 'state', 'company',
+                'vehicles:id,driver_id,license_plate',
+                'activeVehicleUsages.vehicle_item:id,license_plate',
+            ])->select(sprintf('%s.*', (new Driver)->table));
             $table = Datatables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
@@ -132,6 +136,24 @@ class DriverController extends Controller
             });
             $table->editColumn('license_plate', function ($row) {
                 return $row->license_plate ? $row->license_plate : '';
+            });
+            $table->addColumn('active_vehicle_plates', function ($row) {
+                return $row->vehicles
+                    ->pluck('license_plate')
+                    ->merge($row->activeVehicleUsages->pluck('vehicle_item.license_plate'))
+                    ->filter()
+                    ->unique()
+                    ->sort()
+                    ->implode(', ');
+            });
+            $table->filterColumn('active_vehicle_plates', function ($query, $keyword) {
+                $query->where(function ($driverQuery) use ($keyword) {
+                    $driverQuery->whereHas('vehicles', function ($vehicleQuery) use ($keyword) {
+                        $vehicleQuery->where('license_plate', 'like', '%' . $keyword . '%');
+                    })->orWhereHas('activeVehicleUsages.vehicle_item', function ($vehicleQuery) use ($keyword) {
+                        $vehicleQuery->where('license_plate', 'like', '%' . $keyword . '%');
+                    });
+                });
             });
             $table->editColumn('brand', function ($row) {
                 return $row->brand ? $row->brand : '';

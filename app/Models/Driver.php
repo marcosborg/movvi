@@ -181,6 +181,23 @@ class Driver extends Model
         return $this->hasMany(VehicleUsage::class, 'driver_id', 'id');
     }
 
+    public function activeVehicleUsages()
+    {
+        return $this->hasMany(VehicleUsage::class, 'driver_id', 'id')
+            ->where('start_date', '<=', now())
+            ->where(function ($query) {
+                $query->whereNull('end_date')->orWhere('end_date', '>=', now());
+            })
+            ->where(function ($query) {
+                $query->where('usage_exceptions', 'usage')->orWhereNull('usage_exceptions');
+            });
+    }
+
+    public function vehicles()
+    {
+        return $this->hasMany(VehicleItem::class, 'driver_id', 'id');
+    }
+
     public function boltIdentifiers(): array
     {
         return collect([

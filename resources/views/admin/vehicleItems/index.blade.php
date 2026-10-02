@@ -49,6 +49,9 @@
                                         Suspended
                                     </th>
                                     <th>
+                                        Tipo
+                                    </th>
+                                    <th>
                                         {{ trans('cruds.vehicleItem.fields.documents') }}
                                     </th>
                                     <th>
@@ -86,6 +89,9 @@
                                         <td>
                                             <span style="display:none">{{ $vehicleItem->suspended ?? '' }}</span>
                                             <input type="checkbox" disabled="disabled" {{ $vehicleItem->suspended ? 'checked' : '' }}>
+                                        </td>
+                                        <td>
+                                            {{ $vehicleItem->is_service_vehicle ? 'Viatura de serviço' : 'Operacional' }}
                                         </td>
                                         <td>
                                             @foreach($vehicleItem->documents as $key => $media)

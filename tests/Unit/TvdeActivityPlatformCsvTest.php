@@ -97,6 +97,34 @@ class TvdeActivityPlatformCsvTest extends TestCase
         $this->assertSame(11.58, $activity['tips']);
     }
 
+    public function test_it_reads_uber_referral_bonus_column(): void
+    {
+        $harness = new class extends TvdeActivityController {
+            public function mapping(array $header): array
+            {
+                return $this->resolvePlatformCsvMappingFromHeader($header, 'uber', $this->platformCsvMapping('uber'));
+            }
+
+            public function activity(array $row, array $mapping): ?array
+            {
+                return $this->mapPlatformActivityRow($row, $mapping, 10, 20, 30);
+            }
+        };
+
+        $header = [
+            'UUID do motorista',
+            'Pago a si',
+            'Pago a si : Os seus rendimentos : Tarifa',
+            'Pago a si:Os seus rendimentos:Gratificação',
+            'Promoção: recompensa de recomendação',
+        ];
+        $mapping = $harness->mapping($header);
+        $activity = $harness->activity(['driver-1', '175', '200', '5', '100'], $mapping);
+
+        $this->assertSame(4, $mapping['referral_bonus']);
+        $this->assertSame(100.0, $activity['referral_bonus']);
+    }
+
     public function test_it_reads_current_bolt_csv_export_format(): void
     {
         $harness = new class extends TvdeActivityController {

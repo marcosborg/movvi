@@ -259,6 +259,7 @@ class TvdeActivityController extends Controller
                 $rows[$signature]['gross'] += $activity['gross'];
                 $rows[$signature]['net'] += $activity['net'];
                 $rows[$signature]['tips'] += $activity['tips'];
+                $rows[$signature]['referral_bonus'] += $activity['referral_bonus'];
                 continue;
             }
 
@@ -291,6 +292,7 @@ class TvdeActivityController extends Controller
                         'gross' => $activity['gross'],
                         'net' => $activity['net'],
                         'tips' => $activity['tips'],
+                        'referral_bonus' => $activity['referral_bonus'],
                     ])->save();
 
                     continue;
@@ -317,7 +319,7 @@ class TvdeActivityController extends Controller
                     'driver_id' => $driver?->id,
                     'source_hash' => hash('sha256', implode('|', [
                         $index, $activity['driver_code'], $activity['occurred_at'] ?? '',
-                        $activity['gross'], $activity['net'], $activity['tips'],
+                        $activity['gross'], $activity['net'], $activity['tips'], $activity['referral_bonus'],
                     ])),
                 ]);
                 $allocator->allocate($entry);
@@ -361,6 +363,7 @@ class TvdeActivityController extends Controller
                 'gross' => 6,
                 'net' => 3,
                 'tips' => 18,
+                'referral_bonus' => null,
                 'occurred_at' => null,
             ];
         }
@@ -371,6 +374,7 @@ class TvdeActivityController extends Controller
             'gross' => 3,
             'net' => 21,
             'tips' => 9,
+            'referral_bonus' => null,
             'occurred_at' => null,
         ];
     }
@@ -384,6 +388,12 @@ class TvdeActivityController extends Controller
                 'gross' => ['Pago a si : Os seus rendimentos : Tarifa'],
                 'net' => ['Pago a si'],
                 'tips' => ['Pago a si:Os seus rendimentos:Gratificacao', 'Pago a si:Os seus rendimentos:Gratificação'],
+                'referral_bonus' => [
+                    'Promocao: recompensa de recomendacao',
+                    'Promoção: recompensa de recomendação',
+                    'Pago a si:Promocao:Recompensa de recomendacao',
+                    'Pago a si:Promoção:Recompensa de recomendação',
+                ],
                 'occurred_at' => ['Data/hora', 'Data e hora', 'Hora da viagem', 'Data da viagem', 'Inicio da viagem', 'Início da viagem'],
             ]
             : [
@@ -392,6 +402,7 @@ class TvdeActivityController extends Controller
                 'gross' => ['Ganhos brutos (total)|EUR', 'Ganhos brutos (total)|€'],
                 'net' => ['Ganhos liquidos|EUR', 'Ganhos liquidos|€'],
                 'tips' => ['Gorjetas dos passageiros|EUR', 'Gorjetas dos passageiros|€'],
+                'referral_bonus' => [],
                 'occurred_at' => ['Data/hora', 'Data e hora', 'Hora de inicio', 'Hora de início', 'Data da viagem'],
             ];
 
@@ -452,6 +463,11 @@ class TvdeActivityController extends Controller
         $gross = $this->normalizeImportedNumber($row[$mapping['gross']] ?? null);
         $net = $this->normalizeImportedNumber($row[$mapping['net']] ?? null);
         $tips = $this->normalizeImportedNumber($row[$mapping['tips']] ?? null);
+        $referralBonus = $this->normalizeImportedNumber(
+            isset($mapping['referral_bonus']) && $mapping['referral_bonus'] !== null
+                ? ($row[$mapping['referral_bonus']] ?? null)
+                : null
+        );
         $occurredAt = $this->normalizeActivityDate(
             isset($mapping['occurred_at']) && $mapping['occurred_at'] !== null
                 ? ($row[$mapping['occurred_at']] ?? null)
@@ -474,6 +490,7 @@ class TvdeActivityController extends Controller
             'gross' => $gross ?? 0,
             'net' => $net ?? 0,
             'tips' => $tips ?? 0,
+            'referral_bonus' => $referralBonus ?? 0,
             'occurred_at' => $occurredAt,
         ];
     }

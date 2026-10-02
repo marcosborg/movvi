@@ -31,7 +31,7 @@
                     <tbody>
                         @foreach ($results as $r)
                         <tr>
-                            <td>{{ \Carbon\Carbon::parse($r['week']->start_date)->format('d/m') }} a {{ \Carbon\Carbon::parse($r['week']->end_date)->format('d/m') }}</td>
+                            <td>{{ \Carbon\Carbon::parse($r['week']->start_date)->format('d/m/Y') }} a {{ \Carbon\Carbon::parse($r['week']->end_date)->format('d/m/Y') }}</td>
                             <td>{{ number_format($r['uber_gross'], 2, ',', '.') }} €</td>
                             <td>{{ number_format($r['bolt_gross'], 2, ',', '.') }} €</td>
                             <td>{{ number_format($r['uber_net'], 2, ',', '.') }} €</td>

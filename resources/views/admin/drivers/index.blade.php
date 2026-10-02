@@ -40,6 +40,9 @@
                                     {{ trans('cruds.driver.fields.code') }}
                                 </th>
                                 <th>
+                                    Motorista
+                                </th>
+                                <th>
                                     {{ trans('cruds.driver.fields.contract_vat') }}
                                 </th>
                                 <th>
@@ -56,6 +59,9 @@
                                 </th>
                                 <th>
                                     {{ trans('cruds.driver.fields.company') }}
+                                </th>
+                                <th>
+                                    Viaturas atribuídas agora
                                 </th>
                                 <th>
                                     &nbsp;
@@ -120,12 +126,14 @@
 { data: 'user_name', name: 'user.name' },
 { data: 'user.email', name: 'user.email' },
 { data: 'code', name: 'code' },
+{ data: 'name', name: 'name' },
 { data: 'contract_vat_name', name: 'contract_vat.name' },
 { data: 'state_name', name: 'state.name' },
 { data: 'uber_uuid', name: 'uber_uuid' },
 { data: 'bolt_name', name: 'bolt_name' },
 { data: 'bolt_individual_id', name: 'bolt_individual_id' },
 { data: 'company_name', name: 'company.name' },
+{ data: 'active_vehicle_plates', name: 'active_vehicle_plates', orderable: false, searchable: true },
 { data: 'actions', name: '{{ trans('global.actions') }}' }
     ],
     orderCellsTop: true,

@@ -107,10 +107,18 @@
                             </tr>
                             <tr>
                                 <th>Ganhos</th>
-                                <td>{{ number_format($total_net, 2) }}€</td>
+                                <td>{{ number_format($total_net - ($referral_bonus ?? 0), 2) }}€</td>
                                 <td></td>
-                                <td>{{ number_format($total_net, 2) }}€</td>
+                                <td>{{ number_format($total_net - ($referral_bonus ?? 0), 2) }}€</td>
                             </tr>
+                            @if (($referral_bonus ?? 0) > 0)
+                            <tr>
+                                <th>Bónus de recomendação Uber <small>(100% motorista, sem IVA nem comissão)</small></th>
+                                <td>{{ number_format($referral_bonus, 2) }}€</td>
+                                <td></td>
+                                <td>{{ number_format($referral_bonus, 2) }}€</td>
+                            </tr>
+                            @endif
                             <tr>
                                 <th>Cedência</th>
                                 <td></td>
@@ -137,6 +145,14 @@
                                 <td>- {{ number_format($fuel_transactions, 2) }}€</td>
                                 <td>- {{ number_format($fuel_transactions, 2) }}€</td>
                             </tr>
+                            @if (($excess_km_charge ?? 0) > 0)
+                            <tr>
+                                <th>KM excedidos <small>({{ number_format($excess_km ?? 0, 1, ',', '.') }} km × {{ number_format($excess_km_rate ?? 0, 2, ',', '.') }} €/km; limite {{ number_format($excess_km_limit ?? 0, 0, ',', '.') }} km)</small></th>
+                                <td></td>
+                                <td>- {{ number_format($excess_km_charge, 2) }}€</td>
+                                <td>- {{ number_format($excess_km_charge, 2) }}€</td>
+                            </tr>
+                            @endif
                             <tr>
                                 <th>Acertos</th>
                                 <td>{{ $general_adjustments > 0 ? number_format($general_adjustments, 2) . '€' : '' }}</td>

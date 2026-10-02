@@ -8,7 +8,7 @@ class TvdeActivityEntry extends Model
 {
     protected $fillable = [
         'tvde_week_id', 'tvde_operator_id', 'company_id', 'driver_id', 'vehicle_item_id',
-        'driver_code', 'occurred_at', 'gross', 'net', 'tips', 'allocation_status',
+        'driver_code', 'occurred_at', 'gross', 'net', 'tips', 'referral_bonus', 'allocation_status',
         'allocation_reason', 'source_hash',
     ];
 

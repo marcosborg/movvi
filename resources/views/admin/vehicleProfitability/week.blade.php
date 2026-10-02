@@ -94,6 +94,8 @@
                                         @php
                                             $export = $result['export_statuses'][$v['id']] ?? null;
                                             $alreadyExported = $export && $export->status === \App\Models\ContaAzulVehicleRevenueExport::STATUS_EXPORTED;
+                                            $isDivergent = $alreadyExported
+                                                && abs((float) $export->amount - (float) ($v['total_revenue'] ?? 0)) >= 0.01;
                                             $isSelectable = ($v['total_revenue'] ?? 0) > 0 && ! $alreadyExported;
                                         @endphp
                                         <tr>
@@ -117,7 +119,13 @@
                                             <td style="text-align:right;">{{ $v['drivers_count'] ?? 0 }}</td>
                                             <td style="text-align:right;">{{ $v['missing_accounts_count'] ?? 0 }}</td>
                                             <td style="white-space: nowrap;">
-                                                @if($alreadyExported)
+                                                @if($isDivergent)
+                                                    <span class="label label-danger">Divergente</span>
+                                                    <div style="margin-top:6px; font-size:12px; color:#a94442;">
+                                                        Comunicado: {{ number_format($export->amount, 2, ',', '.') }} €<br>
+                                                        Atual: {{ number_format($v['total_revenue'] ?? 0, 2, ',', '.') }} €
+                                                    </div>
+                                                @elseif($alreadyExported)
                                                     <span class="label label-success">Comunicada</span>
                                                 @elseif($export && $export->status === \App\Models\ContaAzulVehicleRevenueExport::STATUS_ERROR)
                                                     <span class="label label-danger">Falhou</span>
