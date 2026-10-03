@@ -5,7 +5,7 @@
         <div style="margin-bottom: 10px;" class="row">
             <div class="col-lg-12">
                 <a class="btn btn-success" href="{{ route('admin.company-expenses.create') }}">
-                    {{ trans('global.add') }} {{ trans('cruds.companyExpense.title_singular') }}
+                    <i class="fas fa-plus"></i> Registar despesa / conta a pagar
                 </a>
             </div>
         </div>
@@ -14,7 +14,7 @@
         <div class="col-lg-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    {{ trans('cruds.companyExpense.title_singular') }} {{ trans('global.list') }}
+                    Central de despesas da empresa e contas a pagar
                 </div>
                 <div class="panel-body">
                     <table class=" table table-bordered table-striped table-hover ajaxTable datatable datatable-CompanyExpense">
@@ -29,12 +29,15 @@
                                 <th>
                                     {{ trans('cruds.companyExpense.fields.name') }}
                                 </th>
+                                <th>Categoria</th>
+                                <th>Fornecedor</th>
                                 <th>
                                     {{ trans('cruds.companyExpense.fields.company') }}
                                 </th>
                                 <th>
-                                    {{ trans('cruds.companyExpense.fields.weekly_value') }}
+                                    Valor (€)
                                 </th>
+                                <th>Tipo</th>
                                 <th>
                                     {{ trans('cruds.companyExpense.fields.start_date') }}
                                 </th>
@@ -44,6 +47,8 @@
                                 <th>
                                     {{ trans('cruds.companyExpense.fields.qty') }}
                                 </th>
+                                <th>Vencimento</th>
+                                <th>Estado</th>
                                 <th>
                                     &nbsp;
                                 </th>
@@ -105,11 +110,16 @@
       { data: 'placeholder', name: 'placeholder' },
 { data: 'id', name: 'id' },
 { data: 'name', name: 'name' },
+{ data: 'category', name: 'category' },
+{ data: 'supplier', name: 'supplier' },
 { data: 'company_name', name: 'company.name' },
 { data: 'weekly_value', name: 'weekly_value' },
+{ data: 'recurrence', name: 'recurrence' },
 { data: 'start_date', name: 'start_date' },
 { data: 'end_date', name: 'end_date' },
 { data: 'qty', name: 'qty' },
+{ data: 'due_date', name: 'due_date' },
+{ data: 'payment_status', name: 'payment_status' },
 { data: 'actions', name: '{{ trans('global.actions') }}' }
     ],
     orderCellsTop: true,

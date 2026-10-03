@@ -1429,11 +1429,18 @@ trait Reports
     {
         $tvde_week = TvdeWeek::find($tvde_week_id);
 
-        $company_expenses = CompanyExpense::where([
-            'company_id' => $company_id,
-        ])
-            ->where('start_date', '<=', $tvde_week->start_date)
-            ->where('end_date', '>=', $tvde_week->end_date)
+        $company_expenses = CompanyExpense::where('company_id', $company_id)
+            ->where('payment_status', '!=', 'cancelled')
+            ->where(function ($query) use ($tvde_week) {
+                $query->where(function ($recurring) use ($tvde_week) {
+                    $recurring->where('recurrence', 'weekly')
+                        ->where('start_date', '<=', $tvde_week->start_date)
+                        ->where('end_date', '>=', $tvde_week->end_date);
+                })->orWhere(function ($oneOff) use ($tvde_week) {
+                    $oneOff->where('recurrence', 'once')
+                        ->whereBetween('start_date', [$tvde_week->start_date, $tvde_week->end_date]);
+                });
+            })
             ->get();
 
         $company_expenses = $company_expenses->map(function ($expense) {
@@ -1573,7 +1580,6 @@ trait Reports
         $company_data->save();
     }
 }
-
 
 
 

@@ -72,6 +72,9 @@ class DriverController extends Controller
             $table->editColumn('name', function ($row) {
                 return $row->name ? $row->name : '';
             });
+            $table->editColumn('start_date', function ($row) {
+                return $row->start_date ?: '';
+            });
             
             $table->addColumn('local_name', function ($row) {
                 return $row->local ? $row->local->name : '';

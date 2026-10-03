@@ -43,6 +43,9 @@
                                     Motorista
                                 </th>
                                 <th>
+                                    {{ trans('cruds.driver.fields.start_date') }}
+                                </th>
+                                <th>
                                     {{ trans('cruds.driver.fields.contract_vat') }}
                                 </th>
                                 <th>
@@ -127,6 +130,7 @@
 { data: 'user.email', name: 'user.email' },
 { data: 'code', name: 'code' },
 { data: 'name', name: 'name' },
+{ data: 'start_date', name: 'start_date' },
 { data: 'contract_vat_name', name: 'contract_vat.name' },
 { data: 'state_name', name: 'state.name' },
 { data: 'uber_uuid', name: 'uber_uuid' },

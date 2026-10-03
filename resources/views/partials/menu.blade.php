@@ -519,7 +519,7 @@
                                     <i class="fa-fw fas fa-euro-sign">
 
                                     </i>
-                                    <span>Despesa da empresa</span>
+                                    <span>Central de despesas</span>
 
                                 </a>
                             </li>

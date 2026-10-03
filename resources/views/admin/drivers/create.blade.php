@@ -116,8 +116,8 @@
                             <span class="help-block">{{ trans('cruds.driver.fields.contract_vat_helper') }}</span>
                         </div>
                         <div class="form-group {{ $errors->has('start_date') ? 'has-error' : '' }}">
-                            <label for="start_date">{{ trans('cruds.driver.fields.start_date') }}</label>
-                            <input class="form-control date" type="text" name="start_date" id="start_date" value="{{ old('start_date') }}">
+                            <label class="required" for="start_date">{{ trans('cruds.driver.fields.start_date') }}</label>
+                            <input class="form-control date" type="text" name="start_date" id="start_date" value="{{ old('start_date') }}" required>
                             @if($errors->has('start_date'))
                                 <span class="help-block" role="alert">{{ $errors->first('start_date') }}</span>
                             @endif

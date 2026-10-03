@@ -67,6 +67,36 @@
                                 </tr>
                             </tbody>
                         </table>
+                        <h4>Histórico de alterações</h4>
+                        <p class="text-muted">Regista quem criou, alterou ou eliminou a utilização e os valores modificados.</p>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Ação</th>
+                                        <th>Utilizador</th>
+                                        <th>Antes</th>
+                                        <th>Depois</th>
+                                        <th>IP</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($vehicleUsage->audits as $audit)
+                                        <tr>
+                                            <td>{{ $audit->created_at?->format('d/m/Y H:i:s') }}</td>
+                                            <td>{{ ['created' => 'Criado', 'updated' => 'Alterado', 'deleted' => 'Eliminado'][$audit->action] ?? $audit->action }}</td>
+                                            <td>{{ $audit->user->name ?? 'Sistema' }}</td>
+                                            <td><small>{{ $audit->old_values ? json_encode($audit->old_values, JSON_UNESCAPED_UNICODE) : '—' }}</small></td>
+                                            <td><small>{{ $audit->new_values ? json_encode($audit->new_values, JSON_UNESCAPED_UNICODE) : '—' }}</small></td>
+                                            <td>{{ $audit->ip_address ?: '—' }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="6" class="text-center text-muted">Sem alterações registadas. A auditoria começa após esta atualização.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
                         <div class="form-group">
                             <a class="btn btn-default" href="{{ route('admin.vehicle-usages.index') }}">
                                 {{ trans('global.back_to_list') }}

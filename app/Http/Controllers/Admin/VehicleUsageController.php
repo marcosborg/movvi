@@ -106,7 +106,7 @@ class VehicleUsageController extends Controller
     {
         abort_if(Gate::denies('vehicle_usage_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $vehicleUsage->load('driver', 'vehicle_item');
+        $vehicleUsage->load('driver', 'vehicle_item', 'audits.user');
 
         return view('admin.vehicleUsages.show', compact('vehicleUsage'));
     }

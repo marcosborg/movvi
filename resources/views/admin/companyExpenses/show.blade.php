@@ -41,6 +41,10 @@
                                         {{ $companyExpense->company->name ?? '' }}
                                     </td>
                                 </tr>
+                                <tr><th>Categoria</th><td>{{ $companyExpense->category }}</td></tr>
+                                <tr><th>Fornecedor / entidade</th><td>{{ $companyExpense->supplier }}</td></tr>
+                                <tr><th>Referência</th><td>{{ $companyExpense->reference }}</td></tr>
+                                <tr><th>Tipo</th><td>{{ $companyExpense->recurrence === 'once' ? 'Pontual / conta a pagar' : 'Recorrente semanal' }}</td></tr>
                                 <tr>
                                     <th>
                                         {{ trans('cruds.companyExpense.fields.weekly_value') }}
@@ -73,6 +77,10 @@
                                         {{ $companyExpense->qty }}
                                     </td>
                                 </tr>
+                                <tr><th>Data de vencimento</th><td>{{ $companyExpense->due_date }}</td></tr>
+                                <tr><th>Estado do pagamento</th><td>{{ ['pending' => 'Pendente', 'paid' => 'Pago', 'cancelled' => 'Cancelado'][$companyExpense->payment_status] ?? $companyExpense->payment_status }}</td></tr>
+                                <tr><th>Data de pagamento</th><td>{{ $companyExpense->paid_at }}</td></tr>
+                                <tr><th>Notas</th><td>{{ $companyExpense->notes }}</td></tr>
                             </tbody>
                         </table>
                         <div class="form-group">

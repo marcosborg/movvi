@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateCompanyExpenseRequest;
 use App\Models\Company;
 use App\Models\CompanyExpense;
 use Gate;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
@@ -66,6 +67,18 @@ class CompanyExpenseController extends Controller
                 return $row->weekly_value ? $row->weekly_value : '';
             });
 
+            $table->editColumn('recurrence', function ($row) {
+                return $row->recurrence === 'once' ? 'Pontual' : 'Semanal';
+            });
+
+            $table->editColumn('payment_status', function ($row) {
+                return match ($row->payment_status) {
+                    'paid' => 'Pago',
+                    'cancelled' => 'Cancelado',
+                    default => 'Pendente',
+                };
+            });
+
             $table->rawColumns(['actions', 'placeholder', 'company']);
 
             return $table->make(true);
@@ -85,9 +98,10 @@ class CompanyExpenseController extends Controller
 
     public function store(StoreCompanyExpenseRequest $request)
     {
-        $companyExpense = CompanyExpense::create($request->all());
+        CompanyExpense::create($this->normalizedData($request));
 
-        return redirect()->route('admin.company-expenses.index');
+        return redirect()->route('admin.company-expenses.index')
+            ->with('success', 'Despesa registada no centralizador.');
     }
 
     public function edit(CompanyExpense $companyExpense)
@@ -103,9 +117,10 @@ class CompanyExpenseController extends Controller
 
     public function update(UpdateCompanyExpenseRequest $request, CompanyExpense $companyExpense)
     {
-        $companyExpense->update($request->all());
+        $companyExpense->update($this->normalizedData($request));
 
-        return redirect()->route('admin.company-expenses.index');
+        return redirect()->route('admin.company-expenses.index')
+            ->with('success', 'Despesa atualizada.');
     }
 
     public function show(CompanyExpense $companyExpense)
@@ -135,5 +150,20 @@ class CompanyExpenseController extends Controller
         }
 
         return response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    protected function normalizedData(FormRequest $request): array
+    {
+        $data = $request->validated();
+
+        if (($data['recurrence'] ?? 'weekly') === 'once') {
+            $data['end_date'] = $data['start_date'];
+            $data['qty'] = 1;
+        } else {
+            $data['qty'] = max(1, (int) ($data['qty'] ?? 1));
+            $data['end_date'] = $data['end_date'] ?? $data['start_date'];
+        }
+
+        return $data;
     }
 }

@@ -242,6 +242,7 @@ class MuvFinancialReportService
     {
         $expenses = DB::table('company_expenses')
             ->whereNull('deleted_at')
+            ->where('payment_status', '!=', 'cancelled')
             ->whereDate('start_date', '<=', $endDate->toDateString())
             ->whereDate('end_date', '>=', $startDate->toDateString())
             ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
@@ -254,10 +255,10 @@ class MuvFinancialReportService
 
             return [
                 'date' => $expense->start_date,
-                'category' => 'Despesa fixa',
-                'description' => $expense->name,
+                'category' => $expense->category ?: ($expense->recurrence === 'once' ? 'Despesa pontual' : 'Despesa fixa'),
+                'description' => trim(implode(' - ', array_filter([$expense->supplier, $expense->name]))),
                 'amount' => $this->money($expense->weekly_value) * (int) $expense->qty * $activeWeeks,
-                'source' => 'Despesa fixa da empresa',
+                'source' => $expense->recurrence === 'once' ? 'Conta a pagar' : 'Despesa recorrente da empresa',
             ];
         })->filter(fn ($row) => $row['amount'] > 0)->values();
     }
