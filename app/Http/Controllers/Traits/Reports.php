@@ -862,6 +862,12 @@ trait Reports
                         ? Carbon::parse($usage->getRawOriginal('end_date'))
                         : $weekEnd->copy();
 
+                    // Datas de fim introduzidas sem hora são guardadas à meia-noite.
+                    // Nesse caso, a utilização abrange o dia civil completo.
+                    if ($usage->getRawOriginal('end_date') && $usageEnd->isStartOfDay()) {
+                        $usageEnd->endOfDay();
+                    }
+
                     if ($chargingMoment->between($usageStart, $usageEnd, true)) {
                         return true;
                     }
@@ -1580,7 +1586,6 @@ trait Reports
         $company_data->save();
     }
 }
-
 
 
 

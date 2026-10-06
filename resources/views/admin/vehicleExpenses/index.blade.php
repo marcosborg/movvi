@@ -37,6 +37,9 @@
                                     {{ trans('cruds.vehicleExpense.fields.expense_type') }}
                                 </th>
                                 <th>
+                                    {{ trans('cruds.vehicleExpense.fields.supplier') }}
+                                </th>
+                                <th>
                                     {{ trans('cruds.vehicleExpense.fields.date') }}
                                 </th>
                                 <th>
@@ -73,6 +76,9 @@
                                             <option value="{{ $item }}">{{ $item }}</option>
                                         @endforeach
                                     </select>
+                                </td>
+                                <td>
+                                    <input class="search" type="text" placeholder="{{ trans('global.search') }}">
                                 </td>
                                 <td>
                                 </td>
@@ -151,6 +157,7 @@
                 { data: 'id', name: 'id' },
                 { data: 'vehicle_item_license_plate', name: 'vehicle_item.license_plate' },
                 { data: 'expense_type', name: 'expense_type' },
+                { data: 'supplier', name: 'supplier' },
                 { data: 'date', name: 'date' },
                 { data: 'files', name: 'files', sortable: false, searchable: false },
                 { data: 'value', name: 'value' },

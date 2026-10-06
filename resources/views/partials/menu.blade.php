@@ -1648,8 +1648,13 @@
                     if ((auth()->user()->hasRole('Admin') || auth()->user()->hasRole('Gestor')) && ! auth()->user()->company()->exists()) {
                         $ticketQuery->where('status', \App\Models\SupportTicket::STATUS_AWAITING_TECHNICAL);
                     } else {
-                        $ticketQuery->where('company_id', optional(auth()->user()->company)->id)
+                        $ticketCompanyId = optional(auth()->user()->company)->id
+                            ?: auth()->user()->driver()->whereNotNull('company_id')->value('company_id');
+                        $ticketQuery->where('company_id', $ticketCompanyId)
                             ->where('status', \App\Models\SupportTicket::STATUS_AWAITING_CUSTOMER);
+                        if (auth()->user()->hasRole('Driver') || (! auth()->user()->company()->exists() && auth()->user()->driver()->exists())) {
+                            $ticketQuery->where('opened_by', auth()->id());
+                        }
                     }
                     $ticketAttentionCount = $ticketQuery->count();
                 }

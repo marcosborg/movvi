@@ -22,6 +22,9 @@ class SupportTicketController extends Controller
 
         if (! $staff) {
             $query->where('company_id', $this->companyId($request->user()));
+            if ($this->isDriver($request->user())) {
+                $query->where('opened_by', $request->user()->id);
+            }
         }
 
         if ($request->filled('status') && array_key_exists($request->status, SupportTicket::STATUS_LABELS)) {
@@ -203,12 +206,26 @@ class SupportTicketController extends Controller
 
     private function authorizeTicket(User $user, SupportTicket $ticket): void
     {
-        abort_unless($this->isStaff($user) || $ticket->company_id === $this->companyId($user), 403);
+        if ($this->isStaff($user)) {
+            return;
+        }
+
+        $sameCompany = (int) $ticket->company_id === (int) $this->companyId($user);
+        $canSeeTicket = ! $this->isDriver($user) || (int) $ticket->opened_by === (int) $user->id;
+
+        abort_unless($sameCompany && $canSeeTicket, 403);
     }
 
     private function companyId(User $user): ?int
     {
-        return optional($user->company)->id;
+        return optional($user->company)->id
+            ?: $user->driver()->whereNotNull('company_id')->value('company_id');
+    }
+
+    private function isDriver(User $user): bool
+    {
+        return $user->hasRole('Driver')
+            || (! $user->company()->exists() && $user->driver()->exists());
     }
 
     private function isStaff(?User $user): bool

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
+use App\Models\Driver;
 use App\Models\Role;
 use App\Models\SupportTicket;
 use App\Models\User;
@@ -127,6 +128,46 @@ class SupportTicketTest extends TestCase
             'subject' => 'Pedido', 'message' => 'Ajuda', 'company_id' => 99999999,
         ])->assertRedirect();
         $this->assertEquals($company->id, SupportTicket::where('opened_by', $customer->id)->firstOrFail()->company_id);
+    }
+
+    public function test_driver_can_open_and_only_see_own_company_tickets(): void
+    {
+        $owner = User::create(['name' => 'Company Owner', 'email' => uniqid().'@example.test', 'password' => 'secret', 'verified' => 1, 'verification_token' => 'owner']);
+        $company = Company::create(['name' => 'Driver Company', 'vat' => uniqid('vat-'), 'address' => 'X', 'zip' => '0', 'location' => 'X', 'email' => uniqid().'@example.test', 'user_id' => $owner->id]);
+        $driverRole = Role::firstOrCreate(['title' => 'Driver']);
+
+        $first = User::create(['name' => 'First Driver', 'email' => uniqid().'@example.test', 'password' => 'secret', 'verified' => 1, 'verification_token' => 'first']);
+        $second = User::create(['name' => 'Second Driver', 'email' => uniqid().'@example.test', 'password' => 'secret', 'verified' => 1, 'verification_token' => 'second']);
+        $first->roles()->attach($driverRole);
+        $second->roles()->attach($driverRole);
+        Driver::create(['user_id' => $first->id, 'company_id' => $company->id, 'code' => uniqid('driver-'), 'name' => $first->name]);
+        Driver::create(['user_id' => $second->id, 'company_id' => $company->id, 'code' => uniqid('driver-'), 'name' => $second->name]);
+
+        $this->actingAs($first)->post(route('admin.support-tickets.store'), [
+            'subject' => 'Pedido do primeiro motorista',
+            'message' => 'Preciso de ajuda.',
+            'company_id' => 99999999,
+        ])->assertRedirect();
+        $firstTicket = SupportTicket::where('opened_by', $first->id)->firstOrFail();
+        $this->assertSame($company->id, $firstTicket->company_id);
+
+        $secondTicket = SupportTicket::create([
+            'company_id' => $company->id,
+            'opened_by' => $second->id,
+            'subject' => 'Pedido privado do segundo motorista',
+            'status' => SupportTicket::STATUS_AWAITING_TECHNICAL,
+        ]);
+
+        $this->actingAs($first)->get(route('admin.support-tickets.index'))
+            ->assertOk()
+            ->assertSee($firstTicket->subject)
+            ->assertDontSee($secondTicket->subject);
+        $this->get(route('admin.support-tickets.show', $secondTicket))->assertForbidden();
+
+        $this->actingAs($owner)->get(route('admin.support-tickets.index'))
+            ->assertOk()
+            ->assertSee($firstTicket->subject)
+            ->assertSee($secondTicket->subject);
     }
 
 }

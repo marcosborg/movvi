@@ -43,6 +43,14 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        {{ trans('cruds.vehicleExpense.fields.supplier') }}
+                                    </th>
+                                    <td>
+                                        {{ $vehicleExpense->supplier }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.vehicleExpense.fields.date') }}
                                     </th>
                                     <td>

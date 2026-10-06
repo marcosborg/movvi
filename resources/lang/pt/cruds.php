@@ -2371,6 +2371,8 @@ return [
             'id_helper'           => ' ',
             'expense_type'        => 'Tipo de despesa',
             'expense_type_helper' => ' ',
+            'supplier'            => 'Fornecedor',
+            'supplier_helper'     => 'Opcional.',
             'date'                => 'Data',
             'date_helper'         => ' ',
             'description'         => 'Descrição',

@@ -27,6 +27,7 @@ class VehicleExpenseApiTest extends TestCase
         });
         Schema::create('vehicle_expenses', function (Blueprint $t) {
             $t->id(); $t->integer('vehicle_item_id'); $t->string('expense_type');
+            $t->string('supplier')->nullable();
             $t->date('date'); $t->text('description'); $t->decimal('value', 12, 2); $t->decimal('vat', 5, 2);
             $t->timestamps(); $t->softDeletes();
         });
@@ -42,6 +43,7 @@ class VehicleExpenseApiTest extends TestCase
         foreach ([1 => 1, 2 => 2, 3 => 3] as $id => $vehicle) {
             DB::table('vehicle_expenses')->insert([
                 'id' => $id, 'vehicle_item_id' => $vehicle, 'expense_type' => 'Oficina especial',
+                'supplier' => $id === 1 ? 'Fornecedor Teste' : null,
                 'date' => '2026-09-10', 'description' => '<p>Revisão &amp; limpeza</p>',
                 'value' => 123.45, 'vat' => 23,
                 'created_at' => '2026-09-10 10:00:00', 'updated_at' => '2026-09-10 10:00:00',
@@ -73,6 +75,7 @@ class VehicleExpenseApiTest extends TestCase
         $this->getJson('/api/v1/vehicle-expenses?company_id=2')->assertForbidden();
         $this->getJson('/api/v1/vehicle-expenses?company_id=1')->assertOk()->assertJsonCount(2, 'data')
             ->assertJsonPath('data.0.source_id', 'movvi:vehicle-expense:1')
+            ->assertJsonPath('data.0.supplier', 'Fornecedor Teste')
             ->assertJsonPath('data.0.description', 'Revisão & limpeza')
             ->assertJsonPath('data.0.value', 123.45)
             ->assertJsonPath('data.1.deleted_at', '2026-09-11 10:00:00');
@@ -105,5 +108,6 @@ class VehicleExpenseApiTest extends TestCase
         $this->assertSame('Oficina especial', VehicleExpense::expenseTypes()['Oficina especial']);
         $this->assertSame('Pneus', (new VehicleExpense(['expense_type' => 'Penus']))->expense_type_label);
         $this->assertSame('Oficina especial', VehicleExpense::find(1)->expense_type_label);
+        $this->assertNull(VehicleExpense::find(2)->supplier);
     }
 }

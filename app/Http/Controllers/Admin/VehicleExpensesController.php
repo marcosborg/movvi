@@ -56,6 +56,9 @@ class VehicleExpensesController extends Controller
             $table->editColumn('expense_type', function ($row) {
                 return $row->expense_type_label;
             });
+            $table->editColumn('supplier', function ($row) {
+                return $row->supplier ?: '';
+            });
 
             $table->editColumn('files', function ($row) {
                 if (! $row->files) {

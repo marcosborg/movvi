@@ -47,6 +47,7 @@ class VehicleExpense extends Model implements HasMedia
     protected $fillable = [
         'vehicle_item_id',
         'expense_type',
+        'supplier',
         'date',
         'description',
         'value',

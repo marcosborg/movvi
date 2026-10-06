@@ -22,6 +22,11 @@ class StoreVehicleExpenseRequest extends FormRequest
                 'string',
                 'max:255',
             ],
+            'supplier' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
             'date' => [
                 'required',
                 'date_format:' . config('panel.date_format'),

@@ -37,6 +37,14 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.vehicleExpense.fields.expense_type_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('supplier') ? 'has-error' : '' }}">
+                            <label for="supplier">{{ trans('cruds.vehicleExpense.fields.supplier') }}</label>
+                            <input class="form-control" type="text" name="supplier" id="supplier" value="{{ old('supplier') }}" maxlength="255">
+                            @if($errors->has('supplier'))
+                                <span class="help-block" role="alert">{{ $errors->first('supplier') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.vehicleExpense.fields.supplier_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('date') ? 'has-error' : '' }}">
                             <label class="required" for="date">{{ trans('cruds.vehicleExpense.fields.date') }}</label>
                             <input class="form-control date" type="text" name="date" id="date" value="{{ old('date') }}" required>

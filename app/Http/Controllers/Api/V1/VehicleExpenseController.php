@@ -49,6 +49,7 @@ class VehicleExpenseController extends Controller
                 'vehicle_id' => $expense->vehicle_item_id,
                 'license_plate' => $expense->vehicle_item->license_plate,
                 'expense_type' => $expense->expense_type_label,
+                'supplier' => $expense->supplier,
                 'date' => $expense->getRawOriginal('date'),
                 'description' => html_entity_decode(strip_tags((string) $expense->description), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
                 'value' => (float) $expense->value,
