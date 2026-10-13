@@ -22,4 +22,13 @@ class CompanyReportPresentationTest extends TestCase
             $this->assertStringNotContainsString('Divergente', $contents, $view);
         }
     }
+
+    public function test_import_reconciliation_is_compact_and_details_are_collapsed(): void
+    {
+        $contents = file_get_contents(__DIR__.'/../../resources/views/admin/companyReports/index.blade.php');
+
+        $this->assertStringContainsString('Motoristas reconhecidos', $contents);
+        $this->assertStringContainsString('class="collapse"', $contents);
+        $this->assertStringNotContainsString('<h4 style="margin-top:0;">Reconciliação da importação</h4>', $contents);
+    }
 }

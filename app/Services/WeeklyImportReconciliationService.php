@@ -34,8 +34,13 @@ class WeeklyImportReconciliationService
 
     private function activitySummary(string $platform, Collection $entries): array
     {
-        $assigned = $entries->whereNotNull('vehicle_item_id');
-        $pending = $entries->whereNull('vehicle_item_id');
+        // The company/driver report is reconciled against the driver. Vehicle
+        // allocation is a separate profitability concern and older platform
+        // exports legitimately have no trip timestamp with which to determine
+        // a vehicle. Treating those recognised drivers as wholly unassigned
+        // made valid imports look broken in the weekly report.
+        $assigned = $entries->whereNotNull('driver_id');
+        $pending = $entries->whereNull('driver_id');
 
         return [
             'label' => ucfirst($platform ?: 'Plataforma'),
@@ -49,9 +54,7 @@ class WeeklyImportReconciliationService
             'pending_items' => $pending->map(fn ($entry) => [
                 'reference' => $entry->driver_code,
                 'driver' => optional($entry->driver)->name,
-                'reason' => $entry->allocation_reason ?: ($entry->driver_id
-                    ? 'Sem viatura válida no momento do movimento.'
-                    : 'Motorista não reconhecido no ficheiro.'),
+                'reason' => 'Motorista não reconhecido no ficheiro.',
             ])->values()->all(),
         ];
     }

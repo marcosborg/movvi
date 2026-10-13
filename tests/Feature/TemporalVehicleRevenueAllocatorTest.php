@@ -11,6 +11,7 @@ use App\Models\VehicleItem;
 use App\Models\VehicleModel;
 use App\Models\VehicleUsage;
 use App\Services\TemporalVehicleRevenueAllocator;
+use App\Services\WeeklyImportReconciliationService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
@@ -65,6 +66,21 @@ class TemporalVehicleRevenueAllocatorTest extends TestCase
         $overlap = app(TemporalVehicleRevenueAllocator::class)->allocate($entry);
         $this->assertSame('pending', $overlap->allocation_status);
         $this->assertSame('Utilizacoes operacionais sobrepostas.', $overlap->allocation_reason);
+    }
+
+    public function test_weekly_driver_reconciliation_keeps_a_recognised_driver_assigned_without_a_trip_date(): void
+    {
+        [$entry] = $this->scenario();
+        $entry->update(['occurred_at' => null]);
+        app(TemporalVehicleRevenueAllocator::class)->allocate($entry);
+
+        $summary = app(WeeklyImportReconciliationService::class)
+            ->forWeek((int) $entry->tvde_week_id, (int) $entry->company_id)['platforms'][0];
+
+        $this->assertSame(1, $summary['read']);
+        $this->assertSame(1, $summary['assigned']);
+        $this->assertSame(0, $summary['pending']);
+        $this->assertSame([], $summary['pending_items']);
     }
 
     private function scenario(): array

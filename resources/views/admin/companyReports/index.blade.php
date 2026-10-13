@@ -198,36 +198,6 @@
             <div class="panel-heading">
                 Importações da semana
             </div>
-            <div class="panel-body" style="border-top:1px solid #ddd;">
-                <h4 style="margin-top:0;">Reconciliação da importação</h4>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-condensed">
-                        <thead><tr><th>Origem</th><th>Lidos</th><th>Atribuídos</th><th>Pendentes</th><th>Valor atribuído</th><th>Valor pendente</th></tr></thead>
-                        <tbody>
-                            @foreach(($importReconciliation['platforms'] ?? []) as $summary)
-                                <tr>
-                                    <td>{{ $summary['label'] }}</td><td>{{ $summary['read'] }}</td><td>{{ $summary['assigned'] }}</td><td>{{ $summary['pending'] }}</td>
-                                    <td>{{ number_format($summary['assigned_value'], 2, ',', '.') }} €</td><td>{{ number_format($summary['pending_value'], 2, ',', '.') }} €</td>
-                                </tr>
-                                @foreach($summary['pending_items'] as $pending)
-                                    <tr class="warning"><td colspan="6"><strong>{{ $pending['reference'] }}</strong>{{ $pending['driver'] ? ' · '.$pending['driver'] : '' }} — {{ $pending['reason'] }}</td></tr>
-                                @endforeach
-                            @endforeach
-                            @php($fuelSummary = $importReconciliation['fuel'] ?? null)
-                            @if($fuelSummary && $fuelSummary['read'])
-                                <tr>
-                                    <td>{{ $fuelSummary['label'] }}</td><td>{{ $fuelSummary['read'] }}</td><td>{{ $fuelSummary['assigned'] }}</td><td>{{ $fuelSummary['pending'] }}</td>
-                                    <td>{{ number_format($fuelSummary['assigned_value'], 2, ',', '.') }} €</td><td>{{ number_format($fuelSummary['pending_value'], 2, ',', '.') }} €</td>
-                                </tr>
-                                @foreach($fuelSummary['pending_items'] as $pending)
-                                    <tr class="warning"><td colspan="6"><strong>{{ $pending['reference'] }}</strong> — {{ $pending['reason'] }}</td></tr>
-                                @endforeach
-                            @endif
-                        </tbody>
-                    </table>
-                </div>
-                <small>Atribuído significa que o registo encontrou motorista/viatura válidos na data; pendente mostra o motivo para correção.</small>
-            </div>
             <div class="panel-body" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                 @if ($importState['uber'])
                     <form action="/admin/tvde-activities/delete-filter" method="post" style="margin:0;">
@@ -322,6 +292,72 @@
                     </form>
                 @endif
             </div>
+            @php
+                $platformSummaries = collect($importReconciliation['platforms'] ?? []);
+                $fuelSummary = $importReconciliation['fuel'] ?? null;
+                $pendingImportItems = $platformSummaries->flatMap(function ($summary) {
+                    return collect($summary['pending_items'] ?? [])->map(function ($item) use ($summary) {
+                        return array_merge($item, ['origin' => $summary['label']]);
+                    });
+                });
+                if ($fuelSummary && $fuelSummary['read']) {
+                    $pendingImportItems = $pendingImportItems->concat(collect($fuelSummary['pending_items'] ?? [])->map(function ($item) use ($fuelSummary) {
+                        return array_merge($item, ['origin' => $fuelSummary['label']]);
+                    }));
+                }
+            @endphp
+            @if($platformSummaries->isNotEmpty() || ($fuelSummary && $fuelSummary['read']))
+                <div class="panel-footer" style="background:#fafafa;">
+                    <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+                        <strong>Verificação das importações:</strong>
+                        @foreach($platformSummaries as $summary)
+                            <span>
+                                <strong>{{ $summary['label'] }}</strong>:
+                                {{ $summary['read'] }} lidos ·
+                                {{ $summary['assigned'] }} Motoristas reconhecidos
+                                ({{ number_format($summary['assigned_value'], 2, ',', '.') }} €)
+                                @if($summary['pending'])
+                                    · <span class="text-warning"><strong>{{ $summary['pending'] }} por associar</strong></span>
+                                @endif
+                            </span>
+                        @endforeach
+                        @if($fuelSummary && $fuelSummary['read'])
+                            <span>
+                                <strong>{{ $fuelSummary['label'] }}</strong>:
+                                {{ $fuelSummary['read'] }} lidos ·
+                                {{ $fuelSummary['assigned'] }} atribuídos
+                                ({{ number_format($fuelSummary['assigned_value'], 2, ',', '.') }} €)
+                                @if($fuelSummary['pending'])
+                                    · <span class="text-warning"><strong>{{ $fuelSummary['pending'] }} por associar</strong></span>
+                                @endif
+                            </span>
+                        @endif
+                        @if($pendingImportItems->isNotEmpty())
+                            <button type="button" class="btn btn-default btn-xs" data-toggle="collapse" data-target="#importReconciliationDetails" aria-expanded="false" aria-controls="importReconciliationDetails">
+                                Ver {{ $pendingImportItems->count() }} pendentes
+                            </button>
+                        @endif
+                    </div>
+                    @if($pendingImportItems->isNotEmpty())
+                        <div id="importReconciliationDetails" class="collapse" style="margin-top:12px;">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-condensed" style="margin-bottom:0; background:#fff;">
+                                    <thead><tr><th>Origem</th><th>Referência</th><th>Motivo</th></tr></thead>
+                                    <tbody>
+                                        @foreach($pendingImportItems as $pending)
+                                            <tr class="warning">
+                                                <td>{{ $pending['origin'] }}</td>
+                                                <td>{{ $pending['reference'] ?: '-' }}</td>
+                                                <td>{{ $pending['reason'] }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            @endif
         </div>
 
         <div class="panel panel-default" style="margin-top: 20px;">
