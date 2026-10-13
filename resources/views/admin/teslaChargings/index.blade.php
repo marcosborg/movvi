@@ -5,12 +5,13 @@
         <div style="margin-bottom: 10px;" class="row">
             <div class="col-lg-12">
                 <a class="btn btn-success" href="{{ route('admin.tesla-chargings.create') }}">
-                    {{ trans('global.add') }} {{ trans('cruds.teslaCharging.title_singular') }}
+                    Adicionar carregamento manual
                 </a>
                 <button class="btn btn-warning" data-toggle="modal" data-target="#csvImportModal">
                     {{ trans('global.app_csvImport') }}
                 </button>
                 @include('csvImport.modal', ['model' => 'TeslaCharging', 'route' => 'admin.tesla-chargings.parseCsvImport'])
+                <p class="help-block" style="margin-top:10px;">Se recebeu apenas um print, transcreva a matrícula, data/hora, valor e origem. O lançamento manual entra nos mesmos relatórios do ficheiro importado.</p>
             </div>
         </div>
     @endcan

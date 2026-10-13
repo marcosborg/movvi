@@ -231,9 +231,7 @@ table.on('column-visibility.dt', function(e, settings, column, state) {
     checkPay = (receipt_id) => {
         if($('#verified-' + receipt_id).prop('checked') == true){
             $('#check-' + receipt_id).attr('disabled', 'true');
-            $.get('/admin/receipts/checkPay/' + receipt_id).then((resp) => {
-                console.log(resp);
-            });
+            $.post('/admin/receipts/' + receipt_id + '/pay', {_token: _token}).fail(() => location.reload());
         } else {
             alert('Falta verificar o recibo.');
             $('#check-' + receipt_id).prop('checked', false);
@@ -245,10 +243,10 @@ table.on('column-visibility.dt', function(e, settings, column, state) {
         var amount_transferred = $('#amount_transferred-' + receipt_id).val();
         if(receipt_value.length > 0 && amount_transferred.length > 0){
             $('#verified-' + receipt_id).attr('disabled', 'true');
-            $.get('/admin/receipts/checkVerified/' + receipt_id + '/' + receipt_value + '/' + amount_transferred).then((resp) => {
+            $.ajax({url: '/admin/receipts/' + receipt_id + '/verify', method: 'POST', data: {_token: _token, _method: 'PATCH', receipt_value: receipt_value, amount_transferred: amount_transferred}}).then((resp) => {
                 $('#receipt_value-' + receipt_id).attr('disabled', 'true');
                 $('#amount_transferred-' + receipt_id).attr('disabled', 'true');
-            });
+            }).fail((xhr) => { alert(xhr.responseJSON?.message || 'Não foi possível validar o recibo.'); location.reload(); });
         } else {
             alert('Valor do recibo e quantia a transferir obrigatórios.');
             $('#verified-' + receipt_id).prop('checked', false);

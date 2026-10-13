@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\ContaAzulController;
 use App\Http\Controllers\Api\V1\DriverController;
 use App\Http\Controllers\Api\V1\MobileController;
 use App\Http\Controllers\Api\V1\MobileInspectionController;
+use App\Http\Controllers\Api\V1\MobileVehicleQrController;
 use App\Http\Controllers\Api\V1\PublicController;
 use App\Http\Controllers\Api\V1\SalesController;
 use App\Http\Controllers\Api\V1\VehicleProfitabilityController;
@@ -47,6 +48,7 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin', '
             Route::get('create-options', [MobileInspectionController::class, 'createOptions'])->name('createOptions');
             Route::post('/', [MobileInspectionController::class, 'store'])->name('store');
             Route::post('transfers', [MobileInspectionController::class, 'storeTransfer'])->name('storeTransfer');
+            Route::post('usage-states', [MobileInspectionController::class, 'storeUsageState'])->name('storeUsageState');
             Route::delete('{inspection}', [MobileInspectionController::class, 'destroy'])->name('destroy');
             Route::get('{inspection}', [MobileInspectionController::class, 'show'])->name('show');
             Route::post('{inspection}/step', [MobileInspectionController::class, 'updateStep'])->name('updateStep');
@@ -55,6 +57,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin', '
             Route::post('{inspection}/close', [MobileInspectionController::class, 'close'])->name('close');
         });
         Route::prefix('driver')->name('driver.')->group(function () {
+            Route::get('vehicle-qr/{token}', [MobileVehicleQrController::class, 'show'])->name('vehicleQr.show');
+            Route::post('vehicle-qr/{token}/confirm', [MobileVehicleQrController::class, 'confirm'])->name('vehicleQr.confirm');
             Route::get('weeks', [MobileController::class, 'driverWeeks'])->name('weeks');
             Route::get('receipts', [MobileController::class, 'driverReceipts'])->name('receipts');
             Route::post('receipts', [MobileController::class, 'storeDriverReceipt'])->name('receipts.store');

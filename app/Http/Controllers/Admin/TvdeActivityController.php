@@ -272,7 +272,9 @@ class TvdeActivityController extends Controller
                 ->withInput();
         }
 
-        DB::transaction(function () use ($rows, $entries, $validated, $operator, $companyId) {
+        $createdCount = 0;
+        $updatedCount = 0;
+        DB::transaction(function () use ($rows, $entries, $validated, $operator, $companyId, &$createdCount, &$updatedCount) {
             foreach ($rows as $activity) {
                 $lookup = [
                     'tvde_week_id' => $activity['tvde_week_id'],
@@ -294,11 +296,13 @@ class TvdeActivityController extends Controller
                         'tips' => $activity['tips'],
                         'referral_bonus' => $activity['referral_bonus'],
                     ])->save();
+                    $updatedCount++;
 
                     continue;
                 }
 
                 TvdeActivity::create($activity);
+                $createdCount++;
             }
 
             TvdeActivityEntry::query()
@@ -326,8 +330,18 @@ class TvdeActivityController extends Controller
             }
         });
 
+        $reconciliation = app(\App\Services\WeeklyImportReconciliationService::class)
+            ->forWeek((int) $validated['tvde_week_id'], (int) $companyId);
+        $summary = collect($reconciliation['platforms'] ?? [])->first(
+            fn (array $item) => strtolower($item['label']) === strtolower($validated['platform'])
+        ) ?? ['assigned' => 0, 'pending' => count($entries), 'assigned_value' => 0, 'pending_value' => collect($entries)->sum('net')];
+
         return redirect()->back()
-            ->with('message', sprintf('Importados %d registos de %s com sucesso.', count($rows), strtoupper($validated['platform'])));
+            ->with('message', sprintf(
+                '%s: %d linhas lidas; %d criadas e %d atualizadas; %d atribuídas (%.2f €) e %d pendentes (%.2f €).',
+                strtoupper($validated['platform']), count($entries), $createdCount, $updatedCount,
+                $summary['assigned'], $summary['assigned_value'], $summary['pending'], $summary['pending_value']
+            ));
     }
 
     protected function resolveCompanyId(?int $requestCompanyId = null): ?int

@@ -9,10 +9,21 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
 
 class VehicleItem extends Model implements HasMedia
 {
     use SoftDeletes, InteractsWithMedia, HasFactory;
+
+    protected static function booted(): void
+    {
+        static::creating(function (VehicleItem $vehicle) {
+            if (Schema::hasColumn($vehicle->getTable(), 'qr_token')) {
+                $vehicle->qr_token = $vehicle->qr_token ?: Str::random(48);
+            }
+        });
+    }
 
     public $table = 'vehicle_items';
 
@@ -35,6 +46,7 @@ class VehicleItem extends Model implements HasMedia
         'vehicle_model_id',
         'year',
         'license_plate',
+        'qr_token',
         'suspended',
         'is_service_vehicle',
         'acquisition_date',

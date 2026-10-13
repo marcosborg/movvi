@@ -124,7 +124,7 @@
     @endphp
 
     <div class="header">
-        <p class="title">Rentabilidade semanal por viatura</p>
+        <p class="title">Rentabilidade {{ !empty($result['period']['estimated']) ? 'mensal estimada' : 'semanal' }} por viatura</p>
         <p class="subtitle">
             @if($company)
                 <strong>{{ $company->name }}</strong> |

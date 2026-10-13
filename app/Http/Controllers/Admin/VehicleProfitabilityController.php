@@ -12,6 +12,7 @@ use App\Models\VehicleRevenueAllocationOverride;
 use App\Models\VehicleUsage;
 use App\Services\ContaAzul\ContaAzulVehicleRevenueExporter;
 use App\Services\VehicleProfitabilityService;
+use App\Services\VehicleProfitabilityPeriodService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Gate;
 use Illuminate\Http\Request;
@@ -54,7 +55,7 @@ class VehicleProfitabilityController extends Controller
 
         $selectedWeek = $weekId ? TvdeWeek::find($weekId) : null;
 
-        return view('admin.vehicleProfitability.index', [
+        return view('admin.vehicleProfitability.detail', [
             'vehicles' => $vehicles,
             'weeks' => $weeks,
             'vehicleId' => $vehicleId,
@@ -126,13 +127,17 @@ class VehicleProfitabilityController extends Controller
         abort_if(Gate::denies('vehicle_profitability_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $weekId = (int) $request->input('tvde_week_id');
+        $month = trim((string) $request->input('month'));
         $weeks = TvdeWeek::orderBy('start_date', 'desc')->get();
         $companyId = $this->selectedCompanyId();
 
         $result = null;
         $message = null;
 
-        if ($weekId) {
+        if ($month) {
+            abort_unless(preg_match('/^\d{4}-\d{2}$/', $month), 422, 'Selecione um mês válido.');
+            $result = app(VehicleProfitabilityPeriodService::class)->month($month, $companyId);
+        } elseif ($weekId) {
             $weekExists = TvdeWeek::whereKey($weekId)->exists();
 
             if (! $weekExists) {
@@ -154,6 +159,7 @@ class VehicleProfitabilityController extends Controller
         return view('admin.vehicleProfitability.week', [
             'weeks' => $weeks,
             'weekId' => $weekId,
+            'month' => $month,
             'result' => $result,
             'message' => $message,
             'companyId' => $companyId,
@@ -214,6 +220,24 @@ class VehicleProfitabilityController extends Controller
             );
     }
 
+    public function correctContaAzul(Request $request)
+    {
+        abort_if(Gate::denies('vehicle_profitability_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $data = $request->validate(['export_id' => ['required', 'integer', 'exists:conta_azul_vehicle_revenue_exports,id']]);
+        $export = ContaAzulVehicleRevenueExport::with(['company.conta_azul_connection', 'week'])->findOrFail($data['export_id']);
+        abort_unless((int) $export->company_id === (int) $this->selectedCompanyId(), 403);
+
+        try {
+            $result = $this->vehicleRevenueExporter->correctExport($export, (int) auth()->id());
+        } catch (\Throwable $exception) {
+            return back()->with('error_message', $exception->getMessage());
+        }
+
+        return back()->with('message', $result['changed']
+            ? 'O valor já comunicado foi corrigido na parcela e na baixa da Conta Azul.'
+            : 'O valor comunicado já estava atualizado.');
+    }
+
     public function setVehicleItemId($vehicleItemId)
     {
         session()->put('vehicle_item_id', $vehicleItemId);
@@ -253,7 +277,17 @@ class VehicleProfitabilityController extends Controller
         abort_if(Gate::denies('vehicle_profitability_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $weekId = (int) $request->input('tvde_week_id');
+        $month = $request->input('month');
         $companyId = $this->selectedCompanyId();
+
+        if ($month) {
+            abort_unless(preg_match('/^\d{4}-\d{2}$/', $month), 422, 'Selecione um mês válido.');
+            $result = app(VehicleProfitabilityPeriodService::class)->month($month, $companyId);
+            $company = $companyId ? Company::find($companyId) : null;
+            return Pdf::loadView('admin.vehicleProfitability.week-pdf', compact('result', 'company'))
+                ->setOption(['isRemoteEnabled' => true])->setPaper('a4', 'landscape')
+                ->stream('vehicle-profitability-month-' . $month . '.pdf');
+        }
 
         if (! $weekId) {
             abort(422, 'Selecione uma semana para exportar o PDF.');

@@ -76,24 +76,24 @@ class ContaAzulVehicleRevenueExporter
 
             try {
                 $event = $this->client->createReceivableEvent($company, $payload);
-                $eventId = (string) ($event['id'] ?? $event['uuid'] ?? $event['protocolId'] ?? '');
-
-                $installment = null;
+                $eventId = (string) ($event['id'] ?? $event['uuid'] ?? '');
+                $installment = collect(data_get($event, 'condicao_pagamento.parcelas', $event['parcelas'] ?? []))->first();
                 $acquittance = null;
 
-                if ($eventId !== '') {
+                if ($eventId !== '' && empty($installment['id'])) {
                     $installments = $this->client->listEventInstallments($company, $eventId);
                     $installment = collect($installments)->first();
+                }
 
-                    if (! empty($installment['id'])) {
-                        $acquittance = $this->client->createAcquittance($company, (string) $installment['id'], [
-                            'data_pagamento' => Carbon::parse($week->end_date)->toDateString(),
-                            'valor' => round((float) $row['total_revenue'], 2),
-                            'conta_financeira' => $connection->receivable_financial_account_id,
-                            'metodo_pagamento' => $connection->receivable_payment_method ?: 'TRANSFERENCIA_BANCARIA',
-                            'observacao' => sprintf('Receita da viatura %s - semana %s a %s', $row['license_plate'], $week->start_date, $week->end_date),
-                        ]);
-                    }
+                if (! empty($installment['id'])) {
+                    $amount = round((float) $row['total_revenue'], 2);
+                    $acquittance = $this->client->createAcquittance($company, (string) $installment['id'], [
+                        'data_pagamento' => Carbon::parse($week->end_date)->toDateString(),
+                        'composicao_valor' => ['valor_bruto' => $amount],
+                        'conta_financeira' => $connection->receivable_financial_account_id,
+                        'metodo_pagamento' => $connection->receivable_payment_method ?: 'TRANSFERENCIA_BANCARIA',
+                        'observacao' => sprintf('Receita da viatura %s - semana %s a %s', $row['license_plate'], $week->start_date, $week->end_date),
+                    ]);
                 }
 
                 ContaAzulVehicleRevenueExport::updateOrCreate([
@@ -162,6 +162,76 @@ class ContaAzulVehicleRevenueExporter
             'errors' => $errors,
             'items' => $items,
         ];
+    }
+
+    public function correctExport(ContaAzulVehicleRevenueExport $export, int $userId): array
+    {
+        $company = $export->company;
+        $week = $export->week;
+        $snapshot = VehicleProfitabilityService::makeWeek($week->id, $company->id);
+        $row = collect($snapshot['vehicles'] ?? [])->firstWhere('id', (int) $export->vehicle_item_id);
+
+        if (! $row || (float) ($row['total_revenue'] ?? 0) <= 0) {
+            throw new \RuntimeException('A viatura já não tem um valor positivo que possa ser corrigido.');
+        }
+
+        $amount = round((float) $row['total_revenue'], 2);
+        if (abs((float) $export->amount - $amount) < 0.01) {
+            return ['changed' => false, 'amount' => $amount];
+        }
+
+        if (! $export->conta_azul_installment_id) {
+            throw new \RuntimeException('A exportação antiga não tem a parcela da Conta Azul identificada.');
+        }
+
+        $installment = $this->client->getInstallment($company, $export->conta_azul_installment_id);
+        $updatedInstallment = $this->client->updateInstallment($company, $export->conta_azul_installment_id, [
+            'versao' => (int) ($installment['versao'] ?? 0),
+            'composicao_valor' => ['valor_bruto' => $amount, 'valor_liquido' => $amount],
+            'descricao' => $export->description,
+        ]);
+
+        $acquittances = $this->client->listAcquittances($company, $export->conta_azul_installment_id);
+        $acquittance = collect($acquittances)->first(function (array $item) use ($export) {
+            return ! $export->conta_azul_acquittance_id || ($item['id'] ?? null) === $export->conta_azul_acquittance_id;
+        });
+        $updatedAcquittance = null;
+
+        if ($acquittance && ! empty($acquittance['id'])) {
+            $financialAccount = $acquittance['conta_financeira'] ?? null;
+            if (is_array($financialAccount)) {
+                $financialAccount = $financialAccount['id'] ?? null;
+            }
+
+            $updatedAcquittance = $this->client->updateAcquittance($company, (string) $acquittance['id'], [
+                'versao' => (int) ($acquittance['versao'] ?? 0),
+                'composicao_valor' => ['valor_bruto' => $amount],
+                'data_pagamento' => $acquittance['data_pagamento'] ?? Carbon::parse($week->end_date)->toDateString(),
+                'conta_financeira' => $financialAccount ?: $company->conta_azul_connection->receivable_financial_account_id,
+                'metodo_pagamento' => $acquittance['metodo_pagamento'] ?? $company->conta_azul_connection->receivable_payment_method ?: 'TRANSFERENCIA_BANCARIA',
+            ]);
+        }
+
+        $history = collect($export->correction_history ?? [])->push([
+            'from' => (float) $export->amount,
+            'to' => $amount,
+            'corrected_at' => now()->toIso8601String(),
+            'corrected_by' => $userId,
+            'installment_version' => $installment['versao'] ?? null,
+            'acquittance_version' => $acquittance['versao'] ?? null,
+        ])->all();
+
+        $export->update([
+            'amount' => $amount,
+            'installment_payload' => $updatedInstallment,
+            'acquittance_payload' => $updatedAcquittance ?: $export->acquittance_payload,
+            'correction_history' => $history,
+            'last_corrected_at' => now(),
+            'last_corrected_by' => $userId,
+            'error_message' => null,
+        ]);
+
+        return ['changed' => true, 'amount' => $amount];
     }
 
     protected function buildReceivablePayload($connection, TvdeWeek $week, array $row): array

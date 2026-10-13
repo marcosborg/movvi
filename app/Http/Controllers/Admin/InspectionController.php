@@ -13,6 +13,7 @@ use App\Models\InspectionDamage;
 use App\Models\User;
 use App\Models\VehicleItem;
 use App\Services\Inspections\InspectionWorkflowService;
+use App\Services\VehicleAssignmentHealthService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -124,8 +125,9 @@ class InspectionController extends Controller
 
         $vehicles = VehicleItem::with(['vehicle_brand', 'vehicle_model', 'driver'])->orderBy('license_plate')->get();
         $drivers = Driver::orderBy('name')->pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $assignmentHealth = app(VehicleAssignmentHealthService::class)->current();
 
-        return view('admin.inspections.create', compact('vehicles', 'drivers'));
+        return view('admin.inspections.create', compact('vehicles', 'drivers', 'assignmentHealth'));
     }
 
     public function store(StoreInspectionRequest $request)

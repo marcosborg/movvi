@@ -150,7 +150,7 @@ class ContaAzulClient
 
     public function createReceivableEvent(Company $company, array $payload): array
     {
-        $response = $this->requestJson($company, 'POST', '/v1/financeiro/eventos-financeiros/contas-a-receber', $payload);
+        $response = $this->requestJson($company, 'POST', '/v1/financeiro/contas-a-receber', $payload);
         $this->touchSync($company);
 
         return $response->json();
@@ -167,6 +167,38 @@ class ContaAzulClient
     public function createAcquittance(Company $company, string $installmentId, array $payload): array
     {
         $response = $this->requestJson($company, 'POST', "/v1/financeiro/eventos-financeiros/parcelas/{$installmentId}/baixa", $payload);
+        $this->touchSync($company);
+
+        return $response->json();
+    }
+
+    public function getInstallment(Company $company, string $installmentId): array
+    {
+        $response = $this->request($company, 'GET', "/v1/financeiro/eventos-financeiros/parcelas/{$installmentId}");
+        $this->touchSync($company);
+
+        return $response->json();
+    }
+
+    public function updateInstallment(Company $company, string $installmentId, array $payload): array
+    {
+        $response = $this->requestJson($company, 'PATCH', "/v1/financeiro/eventos-financeiros/parcelas/{$installmentId}", $payload);
+        $this->touchSync($company);
+
+        return $response->json();
+    }
+
+    public function listAcquittances(Company $company, string $installmentId): array
+    {
+        $response = $this->request($company, 'GET', "/v1/financeiro/eventos-financeiros/parcelas/{$installmentId}/baixa");
+        $this->touchSync($company);
+
+        return $response->json();
+    }
+
+    public function updateAcquittance(Company $company, string $acquittanceId, array $payload): array
+    {
+        $response = $this->requestJson($company, 'PATCH', "/v1/financeiro/eventos-financeiros/parcelas/baixa/{$acquittanceId}", $payload);
         $this->touchSync($company);
 
         return $response->json();

@@ -11,6 +11,7 @@ class WeeklyExcessKilometerPolicy
         'bruno novo',
         'henrique bleasby',
         'luiz carlos chaves',
+        'carlos eduardo consenza',
     ];
 
     private const RATE_005_DRIVERS = [
@@ -24,6 +25,7 @@ class WeeklyExcessKilometerPolicy
         'vitor de barros',
         'antonio telinhos',
         'jose miguel beca',
+        'carlos eduardo consenza',
     ];
 
     public function calculate(

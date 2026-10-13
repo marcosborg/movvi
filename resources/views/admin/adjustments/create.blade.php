@@ -77,12 +77,12 @@
                             <span class="help-block">{{ trans('cruds.adjustment.fields.end_date_helper') }}</span>
                         </div>
                         <div class="form-group {{ $errors->has('dilution_weeks') ? 'has-error' : '' }}" id="dilution_weeks_group" style="display: none;">
-                            <label for="dilution_weeks">Diluir por semanas</label>
+                            <label for="dilution_weeks">Parcelar por semanas</label>
                             <input class="form-control" type="number" name="dilution_weeks" id="dilution_weeks" value="{{ old('dilution_weeks', 1) }}" min="1" max="52">
                             @if($errors->has('dilution_weeks'))
                                 <span class="help-block" role="alert">{{ $errors->first('dilution_weeks') }}</span>
                             @endif
-                            <span class="help-block">Disponivel para caucao recebida. Se indicar mais de 1 semana, o sistema cria parcelas semanais automaticamente a partir da semana da data de inicio.</span>
+                            <span class="help-block">Disponível para caução recebida e ajuste manual. O sistema divide os cêntimos sem alterar o total.</span>
                         </div>
                         <div class="form-group {{ $errors->has('drivers') ? 'has-error' : '' }}">
                             <label for="drivers">{{ trans('cruds.adjustment.fields.drivers') }}</label>
@@ -150,7 +150,7 @@
         }
 
         const toggleDilutionField = () => {
-            dilutionGroup.style.display = categoryInput.value === '{{ App\Models\Adjustment::CATEGORY_CAUTION_RECEIVED }}' ? 'block' : 'none';
+            dilutionGroup.style.display = ['{{ App\Models\Adjustment::CATEGORY_CAUTION_RECEIVED }}', '{{ App\Models\Adjustment::CATEGORY_MANUAL }}'].includes(categoryInput.value) ? 'block' : 'none';
         };
 
         categoryInput.addEventListener('change', toggleDilutionField);

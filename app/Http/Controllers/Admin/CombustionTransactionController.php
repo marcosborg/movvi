@@ -247,6 +247,8 @@ class CombustionTransactionController extends Controller
                 ->withInput();
         }
 
+        $createdCount = 0;
+        $updatedCount = 0;
         foreach ($transactions as $transaction) {
             $existing = CombustionTransaction::withTrashed()
                 ->where('tvde_week_id', $transaction['tvde_week_id'])
@@ -277,12 +279,14 @@ class CombustionTransactionController extends Controller
                 }
 
                 $assignmentService->assign($existing);
+                $updatedCount++;
 
                 continue;
             }
 
             $created = CombustionTransaction::create($transaction);
             $assignmentService->assign($created);
+            $createdCount++;
         }
 
         $supplierLabel = match ($supplier) {
@@ -290,8 +294,15 @@ class CombustionTransactionController extends Controller
             default => strtoupper(str_replace('_', ' ', $supplier)),
         };
 
+        $summary = app(\App\Services\WeeklyImportReconciliationService::class)
+            ->forWeek((int) $validated['tvde_week_id'])['fuel'];
+
         return redirect()->back()
-            ->with('message', sprintf('Importadas %d transacoes de %s com sucesso.', count($transactions), $supplierLabel));
+            ->with('message', sprintf(
+                '%s: %d linhas lidas; %d criadas e %d atualizadas; %d atribuídas (%.2f €) e %d pendentes (%.2f €).',
+                $supplierLabel, count($transactions), $createdCount, $updatedCount,
+                $summary['assigned'], $summary['assigned_value'], $summary['pending'], $summary['pending_value']
+            ));
     }
 
     protected function detectSupplierFromRows(array $rows): ?string

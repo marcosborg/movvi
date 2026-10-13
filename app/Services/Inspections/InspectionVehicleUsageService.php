@@ -55,6 +55,40 @@ class InspectionVehicleUsageService
         return $normalizedPlan;
     }
 
+    public function applyOperationalState(VehicleItem $vehicle, string $state, ?int $driverId = null): void
+    {
+        if (!array_key_exists($state, VehicleUsage::USAGE_EXCEPTIONS_RADIO)) {
+            throw ValidationException::withMessages(['state' => 'Estado de utilização inválido.']);
+        }
+
+        if ($state === 'usage') {
+            if (!$driverId) {
+                throw ValidationException::withMessages(['driver_id' => 'Selecione o motorista para o estado Utilização.']);
+            }
+            $this->applyDirectTransfer($vehicle, [
+                'mode' => $vehicle->driver_id ? 'passagem' : 'entrega',
+                'source_driver_id' => $vehicle->driver_id,
+                'target_driver_id' => $driverId,
+            ]);
+            return;
+        }
+
+        $appliedAt = Carbon::now();
+        $closedAt = $appliedAt->copy()->subSecond();
+        VehicleUsage::query()
+            ->where('vehicle_item_id', $vehicle->id)
+            ->where(fn ($query) => $query->whereNull('end_date')->orWhere('end_date', '>=', $appliedAt))
+            ->update(['end_date' => $closedAt]);
+        VehicleUsage::create([
+            'driver_id' => null,
+            'vehicle_item_id' => $vehicle->id,
+            'start_date' => $appliedAt,
+            'end_date' => null,
+            'usage_exceptions' => $state,
+        ]);
+        $vehicle->update(['driver_id' => null]);
+    }
+
     public function loadPlan(Inspection $inspection): ?array
     {
         $audit = $inspection->audits()

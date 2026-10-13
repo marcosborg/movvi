@@ -28,6 +28,10 @@ class WeeklyExcessKilometerPolicyTest extends TestCase
         $this->assertSame(100.0, $fullNameLimitAndRateException['kilometers']);
         $this->assertSame(5.0, $fullNameLimitAndRateException['charge']);
 
+        $carlosException = $policy->calculate(1, '2026-09-14', 0, 2300, 'Carlos Eduardo Consenza');
+        $this->assertSame(100.0, $carlosException['kilometers']);
+        $this->assertSame(5.0, $carlosException['charge']);
+
         $reorderedNameException = $policy->calculate(1, '2026-09-14', 0, 2150, 'Marcelo Verde Capeleiro de Almeida');
         $this->assertSame(150.0, $reorderedNameException['kilometers']);
         $this->assertSame(7.5, $reorderedNameException['charge']);

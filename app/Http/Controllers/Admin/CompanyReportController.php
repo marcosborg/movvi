@@ -23,6 +23,9 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Services\WeeklyImportReconciliationService;
+use App\Services\DriverReceiptComplianceReportService;
+use App\Exports\DriverReceiptComplianceExport;
 
 class CompanyReportController extends Controller
 {
@@ -57,6 +60,7 @@ class CompanyReportController extends Controller
             'via_verde' => CarTrack::where('tvde_week_id', $tvde_week_id)->exists(),
             'mileage' => $mileageCount > 0,
         ];
+        $importReconciliation = app(WeeklyImportReconciliationService::class)->forWeek((int) $tvde_week_id, (int) $company_id);
 
         $sortBy = request()->query('sort_by', 'name');
         $sortDirection = request()->query('sort_direction', 'asc');
@@ -74,6 +78,7 @@ class CompanyReportController extends Controller
             'totals' => $results['totals'],
             'mileageCount' => $mileageCount,
             'importState' => $importState,
+            'importReconciliation' => $importReconciliation,
             'sortBy' => $sortBy,
             'sortDirection' => $sortDirection,
         ]);
@@ -441,6 +446,7 @@ class CompanyReportController extends Controller
                 'car_track' => $data->car_track ?? 0,
                 'car_hire' => $data->car_hire ?? 0,
                 'fuel_transactions' => $data->fuel_transactions ?? 0,
+                'pays_fuel' => (bool) Driver::find($driver_id)?->pays_fuel,
                 'driver_balance' => $balance->balance ?? 0,
                 'amount_transferred'   => $amount_transferred,
             ];
@@ -452,6 +458,52 @@ class CompanyReportController extends Controller
             'results' => $results,
             'state_id' => $state_id
         ]);
+    }
+
+    public function driverReceiptCompliance(Request $request, DriverReceiptComplianceReportService $service)
+    {
+        abort_if(Gate::denies('company_report_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $companyId = (int) (session()->get('company_id') ?: Company::where('main', true)->value('id'));
+        $weekId = $request->filled('tvde_week_id') ? (int) $request->input('tvde_week_id') : null;
+        $month = $request->filled('month') ? (string) $request->input('month') : null;
+        if ($month && ! preg_match('/^\d{4}-\d{2}$/', $month)) {
+            abort(422, 'Selecione um mês válido.');
+        }
+
+        return view('admin.companyReports.driverReceiptCompliance', [
+            'report' => $service->build($companyId, $weekId, $month),
+            'weeks' => TvdeWeek::orderByDesc('start_date')->get(),
+        ]);
+    }
+
+    public function driverReceiptCompliancePdf(Request $request, DriverReceiptComplianceReportService $service)
+    {
+        $data = $this->driverReceiptComplianceData($request, $service);
+
+        return Pdf::loadView('admin.companyReports.driverReceiptCompliancePdf', $data)
+            ->setPaper('a4', 'landscape')
+            ->stream('recibos-motoristas.pdf');
+    }
+
+    public function driverReceiptComplianceExcel(Request $request, DriverReceiptComplianceReportService $service)
+    {
+        return Excel::download(new DriverReceiptComplianceExport(
+            $this->driverReceiptComplianceData($request, $service)
+        ), 'recibos-motoristas.xlsx');
+    }
+
+    private function driverReceiptComplianceData(Request $request, DriverReceiptComplianceReportService $service): array
+    {
+        abort_if(Gate::denies('company_report_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $companyId = (int) (session()->get('company_id') ?: Company::where('main', true)->value('id'));
+        $month = $request->filled('month') ? (string) $request->input('month') : null;
+        abort_if($month && ! preg_match('/^\d{4}-\d{2}$/', $month), 422, 'Selecione um mês válido.');
+
+        return ['report' => $service->build(
+            $companyId,
+            $request->filled('tvde_week_id') ? (int) $request->input('tvde_week_id') : null,
+            $month
+        )];
     }
 
     protected function readMileageFileRows(string $path, ?string $extension = null): array

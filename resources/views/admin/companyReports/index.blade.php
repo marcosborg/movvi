@@ -153,8 +153,10 @@
             @endforeach
         </div>
         @include('admin.partials.weekQuickSelect', ['tvde_weeks' => $tvde_weeks, 'tvde_week_id' => $tvde_week_id])
+        <div style="margin-top:10px;"><a class="btn btn-default" href="{{ route('admin.company-reports.driver-receipt-compliance', ['tvde_week_id' => $tvde_week_id]) }}">Recibos dos motoristas ativos</a></div>
 
         <div class="row" style="margin-top: 20px;">
+            <div class="col-md-12"><div class="alert alert-info"><strong>IVA:</strong> imposto calculado segundo o contrato do motorista; é apresentado separadamente para explicar o valor final e não representa um segundo pagamento.</div></div>
             <div class="col-md-3">
                 <div class="panel panel-default">
                     <div class="panel-heading">Total motoristas</div>
@@ -195,6 +197,36 @@
         <div class="panel panel-default" style="margin-top: 20px;">
             <div class="panel-heading">
                 Importações da semana
+            </div>
+            <div class="panel-body" style="border-top:1px solid #ddd;">
+                <h4 style="margin-top:0;">Reconciliação da importação</h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-condensed">
+                        <thead><tr><th>Origem</th><th>Lidos</th><th>Atribuídos</th><th>Pendentes</th><th>Valor atribuído</th><th>Valor pendente</th></tr></thead>
+                        <tbody>
+                            @foreach(($importReconciliation['platforms'] ?? []) as $summary)
+                                <tr>
+                                    <td>{{ $summary['label'] }}</td><td>{{ $summary['read'] }}</td><td>{{ $summary['assigned'] }}</td><td>{{ $summary['pending'] }}</td>
+                                    <td>{{ number_format($summary['assigned_value'], 2, ',', '.') }} €</td><td>{{ number_format($summary['pending_value'], 2, ',', '.') }} €</td>
+                                </tr>
+                                @foreach($summary['pending_items'] as $pending)
+                                    <tr class="warning"><td colspan="6"><strong>{{ $pending['reference'] }}</strong>{{ $pending['driver'] ? ' · '.$pending['driver'] : '' }} — {{ $pending['reason'] }}</td></tr>
+                                @endforeach
+                            @endforeach
+                            @php($fuelSummary = $importReconciliation['fuel'] ?? null)
+                            @if($fuelSummary && $fuelSummary['read'])
+                                <tr>
+                                    <td>{{ $fuelSummary['label'] }}</td><td>{{ $fuelSummary['read'] }}</td><td>{{ $fuelSummary['assigned'] }}</td><td>{{ $fuelSummary['pending'] }}</td>
+                                    <td>{{ number_format($fuelSummary['assigned_value'], 2, ',', '.') }} €</td><td>{{ number_format($fuelSummary['pending_value'], 2, ',', '.') }} €</td>
+                                </tr>
+                                @foreach($fuelSummary['pending_items'] as $pending)
+                                    <tr class="warning"><td colspan="6"><strong>{{ $pending['reference'] }}</strong> — {{ $pending['reason'] }}</td></tr>
+                                @endforeach
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
+                <small>Atribuído significa que o registo encontrou motorista/viatura válidos na data; pendente mostra o motivo para correção.</small>
             </div>
             <div class="panel-body" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                 @if ($importState['uber'])
@@ -363,7 +395,7 @@
                                     data-plate="{{ mb_strtolower($driver->license_plate ?? '') }}"
                                     data-validation="{{ $driver->current_account ? 'validated' : 'pending' }}"
                                 >
-                                    <td>{{ $driver->name }}</td>
+                                    <td>{{ $driver->name }}<br><small class="label {{ $driver->pays_fuel ? 'label-default' : 'label-info' }}">Combustível: {{ $driver->pays_fuel ? 'cobrado' : 'isento' }}</small></td>
                                     <td>{{ $driver->license_plate ?? '-' }}</td>
                                     <td style="text-align: right; background: #eeeeee; display: none;">{{ number_format($driver->earnings['uber']['uber_gross'] ?? 0, 2) }} <small>€</small></td>
                                     <td style="text-align: right; background: #eeeeee; display: none;">{{ number_format($driver->earnings['bolt']['bolt_gross'] ?? 0, 2) }} <small>€</small></td>

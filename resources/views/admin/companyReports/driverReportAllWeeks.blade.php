@@ -13,6 +13,9 @@
     <div class="panel panel-default" style="margin-top: 20px;">
         <div class="panel-heading">
             Resultados semanais do motorista selecionado
+            @if(count($results))
+                <span class="label {{ $results[0]['pays_fuel'] ? 'label-default' : 'label-info' }} pull-right">Combustível: {{ $results[0]['pays_fuel'] ? 'cobrado' : 'isento' }}</span>
+            @endif
         </div>
         <div class="panel-body p-0">
             <div class="table-sticky-container">
@@ -22,7 +25,7 @@
                             @foreach ([
                             'Semana', 'Uber (Bruto)', 'Bolt (Bruto)', 'Uber (Líquido)', 'Bolt (Líquido)',
                             'Total Bruto', 'Total Líquido', 'Ajustes', 'Total Final', 'IVA',
-                            'Car Track', 'Cedência', 'Combustível', 'Saldo', 'Transferido'
+                            'Via Verde (CarTrack)', 'Cedência', 'Combustível', 'Saldo', 'Transferido'
                             ] as $th)
                             <th>{{ $th }}</th>
                             @endforeach

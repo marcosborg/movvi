@@ -20,7 +20,9 @@ class ContaAzulVehicleRevenueExport extends Model
         'event_payload' => 'array',
         'installment_payload' => 'array',
         'acquittance_payload' => 'array',
+        'correction_history' => 'array',
         'exported_at' => 'datetime',
+        'last_corrected_at' => 'datetime',
     ];
 
     protected $fillable = [
@@ -41,6 +43,9 @@ class ContaAzulVehicleRevenueExport extends Model
         'error_message',
         'exported_at',
         'exported_by',
+        'correction_history',
+        'last_corrected_at',
+        'last_corrected_by',
     ];
 
     public function company()

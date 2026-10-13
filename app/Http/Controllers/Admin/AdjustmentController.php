@@ -106,13 +106,13 @@ class AdjustmentController extends Controller
         $driverIds = $request->input('drivers', []);
 
         if (
-            ($payload['category'] ?? null) === Adjustment::CATEGORY_CAUTION_RECEIVED
+            in_array(($payload['category'] ?? null), [Adjustment::CATEGORY_CAUTION_RECEIVED, Adjustment::CATEGORY_MANUAL], true)
             && (int) ($payload['dilution_weeks'] ?? 1) > 1
         ) {
-            $this->storeDilutedCautionAdjustments($payload, $driverIds);
+            $this->storeDilutedAdjustments($payload, $driverIds);
 
             return redirect()->route('admin.adjustments.index')
-                ->with('message', 'Caucao diluida criada com sucesso.');
+                ->with('message', 'Ajuste parcelado criado com sucesso.');
         }
 
         unset($payload['dilution_weeks']);
@@ -182,7 +182,7 @@ class AdjustmentController extends Controller
         return response(null, Response::HTTP_NO_CONTENT);
     }
 
-    protected function storeDilutedCautionAdjustments(array $payload, array $driverIds): void
+    protected function storeDilutedAdjustments(array $payload, array $driverIds): void
     {
         $weeksToDilute = (int) ($payload['dilution_weeks'] ?? 1);
         $startWeek = $this->resolveDilutionStartWeek((string) ($payload['start_date'] ?? ''));
@@ -194,7 +194,7 @@ class AdjustmentController extends Controller
 
         if ($weeks->count() < $weeksToDilute) {
             throw ValidationException::withMessages([
-                'dilution_weeks' => 'Nao existem semanas TVDE suficientes para criar todas as parcelas da caucao.',
+                'dilution_weeks' => 'Nao existem semanas TVDE suficientes para criar todas as parcelas do ajuste.',
             ]);
         }
 

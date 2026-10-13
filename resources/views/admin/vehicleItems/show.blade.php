@@ -14,6 +14,11 @@
                             <a class="btn btn-default" href="{{ route('admin.vehicle-items.index') }}">
                                 {{ trans('global.back_to_list') }}
                             </a>
+                            @can('vehicle_item_edit')
+                                <a class="btn btn-primary" href="{{ route('admin.vehicle-items.qr', $vehicleItem) }}" target="_blank">
+                                    Imprimir QR Code da viatura
+                                </a>
+                            @endcan
                         </div>
                         <table class="table table-bordered table-striped">
                             <tbody>

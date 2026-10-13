@@ -12,6 +12,7 @@ use App\Models\VehicleUsage;
 use App\Services\Inspections\InspectionWorkflowService;
 use App\Services\Inspections\InspectionVehicleUsageService;
 use App\Support\InspectionRoutineConfig;
+use App\Services\VehicleAssignmentHealthService;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
@@ -257,6 +258,8 @@ class MobileInspectionController extends Controller
             ->keyBy('id');
 
         return response()->json([
+            'assignment_health' => app(VehicleAssignmentHealthService::class)->current(),
+            'usage_states' => collect(VehicleUsage::USAGE_EXCEPTIONS_RADIO)->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values(),
             'types' => collect(array_values((array) config('inspections.types', [])))
                 ->map(fn ($key) => ['key' => (string) $key, 'label' => (string) config('inspections.type_labels.' . $key, $key)])
                 ->values(),
@@ -389,6 +392,20 @@ class MobileInspectionController extends Controller
                 'mode' => $plan['mode'],
             ],
         ], Response::HTTP_CREATED);
+    }
+
+    public function storeUsageState(Request $request)
+    {
+        $this->ensureUserCanManageTransfers($request);
+        $validated = $request->validate([
+            'vehicle_id' => ['required', 'integer', 'exists:vehicle_items,id'],
+            'state' => ['required', Rule::in(array_keys(VehicleUsage::USAGE_EXCEPTIONS_RADIO))],
+            'driver_id' => ['nullable', 'integer', 'exists:drivers,id'],
+        ]);
+        $vehicle = VehicleItem::findOrFail($validated['vehicle_id']);
+        $this->vehicleUsage->applyOperationalState($vehicle, $validated['state'], $validated['driver_id'] ?? null);
+
+        return response()->json(['message' => 'Estado da viatura atualizado com sucesso.']);
     }
 
     public function destroy(Request $request, Inspection $inspection)

@@ -569,14 +569,14 @@
 <script>
     Dropzone.options.greenReceiptFileDropzone = {
         url: '{{ route('admin.receipts.storeMedia') }}'
-        , maxFilesize: 2, // MB
+        , maxFilesize: 10, // MB
         maxFiles: 1
         , addRemoveLinks: true
         , headers: {
             'X-CSRF-TOKEN': "{{ csrf_token() }}"
         }
         , params: {
-            size: 2
+            size: 10
         }
         , success: function(file, response) {
             var $form = $('#green-receipt-file-dropzone').closest('form')

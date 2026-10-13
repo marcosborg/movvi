@@ -118,6 +118,9 @@ class MobileController extends Controller
                     'verified_value' => $receipt->verified_value !== null ? (float) $receipt->verified_value : null,
                     'amount_transferred' => $receipt->amount_transferred !== null ? (float) $receipt->amount_transferred : null,
                     'verified' => (bool) $receipt->verified,
+                    'status' => $receipt->verified ? ($receipt->paid ? 'paid' : 'verified') : 'submitted',
+                    'status_label' => $receipt->verified ? ($receipt->paid ? 'Pago' : 'Validado') : 'Colocado / a aguardar validação',
+                    'verified_at' => optional($receipt->verified_at)->format('Y-m-d H:i:s'),
                     'paid' => (bool) $receipt->paid,
                     'created_at' => optional($receipt->created_at)->format('Y-m-d H:i:s'),
                     'tvde_week_id' => $receipt->tvde_week_id,
@@ -198,7 +201,7 @@ class MobileController extends Controller
 
         $validated = $request->validate([
             'date' => ['required', 'date_format:d-m-Y'],
-            'file' => ['required', 'file', 'max:10240'],
+            'file' => ['required', 'file', 'max:10240', 'mimetypes:application/pdf,image/jpeg,image/png,image/heic,image/heif'],
         ]);
 
         [$week] = $this->resolveWeek($validated['date']);
@@ -219,31 +222,37 @@ class MobileController extends Controller
 
         $receiptValue = round((float) $driverBalance->new_balance, 2);
 
+        if (Receipt::where('driver_id', $driver->id)->where('tvde_week_id', $week->id)->exists()) {
+            return response()->json([
+                'error' => 'Já existe um recibo colocado para esta semana.',
+            ], 422);
+        }
+
         $receipt = Receipt::create([
             'driver_id' => $driver->id,
             'tvde_week_id' => $week->id,
             'balance' => (float) $driverBalance->new_balance,
             'value' => $receiptValue,
-            'verified' => true,
-            'verified_value' => $receiptValue,
-            'amount_transferred' => $receiptValue,
+            'verified' => false,
+            'verified_value' => null,
+            'amount_transferred' => null,
             'processed_as' => 'driver_submission',
         ]);
 
         $receipt->addMediaFromRequest('file')->toMediaCollection('file');
-        $driverBalance->new_balance = 0;
-        $driverBalance->save();
-        $this->propagateReceiptBalanceDelta((int) $driver->id, (int) $week->id, $receiptValue);
 
         User::find(2)?->notify(new NewReceipt($driver));
 
         return response()->json([
-            'message' => 'Recibo enviado com sucesso.',
+            'message' => 'Recibo colocado com sucesso e a aguardar validação.',
             'receipt' => [
                 'id' => $receipt->id,
                 'value' => (float) $receipt->value,
                 'created_at' => optional($receipt->created_at)->format('Y-m-d H:i:s'),
                 'file_url' => $receipt->file ? $receipt->file->getUrl() : null,
+                'status' => 'submitted',
+                'verified' => false,
+                'verified_at' => null,
             ],
         ], 201);
     }

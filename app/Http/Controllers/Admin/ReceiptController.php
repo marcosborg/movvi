@@ -18,10 +18,22 @@ use App\Models\DriversBalance;
 use App\Models\Company;
 use App\Models\TvdeWeek;
 use App\Services\AdminDriverImpersonationService;
+use App\Services\ReceiptValidationService;
 
 class ReceiptController extends Controller
 {
-    use MediaUploadingTrait;
+    use MediaUploadingTrait {
+        storeMedia as protected storeReceiptMedia;
+    }
+
+    public function storeMedia(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'max:10240', 'mimetypes:application/pdf,image/jpeg,image/png,image/heic,image/heif'],
+        ]);
+
+        return $this->storeReceiptMedia($request);
+    }
 
     public function index(Request $request)
     {
@@ -100,7 +112,7 @@ class ReceiptController extends Controller
             });
 
             $table->editColumn('file', function ($row) {
-                return $row->file ? '<a href="' . $row->file->getUrl() . '" target="_blank">' . trans('global.downloadFile') . '</a>' : '';
+                return $row->file ? '<a href="' . route('admin.receipts.download', $row) . '">' . trans('global.downloadFile') . '</a>' : '';
             });
             $table->editColumn('receipt_value', function ($row) {
                 $value = $row->verified_value !== null && $row->verified_value !== ''
@@ -154,16 +166,22 @@ class ReceiptController extends Controller
 
         $data = $request->validated();
 
+        // A colocação de um recibo nunca movimenta saldo. A validação explícita,
+        // transacional e auditada é a única operação autorizada a fazê-lo.
+        $data['verified'] = false;
+        $data['verified_value'] = null;
+        $data['amount_transferred'] = null;
+        $data['verified_at'] = null;
+        $data['verified_by'] = null;
+        $data['balance_applied_at'] = null;
+        $data['processed_as'] = 'driver_submission';
+
         $driverBalance = $this->driverBalanceFor((int) $data['driver_id'], (int) $data['tvde_week_id']);
         if ($driverBalance && (float) $driverBalance->new_balance > 0) {
             $receiptValue = round((float) ($data['value'] ?? $driverBalance->new_balance), 2);
 
             $data['balance'] = round((float) ($data['balance'] ?? $driverBalance->new_balance), 2);
             $data['value'] = $receiptValue;
-            $data['verified'] = true;
-            $data['verified_value'] = $receiptValue;
-            $data['amount_transferred'] = $data['amount_transferred'] ?? $receiptValue;
-            $data['processed_as'] = 'driver_submission';
         }
 
         if ($this->isAdminManualSubmission($request)) {
@@ -181,11 +199,7 @@ class ReceiptController extends Controller
             Media::whereIn('id', $media)->update(['model_id' => $receipt->id]);
         }
 
-        if ($receipt->verified) {
-            $this->applyReceiptToBalance($receipt, (float) $receipt->verified_value);
-        }
-
-        return redirect()->back()->with('message', 'Recibo enviado com sucesso. Obrigado.');
+        return redirect()->back()->with('message', 'Recibo colocado com sucesso e a aguardar validação.');
     }
 
     public function edit(Receipt $receipt)
@@ -202,7 +216,10 @@ class ReceiptController extends Controller
 
     public function update(UpdateReceiptRequest $request, Receipt $receipt)
     {
-        $receipt->update($request->all());
+        $receipt->update($request->except([
+            'verified', 'verified_value', 'verified_at', 'verified_by',
+            'balance_applied_at', 'amount_transferred',
+        ]));
 
         if ($request->input('file', false)) {
             if (!$receipt->file || $request->input('file') !== $receipt->file->file_name) {
@@ -259,27 +276,55 @@ class ReceiptController extends Controller
         return response()->json(['id' => $media->id, 'url' => $media->getUrl()], Response::HTTP_CREATED);
     }
 
-    public function checkPay($receipt_id)
+    public function checkPay(Request $request, Receipt $receipt)
     {
-        $receipt = Receipt::find($receipt_id);
+        $this->authorizeManagement($request, $receipt);
+        abort_unless($receipt->verified, 422, 'Falta validar o recibo.');
         $receipt->paid = true;
         $receipt->save();
+
+        return response()->json(['message' => 'Recibo marcado como pago.']);
     }
 
-    public function checkVerified($receipt_id, $receipt_value, $amount_transferred)
+    public function checkVerified(Request $request, Receipt $receipt, ReceiptValidationService $service)
     {
-        $receipt = Receipt::find($receipt_id);
-        if (!$receipt || $receipt->verified) {
-            return;
-        }
+        $this->authorizeManagement($request, $receipt);
+        $validated = $request->validate([
+            'receipt_value' => ['required', 'numeric', 'min:0'],
+            'amount_transferred' => ['required', 'numeric', 'min:0'],
+        ]);
 
-        $receipt->verified = true;
-        $receipt->verified_value = $receipt_value;
-        $receipt->amount_transferred = $amount_transferred;
-        $receipt->processed_as = $receipt->processed_as ?: 'driver_submission';
-        $receipt->save();
+        $service->validate($receipt, (float) $validated['receipt_value'], (float) $validated['amount_transferred'], $request->user());
 
-        $this->applyReceiptToBalance($receipt, (float) $receipt_value);
+        return response()->json(['message' => 'Recibo validado com sucesso.']);
+    }
+
+    public function download(Request $request, Receipt $receipt)
+    {
+        $this->authorizeView($request, $receipt);
+        abort_unless($receipt->file && is_file($receipt->file->getPath()), 404);
+
+        return response()->download($receipt->file->getPath(), $receipt->file->file_name, [
+            'Content-Type' => $receipt->file->mime_type ?: 'application/octet-stream',
+        ]);
+    }
+
+    protected function authorizeManagement(Request $request, Receipt $receipt): void
+    {
+        $user = $request->user();
+        $sameCompany = (int) optional($receipt->driver)->company_id === (int) optional($user->company)->id;
+        $companyManager = $user->hasRole('Empresas Associadas') || $user->hasRole('Gestor');
+
+        abort_unless(Gate::allows('receipt_edit') || ($sameCompany && $companyManager), 403);
+    }
+
+    protected function authorizeView(Request $request, Receipt $receipt): void
+    {
+        $user = $request->user();
+        $ownReceipt = (int) optional($receipt->driver)->user_id === (int) $user->id;
+        $sameCompany = (int) optional($receipt->driver)->company_id === (int) optional($user->company)->id;
+
+        abort_unless(Gate::allows('receipt_show') || $ownReceipt || ($sameCompany && ($user->hasRole('Empresas Associadas') || $user->hasRole('Gestor'))), 403);
     }
 
     protected function applyReceiptToBalance(Receipt $receipt, float $receiptValue): void

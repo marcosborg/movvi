@@ -70,13 +70,13 @@ class StoreAdjustmentRequest extends FormRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            if ($this->input('category') !== Adjustment::CATEGORY_CAUTION_RECEIVED) {
+            if (!in_array($this->input('category'), [Adjustment::CATEGORY_CAUTION_RECEIVED, Adjustment::CATEGORY_MANUAL], true)) {
                 return;
             }
 
             $dilutionWeeks = (int) $this->input('dilution_weeks', 1);
             if ($dilutionWeeks > 1 && !$this->filled('start_date')) {
-                $validator->errors()->add('start_date', 'A data de inicio e obrigatoria para diluir a caucao por semanas.');
+                $validator->errors()->add('start_date', 'A data de inicio e obrigatoria para parcelar o ajuste por semanas.');
             }
         });
     }

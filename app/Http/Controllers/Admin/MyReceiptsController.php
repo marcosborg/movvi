@@ -92,7 +92,7 @@ class MyReceiptsController extends Controller
                 return $row->balance ? $row->balance : '';
             });
             $table->editColumn('file', function ($row) {
-                return $row->file ? '<a href="' . $row->file->getUrl() . '" target="_blank">' . trans('global.downloadFile') . '</a>' : '';
+                return $row->file ? '<a href="' . route('admin.receipts.download', $row) . '">' . trans('global.downloadFile') . '</a>' : '';
             });
             $table->editColumn('receipt_value', function ($row) {
                 return '<input id="receipt_value-' . $row->id . '" type="number" value="' . $row->verified_value . '" ' . ($row->verified ? 'disabled' : '') . '>';

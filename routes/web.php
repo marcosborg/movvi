@@ -283,8 +283,9 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('receipts/destroy', 'ReceiptController@massDestroy')->name('receipts.massDestroy');
     Route::post('receipts/media', 'ReceiptController@storeMedia')->name('receipts.storeMedia');
     Route::post('receipts/ckmedia', 'ReceiptController@storeCKEditorImages')->name('receipts.storeCKEditorImages');
-    Route::get('receipts/checkPay/{receipt_id}', 'ReceiptController@checkPay');
-    Route::get('receipts/checkVerified/{receipt_id}/{receipt_value}/{amount_transferred}', 'ReceiptController@checkVerified');
+    Route::post('receipts/{receipt}/pay', 'ReceiptController@checkPay')->name('receipts.pay');
+    Route::patch('receipts/{receipt}/verify', 'ReceiptController@checkVerified')->name('receipts.verify');
+    Route::get('receipts/{receipt}/download', 'ReceiptController@download')->name('receipts.download');
     Route::get('receipts/paid', 'ReceiptController@index');
     Route::resource('receipts', 'ReceiptController');
     Route::get('driver-alerts', 'DriverAlertController@index')->name('driver-alerts.index');
@@ -302,9 +303,6 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::prefix('my-receipts')->group(function () {
         Route::get('/{paid?}', 'MyReceiptsController@index')->name('my-receipts.index');
         Route::post('create', 'MyReceiptsController@create');
-        Route::get('pay-receipt/{receipt_id}/{paid}', 'MyReceiptsController@payReceipt');
-        Route::get('checkPay/{receipt_id}', 'MyReceiptsController@checkPay');
-        Route::get('checkVerified/{receipt_id}/{receipt_value}/{amount_transferred}', 'MyReceiptsController@checkVerified');
     });
 
     // Document
@@ -402,6 +400,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('vehicle-items/media', 'VehicleItemController@storeMedia')->name('vehicle-items.storeMedia');
     Route::post('vehicle-items/ckmedia', 'VehicleItemController@storeCKEditorImages')->name('vehicle-items.storeCKEditorImages');
     Route::resource('vehicle-items', 'VehicleItemController');
+    Route::get('vehicle-items/{vehicle}/qr', 'VehicleQrController@show')->name('vehicle-items.qr');
 
     // Company
     Route::delete('companies/destroy', 'CompanyController@massDestroy')->name('companies.massDestroy');
@@ -485,6 +484,9 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
         Route::post('revalidate-data', 'CompanyReportController@revalidateData');
         Route::get('delete-data/{tvde_week_id}/{driver_id}', 'CompanyReportController@deleteData')->name('company-reports.delete-data');
         Route::get('driver-report-all-weeks/{driver_id?}/{state_id?}', 'CompanyReportController@driverReportAllWeeks')->name('company-reports.driver-report-all-weeks');
+        Route::get('driver-receipt-compliance', 'CompanyReportController@driverReceiptCompliance')->name('company-reports.driver-receipt-compliance');
+        Route::get('driver-receipt-compliance/pdf', 'CompanyReportController@driverReceiptCompliancePdf')->name('company-reports.driver-receipt-compliance-pdf');
+        Route::get('driver-receipt-compliance/excel', 'CompanyReportController@driverReceiptComplianceExcel')->name('company-reports.driver-receipt-compliance-excel');
     });
     Route::get('company-reports-history', 'CompanyReportHistoryController@index')->name('company-reports-history.index');
     Route::get('company-reports-history/export-excel', 'CompanyReportHistoryController@exportExcel')->name('company-reports-history.export-excel');
@@ -625,6 +627,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
             ->name('vehicle-profitabilities.week-pdf');
         Route::post('export-conta-azul', [App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'exportContaAzul'])
             ->name('vehicle-profitabilities.export-conta-azul');
+        Route::patch('correct-conta-azul', [App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'correctContaAzul'])
+            ->name('vehicle-profitabilities.correct-conta-azul');
         Route::post('allocate-entry/{entry}', [App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'allocateEntry'])
             ->name('vehicle-profitabilities.allocate-entry');
         Route::post('allocation-override', [App\Http\Controllers\Admin\VehicleProfitabilityController::class, 'storeAllocationOverride'])

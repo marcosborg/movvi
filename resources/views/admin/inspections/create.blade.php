@@ -1,6 +1,18 @@
 @extends('layouts.admin')
 @section('content')
 <div class="content">
+    <div class="alert alert-info">
+        <strong>Estado atual das atribuições:</strong>
+        {{ $assignmentHealth['counts']['unassigned_vehicles'] }} viaturas sem motorista,
+        {{ $assignmentHealth['counts']['vehicles_with_multiple_drivers'] }} viaturas com vários motoristas e
+        {{ $assignmentHealth['counts']['drivers_with_multiple_vehicles'] }} motoristas com várias viaturas.
+        @foreach($assignmentHealth['vehicles_with_multiple_drivers'] as $item)
+            <div><strong>{{ $item['license_plate'] }}:</strong> {{ implode(', ', $item['drivers']) }}</div>
+        @endforeach
+        @foreach($assignmentHealth['drivers_with_multiple_vehicles'] as $item)
+            <div><strong>{{ $item['driver_name'] }}:</strong> {{ implode(', ', $item['vehicles']) }}</div>
+        @endforeach
+    </div>
     <div class="row">
         <div class="col-lg-12">
             <div class="panel panel-default">

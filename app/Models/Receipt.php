@@ -21,6 +21,8 @@ class Receipt extends Model implements HasMedia
     ];
 
     protected $dates = [
+        'verified_at',
+        'balance_applied_at',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -32,6 +34,9 @@ class Receipt extends Model implements HasMedia
         'balance',
         'verified_value',
         'verified',
+        'verified_at',
+        'verified_by',
+        'balance_applied_at',
         'paid',
         'amount_transferred',
         'tvde_week_id',
@@ -40,6 +45,13 @@ class Receipt extends Model implements HasMedia
         'created_at',
         'updated_at',
         'deleted_at',
+    ];
+
+    protected $casts = [
+        'verified' => 'boolean',
+        'paid' => 'boolean',
+        'verified_at' => 'datetime',
+        'balance_applied_at' => 'datetime',
     ];
 
     protected function serializeDate(DateTimeInterface $date)

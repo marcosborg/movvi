@@ -47,7 +47,7 @@
                                     </th>
                                     <td>
                                         @if($receipt->file)
-                                            <a href="{{ $receipt->file->getUrl() }}" target="_blank">
+                                            <a href="{{ route('admin.receipts.download', $receipt) }}">
                                                 {{ trans('global.view_file') }}
                                             </a>
                                         @endif
