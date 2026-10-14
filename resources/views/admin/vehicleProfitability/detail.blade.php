@@ -11,7 +11,7 @@
             @foreach($weeks as $week)<option value="{{ $week->id }}" {{ $weekId === $week->id ? 'selected' : '' }}>{{ $week->start_date }} a {{ $week->end_date }}</option>@endforeach
         </select>
         <button class="btn btn-primary">Consultar</button>
-        <a class="btn btn-default" href="{{ route('admin.vehicle-profitabilities.week') }}">Relatório da frota</a>
+        <a class="btn btn-default" href="{{ route('admin.vehicle-profitabilities.week', $weekId ? ['tvde_week_id' => $weekId] : []) }}">Todas as viaturas</a>
         @if($result)<a class="btn btn-default" target="_blank" href="{{ route('admin.vehicle-profitability.pdf', ['vehicle_id' => $vehicleId, 'tvde_week_id' => $weekId]) }}">PDF</a>@endif
     </form>
     @if($message)<div class="alert alert-info">{{ $message }}</div>@endif

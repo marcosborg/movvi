@@ -46,6 +46,24 @@ class OperationalSupportFeaturesTest extends TestCase
         $this->assertStringContainsString('KM excedidos', $view);
     }
 
+    public function test_driver_statement_shows_only_the_received_operator_value(): void
+    {
+        $view = file_get_contents(__DIR__.'/../../resources/views/home.blade.php');
+
+        $this->assertStringContainsString('Valor recebido', $view);
+        $this->assertStringNotContainsString('number_format($uber_gross', $view);
+        $this->assertStringNotContainsString('number_format($bolt_gross', $view);
+        $this->assertStringNotContainsString('number_format($total_gross', $view);
+    }
+
+    public function test_vehicle_profitability_has_an_explicit_all_vehicles_link(): void
+    {
+        $view = file_get_contents(__DIR__.'/../../resources/views/admin/vehicleProfitability/detail.blade.php');
+
+        $this->assertStringContainsString('Todas as viaturas', $view);
+        $this->assertStringContainsString("['tvde_week_id' => \$weekId]", $view);
+    }
+
     public function test_vehicle_expense_forms_and_list_include_supplier(): void
     {
         foreach (['create.blade.php', 'edit.blade.php'] as $view) {

@@ -37,22 +37,18 @@
                         <tbody>
                             <tr>
                                 <th></th>
-                                <th style="text-align: right;">Bruto</th>
-                                <th style="text-align: right;">Líquido</th>
+                                <th style="text-align: right;">Valor recebido</th>
                             </tr>
                             <tr>
                                 <th>UBER</th>
-                                <td>{{ number_format($uber_gross, 2) }}€</td>
                                 <td>{{ number_format($uber_net, 2) }}€</td>
                             </tr>
                             <tr>
                                 <th>BOLT</th>
-                                <td>{{ number_format($bolt_gross, 2) }}€</td>
                                 <td>{{ number_format($bolt_net, 2) }}€</td>
                             </tr>
                             <tr>
                                 <th>Totais</th>
-                                <td>{{ number_format($total_gross, 2) }}€</td>
                                 <td>{{ number_format($total_net, 2) }}€</td>
                             </tr>
                         </tbody>
