@@ -29,8 +29,13 @@ class VehicleProfitabilityController extends Controller
     {
         abort_if(Gate::denies('vehicle_profitability_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $vehicleId = (int) $request->input('vehicle_id');
+        $vehicleSelection = (string) $request->input('vehicle_id');
         $weekId = (int) $request->input('tvde_week_id');
+        $vehicleId = ctype_digit($vehicleSelection) ? (int) $vehicleSelection : 0;
+
+        if ($vehicleSelection === 'all' && $weekId) {
+            return redirect()->route('admin.vehicle-profitabilities.week', ['tvde_week_id' => $weekId]);
+        }
 
         $vehicles = VehicleItem::with('vehicle_model')
             ->orderBy('license_plate')
@@ -49,6 +54,8 @@ class VehicleProfitabilityController extends Controller
             } else {
                 $result = VehicleProfitabilityService::make($vehicleId, $weekId);
             }
+        } elseif ($vehicleSelection === 'all') {
+            $message = 'Selecione uma semana para ver todas as viaturas.';
         } elseif ($request->query()) {
             $message = 'Selecione uma viatura e uma semana para ver o relatorio.';
         }

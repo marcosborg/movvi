@@ -101,6 +101,7 @@
                         <th style="text-align: right;">Abastecimento</th>
                         <th style="text-align: right;">Ajustes</th>
                         <th style="text-align: right;">Via verde</th>
+                        <th style="text-align: right;">Taxa 6%</th>
                         <th style="text-align: right;">Percentagem</th>
                         <th style="text-align: right;">Cedência</th>
                         <th style="text-align: right">Valor da semana</th>
@@ -142,6 +143,7 @@
                         </td>
                         <td style="text-align: right">{{ number_format($driver->adjustments, 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->earnings['car_track'], 2) }} <small>€</small></td>
+                        <td style="text-align: right; color: red;">{{ ($driver->earnings['iva_value'] ?? 0) > 0 ? '-' : '' }}{{ number_format($driver->earnings['iva_value'] ?? 0, 2) }} <small>€</small></td>
                         <td style="text-align: right; color: red;">{{ ($driver->earnings['percent_value'] ?? 0) > 0 ? '-' : '' }}{{ number_format($driver->earnings['percent_value'], 2)
                             }}
                             <small>€</small>
@@ -187,6 +189,9 @@
                             <small>€</small>
                         </th>
                         <th style="text-align: right;">{{ number_format($totals['total_car_track'], 2) }}
+                            <small>€</small>
+                        </th>
+                        <th style="text-align: right; color: red;">{{ ($totals['total_iva_value'] ?? 0) > 0 ? '-' : '' }}{{ number_format($totals['total_iva_value'] ?? 0, 2) }}
                             <small>€</small>
                         </th>
                         <th style="text-align: right; color: red;">{{ ($totals['total_percent_value'] ?? 0) > 0 ? '-' : '' }}{{ number_format($totals['total_percent_value'], 2) }}

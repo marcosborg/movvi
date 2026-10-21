@@ -10,12 +10,10 @@ use App\Http\Requests\UpdateAdjustmentRequest;
 use App\Models\Adjustment;
 use App\Models\Company;
 use App\Models\Driver;
-use App\Models\TvdeWeek;
 use Carbon\Carbon;
 use Gate;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -185,31 +183,20 @@ class AdjustmentController extends Controller
     protected function storeDilutedAdjustments(array $payload, array $driverIds): void
     {
         $weeksToDilute = (int) ($payload['dilution_weeks'] ?? 1);
-        $startWeek = $this->resolveDilutionStartWeek((string) ($payload['start_date'] ?? ''));
-        $weeks = TvdeWeek::query()
-            ->where('start_date', '>=', $startWeek->getRawOriginal('start_date'))
-            ->orderBy('start_date')
-            ->limit($weeksToDilute)
-            ->get();
-
-        if ($weeks->count() < $weeksToDilute) {
-            throw ValidationException::withMessages([
-                'dilution_weeks' => 'Nao existem semanas TVDE suficientes para criar todas as parcelas do ajuste.',
-            ]);
-        }
+        $periods = $this->dilutionPeriods((string) ($payload['start_date'] ?? ''), $weeksToDilute);
 
         $amounts = $this->splitAmountAcrossWeeks((float) ($payload['amount'] ?? 0), $weeksToDilute);
         $baseName = trim((string) ($payload['name'] ?? 'Caucao'));
 
-        DB::transaction(function () use ($payload, $driverIds, $weeks, $weeksToDilute, $amounts, $baseName) {
-            foreach ($weeks->values() as $index => $week) {
+        DB::transaction(function () use ($payload, $driverIds, $periods, $weeksToDilute, $amounts, $baseName) {
+            foreach ($periods as $index => $period) {
                 $weekPayload = $payload;
                 unset($weekPayload['dilution_weeks']);
 
                 $weekPayload['name'] = sprintf('%s (%d/%d)', $baseName, $index + 1, $weeksToDilute);
                 $weekPayload['amount'] = $amounts[$index];
-                $weekPayload['start_date'] = Carbon::parse($week->getRawOriginal('start_date'))->format(config('panel.date_format'));
-                $weekPayload['end_date'] = Carbon::parse($week->getRawOriginal('end_date'))->format(config('panel.date_format'));
+                $weekPayload['start_date'] = $period['start']->format(config('panel.date_format'));
+                $weekPayload['end_date'] = $period['end']->format(config('panel.date_format'));
 
                 $adjustment = Adjustment::create($weekPayload);
                 $adjustment->drivers()->sync($driverIds);
@@ -217,32 +204,20 @@ class AdjustmentController extends Controller
         });
     }
 
-    protected function resolveDilutionStartWeek(string $startDate): TvdeWeek
+    protected function dilutionPeriods(string $startDate, int $weeks): array
     {
-        $normalizedDate = Carbon::createFromFormat(config('panel.date_format'), $startDate)->format('Y-m-d');
+        $start = Carbon::createFromFormat(config('panel.date_format'), $startDate)->startOfDay();
 
-        $week = TvdeWeek::query()
-            ->where('start_date', '<=', $normalizedDate)
-            ->where('end_date', '>=', $normalizedDate)
-            ->orderByDesc('start_date')
-            ->first();
+        return collect(range(0, $weeks - 1))
+            ->map(function (int $index) use ($start) {
+                $periodStart = $start->copy()->addWeeks($index);
 
-        if ($week) {
-            return $week;
-        }
-
-        $nextWeek = TvdeWeek::query()
-            ->where('start_date', '>=', $normalizedDate)
-            ->orderBy('start_date')
-            ->first();
-
-        if ($nextWeek) {
-            return $nextWeek;
-        }
-
-        throw ValidationException::withMessages([
-            'start_date' => 'Nao foi encontrada nenhuma semana TVDE para iniciar a diluicao.',
-        ]);
+                return [
+                    'start' => $periodStart,
+                    'end' => $periodStart->copy()->addDays(6),
+                ];
+            })
+            ->all();
     }
 
     protected function splitAmountAcrossWeeks(float $amount, int $weeks): array

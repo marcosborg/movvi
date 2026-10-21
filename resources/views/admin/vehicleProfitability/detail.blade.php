@@ -4,6 +4,7 @@
     <form method="GET" class="form-inline" style="margin-bottom:20px;">
         <select name="vehicle_id" class="form-control select2">
             <option value="">Viatura</option>
+            <option value="all" {{ request('vehicle_id') === 'all' ? 'selected' : '' }}>Todas as viaturas</option>
             @foreach($vehicles as $vehicle)<option value="{{ $vehicle->id }}" {{ $vehicleId === $vehicle->id ? 'selected' : '' }}>{{ $vehicle->license_plate }}</option>@endforeach
         </select>
         <select name="tvde_week_id" class="form-control select2">

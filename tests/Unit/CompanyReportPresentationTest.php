@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 
 class CompanyReportPresentationTest extends TestCase
 {
-    public function test_company_reports_do_not_present_vat_or_receipt_difference_checks(): void
+    public function test_company_reports_present_vat_without_receipt_difference_checks(): void
     {
         foreach ([
             'index.blade.php',
@@ -18,7 +18,7 @@ class CompanyReportPresentationTest extends TestCase
         ] as $view) {
             $contents = file_get_contents(__DIR__.'/../../resources/views/admin/companyReports/'.$view);
 
-            $this->assertStringNotContainsString('Taxa 6%', $contents, $view);
+            $this->assertStringContainsString('Taxa 6%', $contents, $view);
             $this->assertStringNotContainsString('Divergente', $contents, $view);
         }
     }

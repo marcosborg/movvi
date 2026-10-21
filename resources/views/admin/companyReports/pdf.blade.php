@@ -60,6 +60,7 @@
                 <th>Combustível</th>
                 <th>Ajustes</th>
                 <th>Via Verde</th>
+                <th>Taxa 6%</th>
                 <th>Percentagem</th>
                 <th>Cedência</th>
                 <th>Caucao</th>
@@ -83,6 +84,7 @@
                     <td class="nowrap">{{ number_format($driver->fuel ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->adjustments ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['car_track'] ?? 0, 2) }} &euro;</td>
+                    <td class="nowrap">{{ ($driver->earnings['iva_value'] ?? 0) > 0 ? '-' : '' }}{{ number_format($driver->earnings['iva_value'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ ($driver->earnings['percent_value'] ?? 0) > 0 ? '-' : '' }}{{ number_format($driver->earnings['percent_value'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">
                         {{ number_format($driver->earnings['car_hire'] ?? 0, 2) }} &euro;
@@ -111,6 +113,7 @@
                 <th>{{ number_format($totals['total_fuel_transactions'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_adjustments'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_car_track'] ?? 0, 2) }} &euro;</th>
+                <th>{{ ($totals['total_iva_value'] ?? 0) > 0 ? '-' : '' }}{{ number_format($totals['total_iva_value'] ?? 0, 2) }} &euro;</th>
                 <th>{{ ($totals['total_percent_value'] ?? 0) > 0 ? '-' : '' }}{{ number_format($totals['total_percent_value'] ?? 0, 2) }} &euro;</th>
                 <th>{{ number_format($totals['total_car_hire'] ?? 0, 2) }} &euro;</th>
                 <th>{{ $totals['caution_display'] ?? '0,00€' }}</th>

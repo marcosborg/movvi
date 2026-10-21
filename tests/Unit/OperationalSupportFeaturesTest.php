@@ -59,9 +59,12 @@ class OperationalSupportFeaturesTest extends TestCase
     public function test_vehicle_profitability_has_an_explicit_all_vehicles_link(): void
     {
         $view = file_get_contents(__DIR__.'/../../resources/views/admin/vehicleProfitability/detail.blade.php');
+        $controller = file_get_contents(__DIR__.'/../../app/Http/Controllers/Admin/VehicleProfitabilityController.php');
 
         $this->assertStringContainsString('Todas as viaturas', $view);
+        $this->assertStringContainsString('value="all"', $view);
         $this->assertStringContainsString("['tvde_week_id' => \$weekId]", $view);
+        $this->assertStringContainsString("\$vehicleSelection === 'all'", $controller);
     }
 
     public function test_vehicle_expense_forms_and_list_include_supplier(): void

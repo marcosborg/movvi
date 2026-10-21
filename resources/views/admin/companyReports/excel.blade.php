@@ -6,15 +6,15 @@
 
 <table>
     <tr>
-        <th colspan="20">Extrato de Condutores</th>
+        <th colspan="21">Extrato de Condutores</th>
     </tr>
     <tr>
         <th>Empresa</th>
-        <td colspan="19">{{ $company->name ?? 'Empresa' }}</td>
+        <td colspan="20">{{ $company->name ?? 'Empresa' }}</td>
     </tr>
     <tr>
         <th>Semana</th>
-        <td colspan="19">{{ optional($tvde_week)->start_date }} a {{ optional($tvde_week)->end_date }} (Semana {{ $weekNumber }}/{{ $weekYear }})</td>
+        <td colspan="20">{{ optional($tvde_week)->start_date }} a {{ optional($tvde_week)->end_date }} (Semana {{ $weekNumber }}/{{ $weekYear }})</td>
     </tr>
 </table>
 
@@ -33,6 +33,7 @@
             <th>Combustivel</th>
             <th>Ajustes</th>
             <th>Via Verde</th>
+            <th>Taxa 6%</th>
             <th>Percentagem</th>
             <th>Cedência</th>
             <th>Abatimento cedência</th>
@@ -58,6 +59,7 @@
                 <td>{{ $driver->fuel ?? 0 }}</td>
                 <td>{{ $driver->adjustments ?? 0 }}</td>
                 <td>{{ $driver->earnings['car_track'] ?? 0 }}</td>
+                <td>{{ ($driver->earnings['iva_value'] ?? 0) > 0 ? -($driver->earnings['iva_value'] ?? 0) : 0 }}</td>
                 <td>{{ ($driver->earnings['percent_value'] ?? 0) > 0 ? -($driver->earnings['percent_value'] ?? 0) : 0 }}</td>
                 <td>{{ $driver->earnings['car_hire'] ?? 0 }}</td>
                 <td>{{ $driver->earnings['abatimento_aluguer'] ?? 0 }}</td>
@@ -83,6 +85,7 @@
             <th>{{ $totals['total_fuel_transactions'] ?? 0 }}</th>
             <th>{{ $totals['total_adjustments'] ?? 0 }}</th>
             <th>{{ $totals['total_car_track'] ?? 0 }}</th>
+            <th>{{ ($totals['total_iva_value'] ?? 0) > 0 ? -($totals['total_iva_value'] ?? 0) : 0 }}</th>
             <th>{{ ($totals['total_percent_value'] ?? 0) > 0 ? -($totals['total_percent_value'] ?? 0) : 0 }}</th>
             <th>{{ $totals['total_car_hire'] ?? 0 }}</th>
             <th>{{ $totals['total_rent_discounts'] ?? 0 }}</th>
