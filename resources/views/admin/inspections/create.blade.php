@@ -6,6 +6,9 @@
         {{ $assignmentHealth['counts']['unassigned_vehicles'] }} viaturas sem motorista,
         {{ $assignmentHealth['counts']['vehicles_with_multiple_drivers'] }} viaturas com vários motoristas e
         {{ $assignmentHealth['counts']['drivers_with_multiple_vehicles'] }} motoristas com várias viaturas.
+        @if($assignmentHealth['unassigned_vehicles']->isNotEmpty())
+            <div><strong>Sem motorista:</strong> {{ $assignmentHealth['unassigned_vehicles']->pluck('license_plate')->implode(', ') }}</div>
+        @endif
         @foreach($assignmentHealth['vehicles_with_multiple_drivers'] as $item)
             <div><strong>{{ $item['license_plate'] }}:</strong> {{ implode(', ', $item['drivers']) }}</div>
         @endforeach
