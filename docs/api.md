@@ -53,9 +53,23 @@ curl -s -X POST "http://127.0.0.1:8000/api/login" \
     "name": "Nome",
     "email": "user@example.com",
     "roles": ["Motoristas"]
+  },
+  "driver": {
+    "id": 10,
+    "code": "M0010",
+    "name": "Nome",
+    "email": "user@example.com",
+    "phone": null,
+    "company": {
+      "id": 1,
+      "name": "Empresa"
+    }
   }
 }
 ```
+
+`driver` e devolvido no proprio login para a app mobile iniciar a sessao sem um
+segundo pedido. Para utilizadores sem registo de motorista, o valor e `null`.
 
 ### Erros
 

@@ -38,9 +38,23 @@ Resposta:
     "name": "Nome",
     "email": "user@example.com",
     "roles": ["Admin"]
+  },
+  "driver": {
+    "id": 10,
+    "code": "M0010",
+    "name": "Nome",
+    "email": "user@example.com",
+    "phone": null,
+    "company": {
+      "id": 1,
+      "name": "Empresa"
+    }
   }
 }
 ```
+
+`driver` permite a inicializacao da app no mesmo pedido de login. O valor e
+`null` para utilizadores sem registo de motorista.
 
 Header a enviar nas rotas autenticadas:
 

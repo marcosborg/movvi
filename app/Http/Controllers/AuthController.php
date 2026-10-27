@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Driver;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
-use App\Models\User;
 use Illuminate\Support\Facades\Password;
 
 class AuthController extends BaseController
@@ -31,6 +32,9 @@ class AuthController extends BaseController
         $user = User::where('email', $request->email)->first();
         $authToken = $user->createToken('auth-token')->plainTextToken;
         $user->load('roles');
+        $driver = Driver::with('company')
+            ->where('user_id', $user->id)
+            ->first();
 
         return response()->json([
             'access_token' => $authToken,
@@ -41,6 +45,17 @@ class AuthController extends BaseController
                 'email' => $user->email,
                 'roles' => $user->roles->pluck('title')->values(),
             ],
+            'driver' => $driver ? [
+                'id' => $driver->id,
+                'code' => $driver->code,
+                'name' => $driver->name,
+                'email' => $driver->email,
+                'phone' => $driver->phone,
+                'company' => $driver->company ? [
+                    'id' => $driver->company->id,
+                    'name' => $driver->company->name,
+                ] : null,
+            ] : null,
         ]);
     }
 
