@@ -13,9 +13,10 @@ class VehicleAssignmentHealthService
         $vehicles = VehicleItem::query()
             ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
             ->where(fn ($query) => $query->whereNull('suspended')->orWhere('suspended', false))
+            ->where(fn ($query) => $query->whereNull('is_service_vehicle')->orWhere('is_service_vehicle', false))
             ->orderBy('license_plate')
-            ->get(['id', 'license_plate']);
-        $usages = VehicleUsage::query()
+            ->get(['id', 'license_plate', 'driver_id']);
+        $activeUsages = VehicleUsage::query()
             ->with('driver:id,name')
             ->when($companyId, fn ($query) => $query->whereHas(
                 'vehicle_item',
@@ -23,8 +24,6 @@ class VehicleAssignmentHealthService
             ))
             ->where('start_date', '<=', $now)
             ->where(fn ($query) => $query->whereNull('end_date')->orWhere('end_date', '>=', $now->copy()->startOfDay()))
-            ->whereNotNull('driver_id')
-            ->where(fn ($query) => $query->where('usage_exceptions', 'usage')->orWhereNull('usage_exceptions'))
             ->get()
             ->filter(function (VehicleUsage $usage) use ($now) {
                 if (!$usage->getRawOriginal('end_date')) {
@@ -34,10 +33,15 @@ class VehicleAssignmentHealthService
                 $end = \Carbon\Carbon::parse($usage->getRawOriginal('end_date'));
 
                 return ($end->isStartOfDay() ? $end->endOfDay() : $end)->greaterThanOrEqualTo($now);
-            })
+            });
+        $usages = $activeUsages
+            ->whereNotNull('driver_id')
+            ->filter(fn (VehicleUsage $usage) => !$usage->usage_exceptions || $usage->usage_exceptions === 'usage')
             ->groupBy('vehicle_item_id');
+        $allUsagesByVehicle = $activeUsages->groupBy('vehicle_item_id');
 
-        $unassigned = $vehicles->filter(fn ($vehicle) => $usages->get($vehicle->id, collect())->isEmpty())
+        $unassigned = $vehicles->filter(fn ($vehicle) => !$vehicle->driver_id
+            && $allUsagesByVehicle->get($vehicle->id, collect())->isEmpty())
             ->map(fn ($vehicle) => ['vehicle_id' => (int) $vehicle->id, 'license_plate' => (string) $vehicle->license_plate])
             ->values();
         $multipleVehicles = $vehicles->map(function ($vehicle) use ($usages) {

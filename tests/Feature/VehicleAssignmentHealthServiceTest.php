@@ -17,7 +17,15 @@ class VehicleAssignmentHealthServiceTest extends TestCase
         config(['database.default' => 'sqlite', 'database.connections.sqlite.database' => ':memory:']);
         DB::purge('sqlite');
         Schema::create('drivers', function (Blueprint $table) { $table->id(); $table->string('name'); $table->unsignedBigInteger('company_id')->nullable(); $table->softDeletes(); });
-        Schema::create('vehicle_items', function (Blueprint $table) { $table->id(); $table->unsignedBigInteger('company_id')->nullable(); $table->string('license_plate'); $table->boolean('suspended')->default(false); $table->softDeletes(); });
+        Schema::create('vehicle_items', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('company_id')->nullable();
+            $table->unsignedBigInteger('driver_id')->nullable();
+            $table->string('license_plate');
+            $table->boolean('suspended')->default(false);
+            $table->boolean('is_service_vehicle')->default(false);
+            $table->softDeletes();
+        });
         Schema::create('vehicle_usages', function (Blueprint $table) {
             $table->id(); $table->unsignedBigInteger('driver_id')->nullable(); $table->unsignedBigInteger('vehicle_item_id');
             $table->dateTime('start_date'); $table->dateTime('end_date')->nullable(); $table->string('usage_exceptions')->nullable();
@@ -85,5 +93,28 @@ class VehicleAssignmentHealthServiceTest extends TestCase
 
         $this->assertSame(0, $health['counts']['unassigned_vehicles']);
         Carbon::setTestNow();
+    }
+
+    public function test_it_does_not_flag_service_operational_state_or_legacy_assignment_as_unassigned(): void
+    {
+        DB::table('drivers')->insert(['id' => 1, 'name' => 'Ana', 'company_id' => 10]);
+        DB::table('vehicle_items')->insert([
+            ['id' => 1, 'company_id' => 10, 'driver_id' => null, 'license_plate' => 'AA-00-AA', 'is_service_vehicle' => true],
+            ['id' => 2, 'company_id' => 10, 'driver_id' => null, 'license_plate' => 'BB-00-BB', 'is_service_vehicle' => false],
+            ['id' => 3, 'company_id' => 10, 'driver_id' => 1, 'license_plate' => 'CC-00-CC', 'is_service_vehicle' => false],
+        ]);
+        DB::table('vehicle_usages')->insert([
+            'driver_id' => null,
+            'vehicle_item_id' => 2,
+            'start_date' => now()->subDay(),
+            'end_date' => null,
+            'usage_exceptions' => 'maintenance',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $health = app(VehicleAssignmentHealthService::class)->current(10);
+
+        $this->assertSame(0, $health['counts']['unassigned_vehicles']);
     }
 }
