@@ -7,20 +7,34 @@ use App\Models\VehicleUsage;
 
 class VehicleAssignmentHealthService
 {
-    public function current(): array
+    public function current(?int $companyId = null): array
     {
         $now = now();
         $vehicles = VehicleItem::query()
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
             ->where(fn ($query) => $query->whereNull('suspended')->orWhere('suspended', false))
             ->orderBy('license_plate')
             ->get(['id', 'license_plate']);
         $usages = VehicleUsage::query()
             ->with('driver:id,name')
+            ->when($companyId, fn ($query) => $query->whereHas(
+                'vehicle_item',
+                fn ($vehicleQuery) => $vehicleQuery->where('company_id', $companyId)
+            ))
             ->where('start_date', '<=', $now)
-            ->where(fn ($query) => $query->whereNull('end_date')->orWhere('end_date', '>=', $now))
+            ->where(fn ($query) => $query->whereNull('end_date')->orWhere('end_date', '>=', $now->copy()->startOfDay()))
             ->whereNotNull('driver_id')
             ->where(fn ($query) => $query->where('usage_exceptions', 'usage')->orWhereNull('usage_exceptions'))
             ->get()
+            ->filter(function (VehicleUsage $usage) use ($now) {
+                if (!$usage->getRawOriginal('end_date')) {
+                    return true;
+                }
+
+                $end = \Carbon\Carbon::parse($usage->getRawOriginal('end_date'));
+
+                return ($end->isStartOfDay() ? $end->endOfDay() : $end)->greaterThanOrEqualTo($now);
+            })
             ->groupBy('vehicle_item_id');
 
         $unassigned = $vehicles->filter(fn ($vehicle) => $usages->get($vehicle->id, collect())->isEmpty())

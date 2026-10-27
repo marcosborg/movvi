@@ -34,7 +34,7 @@ class VehicleEarningsController extends Controller
         $start_date = $tvde_week->start_date;
         $end_date = $tvde_week->end_date;
 
-        $vehicle_items = VehicleItem::with(['driver', 'vehicle_usage.driver'])
+        $vehicle_items = VehicleItem::with(['driver', 'vehicle_usage.driver', 'vehicle_brand', 'vehicle_model'])
             ->where('company_id', $company_id)
             ->where('suspended', false)
             ->get();
@@ -42,7 +42,9 @@ class VehicleEarningsController extends Controller
         // 1. Viaturas sem motorista atribuído na semana
         $vehicles_without_driver = $vehicle_items->filter(function ($vehicle) use ($start_date, $end_date) {
             return $vehicle->vehicle_usage->filter(function ($usage) use ($start_date, $end_date) {
-                return $usage->start_date <= $end_date && $usage->end_date >= $start_date && $usage->driver_id;
+                return $usage->start_date <= $end_date
+                    && (!$usage->end_date || $usage->end_date >= $start_date)
+                    && $usage->driver_id;
             })->isEmpty();
         });
 
@@ -50,8 +52,10 @@ class VehicleEarningsController extends Controller
         $drivers_with_usage_no_account_or_zero = collect();
 
         $usages = VehicleUsage::with('driver')
-            ->whereBetween('start_date', [$start_date, $end_date])
-            ->orWhereBetween('end_date', [$start_date, $end_date])
+            ->whereHas('vehicle_item', fn ($query) => $query->where('company_id', $company_id))
+            ->where('start_date', '<=', $end_date)
+            ->where(fn ($query) => $query->whereNull('end_date')->orWhere('end_date', '>=', $start_date))
+            ->where(fn ($query) => $query->whereNull('usage_exceptions')->orWhere('usage_exceptions', 'usage'))
             ->get();
 
         foreach ($usages as $usage) {
@@ -64,7 +68,7 @@ class VehicleEarningsController extends Controller
 
             $account_data = json_decode($account->data ?? '[]', true);
 
-            if (!$account || floatval($account_data['total_net']) == 0.0) {
+            if (!$account || floatval($account_data['total_net'] ?? 0) == 0.0) {
                 $drivers_with_usage_no_account_or_zero->push($driver);
             }
         }

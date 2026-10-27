@@ -130,6 +130,54 @@ class OtherFuelTransactionAssignmentTest extends TestCase
         $this->assertCount(0, $transactions);
     }
 
+    public function test_it_normalizes_unicode_separators_and_uses_the_latest_active_assignment(): void
+    {
+        DB::table('drivers')->insert([
+            ['id' => 1, 'name' => 'Cesar'],
+            ['id' => 2, 'name' => 'Outro motorista'],
+        ]);
+        DB::table('vehicle_items')->insert(['id' => 1, 'license_plate' => 'CM-24-VF']);
+        DB::table('vehicle_usages')->insert([
+            [
+                'id' => 1,
+                'driver_id' => 2,
+                'vehicle_item_id' => 1,
+                'start_date' => '2026-10-01 00:00:00',
+                'end_date' => '2026-10-06 00:00:00',
+                'usage_exceptions' => 'usage',
+            ],
+            [
+                'id' => 2,
+                'driver_id' => 1,
+                'vehicle_item_id' => 1,
+                'start_date' => '2026-10-05 08:00:00',
+                'end_date' => null,
+                'usage_exceptions' => 'usage',
+            ],
+        ]);
+        DB::table('tesla_chargings')->insert([
+            'value' => 34.05,
+            'license' => "CM\u{2011}24\u{00A0}VF",
+            'datetime' => '2026-10-05 14:30:00',
+            'card_type' => null,
+        ]);
+        DB::table('tvde_weeks')->insert([
+            'id' => 40,
+            'number' => 40,
+            'start_date' => '2026-10-05',
+            'end_date' => '2026-10-11',
+        ]);
+
+        $week = TvdeWeek::findOrFail(40);
+        $cesarTransactions = $this->reportHarness()->forDriver($week, Driver::findOrFail(1));
+        $otherTransactions = $this->reportHarness()->forDriver($week, Driver::findOrFail(2));
+
+        $this->assertCount(1, $cesarTransactions);
+        $this->assertEqualsWithDelta(34.05, $cesarTransactions->sum('value'), 0.001);
+        $this->assertSame('Tesla', $cesarTransactions->first()->card_type);
+        $this->assertCount(0, $otherTransactions);
+    }
+
     private function reportHarness()
     {
         return new class {

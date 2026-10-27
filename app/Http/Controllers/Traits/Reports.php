@@ -30,6 +30,7 @@ use App\Models\MovviChargeEntry;
 use App\Models\VehicleUsage;
 use App\Models\WeeklyVehicleMileage;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 trait Reports
 {
@@ -791,7 +792,7 @@ trait Reports
 
     protected function normalizeReportPlate(?string $plate): ?string
     {
-        $normalized = strtoupper(str_replace(['-', ' '], '', trim((string) $plate)));
+        $normalized = preg_replace('/[^A-Z0-9]/', '', strtoupper(Str::ascii(trim((string) $plate))));
 
         return $normalized !== '' ? $normalized : null;
     }
@@ -830,12 +831,26 @@ trait Reports
             return collect();
         }
 
+        $candidateUsages = VehicleUsage::query()
+            ->with('vehicle_item:id,license_plate')
+            ->whereIn('vehicle_item_id', $usageIntervals->pluck('vehicle_item_id')->unique())
+            ->where('start_date', '<=', $weekEnd->toDateTimeString())
+            ->where(function ($query) use ($weekStart) {
+                $query->whereNull('end_date')
+                    ->orWhere('end_date', '>=', $weekStart->toDateTimeString());
+            })
+            ->where(function ($query) {
+                $query->whereNull('usage_exceptions')
+                    ->orWhere('usage_exceptions', 'usage');
+            })
+            ->get();
+
         return TeslaCharging::whereBetween('datetime', [
             $weekStart->toDateTimeString(),
             $weekEnd->toDateTimeString(),
         ])
             ->get()
-            ->filter(function ($charging) use ($normalizedPlates, $usageIntervals, $weekStart, $weekEnd) {
+            ->filter(function ($charging) use ($driver, $normalizedPlates, $candidateUsages, $weekStart, $weekEnd) {
                 $chargingPlate = $this->normalizeReportPlate((string) $charging->license);
                 if (!$chargingPlate || !$normalizedPlates->contains($chargingPlate)) {
                     return false;
@@ -849,31 +864,34 @@ trait Reports
                     return false;
                 }
 
-                foreach ($usageIntervals as $usage) {
-                    $usagePlate = $this->normalizeReportPlate(optional($usage->vehicle_item)->license_plate);
-                    if ($usagePlate !== $chargingPlate) {
-                        continue;
-                    }
+                $owner = $candidateUsages
+                    ->filter(function (VehicleUsage $usage) use ($chargingPlate, $chargingMoment, $weekStart, $weekEnd) {
+                        if ($this->normalizeReportPlate(optional($usage->vehicle_item)->license_plate) !== $chargingPlate) {
+                            return false;
+                        }
 
-                    $usageStart = $usage->getRawOriginal('start_date')
-                        ? Carbon::parse($usage->getRawOriginal('start_date'))
-                        : $weekStart->copy();
-                    $usageEnd = $usage->getRawOriginal('end_date')
-                        ? Carbon::parse($usage->getRawOriginal('end_date'))
-                        : $weekEnd->copy();
+                        $usageStart = $usage->getRawOriginal('start_date')
+                            ? Carbon::parse($usage->getRawOriginal('start_date'))
+                            : $weekStart->copy();
+                        $usageEnd = $usage->getRawOriginal('end_date')
+                            ? Carbon::parse($usage->getRawOriginal('end_date'))
+                            : $weekEnd->copy();
 
-                    // Datas de fim introduzidas sem hora são guardadas à meia-noite.
-                    // Nesse caso, a utilização abrange o dia civil completo.
-                    if ($usage->getRawOriginal('end_date') && $usageEnd->isStartOfDay()) {
-                        $usageEnd->endOfDay();
-                    }
+                        // Uma data final sem hora abrange o respetivo dia civil completo.
+                        if ($usage->getRawOriginal('end_date') && $usageEnd->isStartOfDay()) {
+                            $usageEnd->endOfDay();
+                        }
 
-                    if ($chargingMoment->between($usageStart, $usageEnd, true)) {
-                        return true;
-                    }
-                }
+                        return $chargingMoment->between($usageStart, $usageEnd, true);
+                    })
+                    ->sortByDesc(fn (VehicleUsage $usage) => sprintf(
+                        '%s-%020d',
+                        $usage->getRawOriginal('start_date') ?: '0000-00-00 00:00:00',
+                        $usage->id
+                    ))
+                    ->first();
 
-                return false;
+                return $owner && (int) $owner->driver_id === (int) $driver->id;
             })
             ->map(function ($charging) {
                 $charging->card_type = $charging->card_type ?: 'Tesla';

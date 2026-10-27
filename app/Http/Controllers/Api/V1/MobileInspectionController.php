@@ -233,16 +233,30 @@ class MobileInspectionController extends Controller
 
         $showAll = filter_var($validated['show_all'] ?? false, FILTER_VALIDATE_BOOLEAN);
         $now = now();
+        $companyId = $this->companyIdForUser($request->user());
 
         $activeUsages = VehicleUsage::query()
             ->with('driver:id,name')
+            ->when($companyId, fn ($query) => $query->whereHas(
+                'vehicle_item',
+                fn ($vehicleQuery) => $vehicleQuery->where('company_id', $companyId)
+            ))
             ->where('start_date', '<=', $now)
             ->where(function ($query) use ($now) {
                 $query->whereNull('end_date')
-                    ->orWhere('end_date', '>=', $now);
+                    ->orWhere('end_date', '>=', $now->copy()->startOfDay());
             })
             ->orderByDesc('start_date')
-            ->get();
+            ->get()
+            ->filter(function (VehicleUsage $usage) use ($now) {
+                if (!$usage->getRawOriginal('end_date')) {
+                    return true;
+                }
+
+                $end = \Carbon\Carbon::parse($usage->getRawOriginal('end_date'));
+
+                return ($end->isStartOfDay() ? $end->endOfDay() : $end)->greaterThanOrEqualTo($now);
+            });
         $activeUsagesByVehicle = $activeUsages
             ->unique('vehicle_item_id')
             ->keyBy('vehicle_item_id');
@@ -251,6 +265,7 @@ class MobileInspectionController extends Controller
             ->unique('driver_id')
             ->keyBy('driver_id');
         $vehiclesById = VehicleItem::query()
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
             ->where(function ($query) {
                 $query->whereNull('suspended')->orWhere('suspended', false)->orWhere('suspended', 0);
             })
@@ -258,7 +273,7 @@ class MobileInspectionController extends Controller
             ->keyBy('id');
 
         return response()->json([
-            'assignment_health' => app(VehicleAssignmentHealthService::class)->current(),
+            'assignment_health' => app(VehicleAssignmentHealthService::class)->current($companyId),
             'usage_states' => collect(VehicleUsage::USAGE_EXCEPTIONS_RADIO)->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values(),
             'types' => collect(array_values((array) config('inspections.types', [])))
                 ->map(fn ($key) => ['key' => (string) $key, 'label' => (string) config('inspections.type_labels.' . $key, $key)])
@@ -270,6 +285,7 @@ class MobileInspectionController extends Controller
                 ])
                 ->values(),
             'vehicles' => VehicleItem::query()
+                ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
                 ->where(function ($query) {
                     $query->whereNull('suspended')->orWhere('suspended', false)->orWhere('suspended', 0);
                 })
@@ -288,6 +304,7 @@ class MobileInspectionController extends Controller
                 ->when(!$showAll, fn ($collection) => $collection->filter(fn (array $vehicle) => empty($vehicle['driver_id'])))
                 ->values(),
             'drivers' => Driver::query()
+                ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
                 ->where('state_id', '!=', 2)
                 ->orderBy('name')
                 ->get(['id', 'name'])
@@ -308,6 +325,10 @@ class MobileInspectionController extends Controller
                 ->values(),
             'recent_movements' => VehicleUsage::query()
                 ->with(['vehicle_item:id,license_plate', 'driver:id,name'])
+                ->when($companyId, fn ($query) => $query->whereHas(
+                    'vehicle_item',
+                    fn ($vehicleQuery) => $vehicleQuery->where('company_id', $companyId)
+                ))
                 ->where(function ($query) {
                     $query->where('usage_exceptions', 'usage')
                         ->orWhere(function ($legacyQuery) {
@@ -690,6 +711,21 @@ class MobileInspectionController extends Controller
     {
         $roles = $user->roles->pluck('title')->map(fn ($value) => mb_strtolower((string) $value))->toArray();
         return in_array('admin', $roles, true);
+    }
+
+    private function companyIdForUser($user): ?int
+    {
+        if (!$user) {
+            return null;
+        }
+
+        $companyId = $user->company()->value('id');
+
+        if (!$companyId) {
+            $companyId = Driver::query()->where('user_id', $user->id)->value('company_id');
+        }
+
+        return $companyId ? (int) $companyId : null;
     }
 
     private function storeChecklist(Inspection $inspection, array $checklist): void

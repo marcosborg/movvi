@@ -123,9 +123,17 @@ class InspectionController extends Controller
     {
         abort_unless($this->isManager(request()->user()), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $vehicles = VehicleItem::with(['vehicle_brand', 'vehicle_model', 'driver'])->orderBy('license_plate')->get();
-        $drivers = Driver::orderBy('name')->pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
-        $assignmentHealth = app(VehicleAssignmentHealthService::class)->current();
+        $companyId = (int) session('company_id', 0) ?: null;
+        $vehicles = VehicleItem::with(['vehicle_brand', 'vehicle_model', 'driver'])
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
+            ->orderBy('license_plate')
+            ->get();
+        $drivers = Driver::query()
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->prepend(trans('global.pleaseSelect'), '');
+        $assignmentHealth = app(VehicleAssignmentHealthService::class)->current($companyId);
 
         return view('admin.inspections.create', compact('vehicles', 'drivers', 'assignmentHealth'));
     }

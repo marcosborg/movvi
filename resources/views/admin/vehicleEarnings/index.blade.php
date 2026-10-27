@@ -88,9 +88,9 @@
                         </thead>
                         <tbody>
                             @foreach ($drivers_with_issues as $driver)
-                            <tr class="driver-issue-row" data-driver="{{ mb_strtolower($driver->name) }}" data-vat="{{ mb_strtolower($driver->nif ?? '') }}">
+                            <tr class="driver-issue-row" data-driver="{{ mb_strtolower($driver->name) }}" data-vat="{{ mb_strtolower($driver->driver_vat ?? '') }}">
                                 <td>{{ $driver->name }}</td>
-                                <td>{{ $driver->nif ?? '—' }}</td>
+                                <td>{{ $driver->driver_vat ?? '—' }}</td>
                             </tr>
                             @endforeach
                             @if ($drivers_with_issues->isEmpty())

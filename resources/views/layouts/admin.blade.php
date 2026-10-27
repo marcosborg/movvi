@@ -103,9 +103,18 @@
                 min-width: 220px;
             }
         }
-        /* Garante que elementos acima não cortam o sticky */
-        .content, .content-wrapper, .panel-body {
-            overflow: visible !important;
+        /* Mantém as tabelas utilizáveis quando a janela está dividida/estreita. */
+        .content-wrapper, .panel-body {
+            overflow-x: auto !important;
+        }
+
+        .content {
+            min-width: 0;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         /* Container que permite scroll e mantém sticky */
