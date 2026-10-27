@@ -179,9 +179,16 @@ class FinancialStatementController extends Controller
         abort_if(Gate::denies('financial-pdf'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $tvde_week_id = session()->get('tvde_week_id');
-        $driver_id = session()->get('driver_id');
-        $company_id = session()->get('company_id');
-        $statement = $this->buildStatementPdfData($tvde_week_id, $driver_id, $company_id);
+        $driver = $this->resolveStatementDriver($request);
+        $company_id = (int) ($driver->company_id ?: session()->get('company_id'));
+
+        abort_unless($tvde_week_id && TvdeWeek::whereKey($tvde_week_id)->exists(), Response::HTTP_NOT_FOUND, 'Semana nao encontrada.');
+        abort_unless($company_id, Response::HTTP_UNPROCESSABLE_ENTITY, 'O motorista nao tem empresa associada.');
+
+        session()->put('driver_id', $driver->id);
+        session()->put('company_id', $company_id);
+
+        $statement = $this->buildStatementPdfData((int) $tvde_week_id, $driver->id, $company_id);
         $pdf = $this->buildStatementPdf($statement);
 
 
@@ -192,6 +199,22 @@ class FinancialStatementController extends Controller
             return $pdf->stream();
         }
 
+    }
+
+    protected function resolveStatementDriver(Request $request): Driver
+    {
+        // A driver must always resolve to their own record, regardless of a
+        // stale or manipulated session value. Admin users have no linked
+        // driver and continue to use the selected driver stored in session.
+        $linkedDriver = Driver::where('user_id', $request->user()?->id)->first();
+        if ($linkedDriver) {
+            return $linkedDriver;
+        }
+
+        $driverId = session()->get('driver_id');
+        abort_unless($driverId, Response::HTTP_UNPROCESSABLE_ENTITY, 'Selecione um motorista.');
+
+        return Driver::findOrFail((int) $driverId);
     }
 
     public function sendEmail(Request $request)

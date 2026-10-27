@@ -39,6 +39,16 @@ class HomeController
             $driver->load('contract_vat');
         }
 
+        // Keep the legacy statement routes in sync with the authenticated
+        // driver. Direct driver logins do not pass through the administrative
+        // driver selector, so these session values may otherwise be missing.
+        session()->put('driver_id', $driver->id);
+        if ($driver->company_id) {
+            session()->put('company_id', $driver->company_id);
+        } else {
+            session()->forget('company_id');
+        }
+
         $driver_id  = $driver->id;
         $company_id = $driver->company_id;
 
