@@ -104,7 +104,7 @@
             }
         }
         /* Mantém as tabelas utilizáveis quando a janela está dividida/estreita. */
-        .content-wrapper, .panel-body {
+        .panel-body {
             overflow-x: auto !important;
         }
 
