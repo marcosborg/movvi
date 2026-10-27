@@ -2,6 +2,7 @@
     <thead>
         <tr>
             <th>Condutor</th>
+            <th>NIF</th>
             <th>Matricula</th>
             <th>Liquido Uber</th>
             <th>Liquido Bolt</th>
@@ -22,6 +23,7 @@
         @if ($driver->earnings)
         <tr>
             <td>{{ $driver->name }}</td>
+            <td>{{ $driver->driver_vat ?? '-' }}</td>
             <td>{{ $driver->license_plate ?? '-' }}</td>
             <td>{{ number_format($driver->earnings['uber']['uber_net'] ?? 0, 2, '.', '') }}</td>
             <td>{{ number_format($driver->earnings['bolt']['bolt_net'] ?? 0, 2, '.', '') }}</td>

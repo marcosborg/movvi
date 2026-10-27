@@ -19,6 +19,8 @@ class CompanyReportPresentationTest extends TestCase
             $contents = file_get_contents(__DIR__.'/../../resources/views/admin/companyReports/'.$view);
 
             $this->assertStringContainsString('Taxa 6%', $contents, $view);
+            $this->assertStringContainsString('NIF', $contents, $view);
+            $this->assertStringContainsString('driver_vat', $contents, $view);
             $this->assertStringNotContainsString('Divergente', $contents, $view);
         }
     }

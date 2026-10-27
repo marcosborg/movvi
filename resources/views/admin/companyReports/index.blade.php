@@ -397,6 +397,7 @@
                     <thead>
                         <tr>
                             <th>Condutor</th>
+                            <th>NIF</th>
                             <th>Viatura(s)</th>
                             <th style="text-align: right; background: #eeeeee; display: none;">Bruto Uber</th>
                             <th style="text-align: right; background: #eeeeee; display: none;">Bruto Bolt</th>
@@ -429,10 +430,12 @@
                                 <tr
                                     class="report-driver-row"
                                     data-driver="{{ mb_strtolower($driver->name ?? '') }}"
+                                    data-vat="{{ mb_strtolower($driver->driver_vat ?? '') }}"
                                     data-plate="{{ mb_strtolower($driver->license_plate ?? '') }}"
                                     data-validation="{{ $driver->current_account ? 'validated' : 'pending' }}"
                                 >
                                     <td>{{ $driver->name }}<br><small class="label {{ $driver->pays_fuel ? 'label-default' : 'label-info' }}">Combustível: {{ $driver->pays_fuel ? 'cobrado' : 'isento' }}</small></td>
+                                    <td>{{ $driver->driver_vat ?? '-' }}</td>
                                     <td>{{ $driver->license_plate ?? '-' }}</td>
                                     <td style="text-align: right; background: #eeeeee; display: none;">{{ number_format($driver->earnings['uber']['uber_gross'] ?? 0, 2) }} <small>€</small></td>
                                     <td style="text-align: right; background: #eeeeee; display: none;">{{ number_format($driver->earnings['bolt']['bolt_gross'] ?? 0, 2) }} <small>€</small></td>
@@ -623,10 +626,11 @@
 
             rows.forEach((row) => {
                 const driver = row.dataset.driver || '';
+                const vat = row.dataset.vat || '';
                 const plate = row.dataset.plate || '';
                 const rowValidation = row.dataset.validation || 'pending';
 
-                const matchesSearch = search === '' || driver.includes(search) || plate.includes(search);
+                const matchesSearch = search === '' || driver.includes(search) || vat.includes(search) || plate.includes(search);
                 const matchesValidation = validation === 'all' || rowValidation === validation;
 
                 row.style.display = matchesSearch && matchesValidation ? '' : 'none';

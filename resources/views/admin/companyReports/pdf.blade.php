@@ -50,6 +50,7 @@
         <thead>
             <tr>
                 <th class="wrap">Condutor</th>
+                <th class="wrap">NIF</th>
                 <th class="wrap" style="text-align: left;">Viatura(s)</th>
                 <th>Líquido Uber</th>
                 <th>Líquido Bolt</th>
@@ -74,6 +75,7 @@
             @foreach ($drivers as $driver)
                 <tr>
                     <td class="wrap">{{ $driver->name }}</td>
+                    <td class="wrap">{{ $driver->driver_vat ?? '-' }}</td>
                     <td class="wrap" style="text-align: left;">{{ $driver->license_plate ?? '-' }}</td>
                     <td class="nowrap">{{ number_format($driver->earnings['uber']['uber_net'] ?? 0, 2) }} &euro;</td>
                     <td class="nowrap">{{ number_format($driver->earnings['bolt']['bolt_net'] ?? 0, 2) }} &euro;</td>

@@ -6,15 +6,15 @@
 
 <table>
     <tr>
-        <th colspan="21">Extrato de Condutores</th>
+        <th colspan="22">Extrato de Condutores</th>
     </tr>
     <tr>
         <th>Empresa</th>
-        <td colspan="20">{{ $company->name ?? 'Empresa' }}</td>
+        <td colspan="21">{{ $company->name ?? 'Empresa' }}</td>
     </tr>
     <tr>
         <th>Semana</th>
-        <td colspan="20">{{ optional($tvde_week)->start_date }} a {{ optional($tvde_week)->end_date }} (Semana {{ $weekNumber }}/{{ $weekYear }})</td>
+        <td colspan="21">{{ optional($tvde_week)->start_date }} a {{ optional($tvde_week)->end_date }} (Semana {{ $weekNumber }}/{{ $weekYear }})</td>
     </tr>
 </table>
 
@@ -22,6 +22,7 @@
     <thead>
         <tr>
             <th>Condutor</th>
+            <th>NIF</th>
             <th>Viatura(s)</th>
             <th>Liquido Uber</th>
             <th>Liquido Bolt</th>
@@ -48,6 +49,7 @@
         @foreach ($drivers as $driver)
             <tr>
                 <td>{{ $driver->name }}</td>
+                <td>{{ $driver->driver_vat ?? '-' }}</td>
                 <td>{{ $driver->license_plate ?? '-' }}</td>
                 <td>{{ $driver->earnings['uber']['uber_net'] ?? 0 }}</td>
                 <td>{{ $driver->earnings['bolt']['bolt_net'] ?? 0 }}</td>

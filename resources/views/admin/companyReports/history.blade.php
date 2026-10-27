@@ -90,6 +90,7 @@
                 <thead>
                     <tr>
                         <th>Condutor</th>
+                        <th>NIF</th>
                         <th>Matricula</th>
                         <th style="text-align: right; background: #eeeeee; display: none;">Bruto Uber</th>
                         <th style="text-align: right; background: #eeeeee; display: none;">Bruto Bolt</th>
@@ -112,8 +113,9 @@
                 <tbody>
                     @foreach ($drivers as $driver)
                     @if ($driver->earnings)
-                    <tr class="history-driver-row" data-driver="{{ mb_strtolower($driver->name ?? '') }}" data-plate="{{ mb_strtolower($driver->license_plate ?? '') }}">
+                    <tr class="history-driver-row" data-driver="{{ mb_strtolower($driver->name ?? '') }}" data-vat="{{ mb_strtolower($driver->driver_vat ?? '') }}" data-plate="{{ mb_strtolower($driver->license_plate ?? '') }}">
                         <td>{{ $driver->name }}</td>
+                        <td>{{ $driver->driver_vat ?? '-' }}</td>
                         <td>{{ $driver->license_plate ?? '-' }}</td>
                         <td style="text-align: right; background: #eeeeee; display: none;">{{
                             number_format($driver->earnings['uber']['uber_gross'] ??
@@ -225,8 +227,9 @@
 
             rows.forEach((row) => {
                 const driver = row.dataset.driver || '';
+                const vat = row.dataset.vat || '';
                 const plate = row.dataset.plate || '';
-                row.style.display = search === '' || driver.includes(search) || plate.includes(search) ? '' : 'none';
+                row.style.display = search === '' || driver.includes(search) || vat.includes(search) || plate.includes(search) ? '' : 'none';
             });
         };
 
