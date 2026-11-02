@@ -242,7 +242,7 @@ class ContaAzulVehicleRevenueExporter
 
         return [
             'descricao' => $description,
-            'contato' => $connection->receivable_contact_id,
+            'id_cliente' => $connection->receivable_contact_id,
             'data_competencia' => Carbon::parse($week->end_date)->toDateString(),
             'valor' => $amount,
             'conta_financeira' => $connection->receivable_financial_account_id,
