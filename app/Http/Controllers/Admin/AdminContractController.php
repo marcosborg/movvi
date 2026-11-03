@@ -103,6 +103,17 @@ class AdminContractController extends Controller
             'enable_html5_parser' => true,
         ]);
 
+        $pdf->render();
+        $dompdf = $pdf->getDomPDF();
+        $canvas = $dompdf->getCanvas();
+        $font = $dompdf->getFontMetrics()->getFont('DejaVu Sans', 'normal');
+        $snapshot = $adminContract->data_snapshot ?? [];
+        $companyName = $snapshot['company.name'] ?? 'ADELMO TOP UNIPESSOAL, LDA';
+        $companyVat = $snapshot['company.vat'] ?? '515025712';
+
+        $canvas->page_text(46, 813, $companyName . ' | NIF ' . $companyVat, $font, 7.5, [0.45, 0.45, 0.45]);
+        $canvas->page_text(474, 813, 'Página {PAGE_NUM} de {PAGE_COUNT}', $font, 7.5, [0.45, 0.45, 0.45]);
+
         return $pdf->stream();
 
         //return $pdf->download($adminContract->created_at . '.pdf');

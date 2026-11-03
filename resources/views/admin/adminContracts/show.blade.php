@@ -1,55 +1,197 @@
+@php
+    $snapshot = $adminContract->data_snapshot ?? [];
+    $companyName = $snapshot['company.name'] ?? 'ADELMO TOP UNIPESSOAL, LDA';
+    $companyVat = $snapshot['company.vat'] ?? '515.025.712';
+    $companyEmail = $snapshot['company.email'] ?? 'geral@movvi.com.pt';
+    $logoPath = public_path('assets/website/assets/img/logo.png');
+    $logoData = is_file($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : null;
+@endphp
 <!doctype html>
-<html lang="en">
+<html lang="pt">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Contrato de prestação de serviços</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
     <style>
-        html {
-            font-family: sans-serif;
-            font-size: 14px;
-            text-align: justify;
-        }
-
-        table {
-            border-collapse: collapse;
-        }
-
-        th,
-        td {
-            padding: 8px;
-        }
-
         @page {
-            margin-top: 80px;
-            margin-bottom: 80px;
-            margin-left: 100px;
-            margin-right: 80px;
+            size: A4 portrait;
+            margin: 54px 62px 72px;
+        }
+
+        html,
+        body {
+            font-family: "DejaVu Sans", sans-serif;
+            font-size: 10px;
+            line-height: 1.48;
+            color: #232323;
+            text-align: justify;
         }
 
         body {
             margin: 0;
         }
 
-        footer {
-            position: fixed;
-            bottom: -0px;
-            left: 0px;
-            right: 0px;
-            height: 50px;
-            line-height: 35px;
+        .document-header {
+            position: static;
+            height: 62px;
+            margin: 0 0 28px;
+            border-bottom: 1px solid #d6dfdc;
         }
-        h1 { font-size: 20px; text-align: center; margin-bottom: 24px; }
-        h2 { font-size: 15px; text-align: center; margin: 22px 0 10px; page-break-after: avoid; }
-        p { line-height: 1.45; margin: 8px 0; }
-        .signatures { width: 100%; margin-top: 50px; }
-        .signatures > div { display: inline-block; width: 48%; text-align: center; vertical-align: top; }
+
+        .document-header table,
+        .document-footer table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .document-header td,
+        .document-footer td {
+            padding: 0;
+            vertical-align: middle;
+        }
+
+        .document-header .brand {
+            width: 44%;
+        }
+
+        .document-header .brand img {
+            width: 178px;
+            height: auto;
+        }
+
+        .document-header .company {
+            color: #454545;
+            font-size: 7.5px;
+            line-height: 1.38;
+            text-align: right;
+        }
+
+        .document-header .company strong {
+            color: #1d1d1d;
+            font-size: 8.4px;
+            letter-spacing: .25px;
+        }
+
+        .document-footer {
+            display: none;
+        }
+
+        h1 {
+            color: #171717;
+            font-size: 16.5px;
+            line-height: 1.22;
+            letter-spacing: .2px;
+            text-align: center;
+            margin: 0 18px 10px;
+            page-break-after: avoid;
+        }
+
+        h1 + p {
+            color: #08785b;
+            font-size: 9px;
+            letter-spacing: .4px;
+            text-align: center;
+            text-transform: uppercase;
+            margin: 0 0 22px;
+        }
+
+        h2 {
+            color: #1b1b1b;
+            font-size: 10.5px;
+            line-height: 1.25;
+            letter-spacing: .12px;
+            text-align: left;
+            margin: 16px 0 7px;
+            padding-left: 8px;
+            border-left: 3px solid #08785b;
+            page-break-after: avoid;
+        }
+
+        p {
+            line-height: 1.48;
+            margin: 0 0 6px;
+            orphans: 3;
+            widows: 3;
+        }
+
+        strong {
+            color: #171717;
+        }
+
+        ol,
+        ul {
+            margin: 5px 0 8px 20px;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 4px;
+        }
+
+        .signatures {
+            width: 100%;
+            margin-top: 38px;
+            page-break-inside: avoid;
+            text-align: left;
+        }
+
+        .signatures > div {
+            display: inline-block;
+            width: 48%;
+            color: #333;
+            font-size: 8.5px;
+            line-height: 1.55;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        body > h2:last-of-type {
+            margin-top: 44px;
+            page-break-before: auto;
+        }
+
+        body > h2:last-of-type ~ p {
+            margin: 10px 0;
+            padding: 7px 0;
+            border-bottom: 1px solid #e1e6e4;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        body > footer:not(.document-footer) {
+            display: none;
+        }
     </style>
 </head>
 
 <body>
+    <header class="document-header">
+        <table>
+            <tr>
+                <td class="brand">
+                    @if($logoData)
+                        <img src="{{ $logoData }}" alt="Movvi TVDE">
+                    @else
+                        <strong>MOVVI TVDE</strong>
+                    @endif
+                </td>
+                <td class="company">
+                    <strong>{{ mb_strtoupper($companyName) }}</strong><br>
+                    NIF {{ $companyVat }}<br>
+                    Avenida Vasco da Gama, N.º 774, Espaço 30<br>
+                    4430-247 Mafamude, Vila Nova de Gaia<br>
+                    {{ $companyEmail }}
+                </td>
+            </tr>
+        </table>
+    </header>
+
+    <footer class="document-footer">
+        {{ $companyName }} &nbsp;|&nbsp; NIF {{ $companyVat }} &nbsp;|&nbsp; Contrato de prestação de serviços TVDE
+    </footer>
+
     @if($adminContract->rendered_content)
         {!! $adminContract->rendered_content !!}
         @if($adminContract->signed_at)
@@ -165,6 +307,7 @@
     @endif
     <footer>Página 2 de 2</footer>
     @endif
+
 </body>
 
 </html>
