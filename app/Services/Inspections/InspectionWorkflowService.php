@@ -22,6 +22,7 @@ class InspectionWorkflowService
     private InspectionAuditService $audit;
     private InspectionReportService $reportService;
     private InspectionVehicleUsageService $vehicleUsage;
+    private InspectionTransferAdjustmentService $transferAdjustments;
 
     public function __construct(
         InspectionPermissionsService $permissions,
@@ -30,6 +31,7 @@ class InspectionWorkflowService
         InspectionAuditService $audit,
         InspectionReportService $reportService,
         InspectionVehicleUsageService $vehicleUsage,
+        InspectionTransferAdjustmentService $transferAdjustments,
     ) {
         $this->permissions = $permissions;
         $this->sequence = $sequence;
@@ -37,6 +39,7 @@ class InspectionWorkflowService
         $this->audit = $audit;
         $this->reportService = $reportService;
         $this->vehicleUsage = $vehicleUsage;
+        $this->transferAdjustments = $transferAdjustments;
     }
 
     public function create(array $data, User $user): Inspection
@@ -82,6 +85,14 @@ class InspectionWorkflowService
             $plan = $this->vehicleUsage->buildPlan($inspection, $data);
             if ($plan) {
                 $this->audit->log($inspection, 'vehicle_usage_planned', $plan);
+                if (!empty($data['adjustment']) && is_array($data['adjustment'])) {
+                    $adjustmentPlan = $this->transferAdjustments->buildPlan(
+                        $inspection->vehicle()->firstOrFail(),
+                        $plan,
+                        $data['adjustment']
+                    );
+                    $this->audit->log($inspection, 'transfer_adjustment_planned', $adjustmentPlan);
+                }
             }
 
             return $inspection;
@@ -337,10 +348,16 @@ class InspectionWorkflowService
             $this->reportService->generateAndLock($inspection);
             $inspection->refresh();
             $this->vehicleUsage->applyIfNeeded($inspection);
+            $adjustment = $this->transferAdjustments->applyIfNeeded($inspection);
             $this->audit->log($inspection, 'inspection_closed');
             $plan = $this->vehicleUsage->loadPlan($inspection);
             if ($plan) {
                 $this->audit->log($inspection, 'vehicle_usage_applied', $plan);
+            }
+            if ($adjustment) {
+                $this->audit->log($inspection, 'transfer_adjustment_applied', [
+                    'adjustment_id' => (int) $adjustment->id,
+                ]);
             }
         });
     }

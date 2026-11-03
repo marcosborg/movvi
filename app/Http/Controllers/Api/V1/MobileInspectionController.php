@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Driver;
+use App\Models\Adjustment;
 use App\Models\Inspection;
 use App\Models\InspectionCheckItem;
 use App\Models\InspectionDamage;
@@ -11,6 +12,7 @@ use App\Models\VehicleItem;
 use App\Models\VehicleUsage;
 use App\Services\Inspections\InspectionWorkflowService;
 use App\Services\Inspections\InspectionVehicleUsageService;
+use App\Services\Inspections\InspectionTransferAdjustmentService;
 use App\Support\InspectionRoutineConfig;
 use App\Services\VehicleAssignmentHealthService;
 use Illuminate\Http\Request;
@@ -18,6 +20,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -36,7 +39,8 @@ class MobileInspectionController extends Controller
 
     public function __construct(
         private InspectionWorkflowService $workflow,
-        private InspectionVehicleUsageService $vehicleUsage
+        private InspectionVehicleUsageService $vehicleUsage,
+        private InspectionTransferAdjustmentService $transferAdjustments
     )
     {
     }
@@ -372,6 +376,10 @@ class MobileInspectionController extends Controller
             'location_text' => ['nullable', 'string', 'max:255'],
             'location_accuracy' => ['nullable', 'numeric'],
             'location_timezone' => ['nullable', 'string', 'max:60'],
+            'adjustment' => ['nullable', 'array'],
+            'adjustment.name' => ['required_with:adjustment', 'string', 'max:255'],
+            'adjustment.type' => ['required_with:adjustment', Rule::in(array_keys(Adjustment::TYPE_RADIO))],
+            'adjustment.amount' => ['required_with:adjustment', 'numeric', 'min:0.01', 'max:999999.99'],
         ])->validate();
 
         $routinePreset = (string) ($validated['routine_preset'] ?? 'full');
@@ -396,14 +404,27 @@ class MobileInspectionController extends Controller
             'driver_id' => ['nullable', 'integer', Rule::exists('drivers', 'id')->where(fn ($query) => $query->where('state_id', '!=', 2))],
             'source_driver_id' => ['nullable', 'integer', 'exists:drivers,id'],
             'transfer_mode' => ['required', 'in:entrega,recolha,passagem'],
+            'adjustment' => ['nullable', 'array'],
+            'adjustment.name' => ['required_with:adjustment', 'string', 'max:255'],
+            'adjustment.type' => ['required_with:adjustment', Rule::in(array_keys(Adjustment::TYPE_RADIO))],
+            'adjustment.amount' => ['required_with:adjustment', 'numeric', 'min:0.01', 'max:999999.99'],
         ])->validate();
 
         $vehicle = VehicleItem::query()->findOrFail((int) $validated['vehicle_id']);
-        $plan = $this->vehicleUsage->applyDirectTransfer($vehicle, [
-            'mode' => $validated['transfer_mode'],
-            'source_driver_id' => $validated['source_driver_id'] ?? null,
-            'target_driver_id' => $validated['driver_id'] ?? null,
-        ]);
+        $result = DB::transaction(function () use ($vehicle, $validated) {
+            $plan = $this->vehicleUsage->applyDirectTransfer($vehicle, [
+                'mode' => $validated['transfer_mode'],
+                'source_driver_id' => $validated['source_driver_id'] ?? null,
+                'target_driver_id' => $validated['driver_id'] ?? null,
+            ]);
+            $adjustment = !empty($validated['adjustment'])
+                ? $this->transferAdjustments->createForTransfer($vehicle, $plan, $validated['adjustment'])
+                : null;
+
+            return compact('plan', 'adjustment');
+        });
+        $plan = $result['plan'];
+        $adjustment = $result['adjustment'];
 
         return response()->json([
             'message' => 'Operacao registada com sucesso sem inspecao.',
@@ -412,6 +433,12 @@ class MobileInspectionController extends Controller
                 'driver_id' => $vehicle->driver_id ? (int) $vehicle->driver_id : null,
                 'mode' => $plan['mode'],
             ],
+            'adjustment' => $adjustment ? [
+                'id' => (int) $adjustment->id,
+                'name' => (string) $adjustment->name,
+                'type' => (string) $adjustment->type,
+                'amount' => (float) $adjustment->amount,
+            ] : null,
         ], Response::HTTP_CREATED);
     }
 
