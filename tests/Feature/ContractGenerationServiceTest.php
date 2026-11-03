@@ -10,8 +10,10 @@ use App\Models\VehicleItem;
 use App\Models\VehicleModel;
 use App\Models\VehicleUsage;
 use App\Services\Contracts\ContractGenerationService;
+use App\Services\Contracts\DefaultContractTemplate;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class ContractGenerationServiceTest extends TestCase
@@ -28,6 +30,7 @@ class ContractGenerationServiceTest extends TestCase
             $table->id();
             $table->string('name');
             $table->string('vat')->nullable();
+            $table->string('tvde_license')->nullable();
             $table->string('address')->nullable();
             $table->string('zip')->nullable();
             $table->string('location')->nullable();
@@ -115,7 +118,11 @@ class ContractGenerationServiceTest extends TestCase
 
     public function test_it_generates_an_immutable_versioned_snapshot_from_the_driver_page_data(): void
     {
-        $company = Company::create(['name' => 'Empresa TVDE', 'vat' => '515025712']);
+        $company = Company::create([
+            'name' => 'Empresa TVDE',
+            'vat' => '515025712',
+            'tvde_license' => 'TVDE-12345',
+        ]);
         $driver = Driver::create([
             'company_id' => $company->id,
             'name' => 'Motorista Um',
@@ -152,9 +159,38 @@ class ContractGenerationServiceTest extends TestCase
         $this->assertSame(3, $contract->template_version);
         $this->assertSame('Contrato 1 — Motorista Um — AA-00-AA', $contract->rendered_content);
         $this->assertSame('AA-00-AA', $contract->data_snapshot['vehicle.license_plate']);
+        $this->assertSame('TVDE-12345', $contract->data_snapshot['company.tvde_license']);
         $this->assertSame($template->content, $contract->source_content);
 
         $template->update(['content' => 'Texto alterado']);
         $this->assertSame('Contrato 1 — Motorista Um — AA-00-AA', $contract->fresh()->rendered_content);
+    }
+
+    public function test_it_refuses_to_generate_without_the_operator_tvde_license(): void
+    {
+        $company = Company::create(['name' => 'Empresa TVDE', 'vat' => '515025712']);
+        $driver = Driver::create(['company_id' => $company->id, 'name' => 'Motorista Sem Licença']);
+
+        $this->expectException(ValidationException::class);
+
+        app(ContractGenerationService::class)->generate($driver);
+    }
+
+    public function test_it_activates_the_new_default_template_without_changing_the_old_version(): void
+    {
+        $old = ContractTemplate::create([
+            'name' => DefaultContractTemplate::NAME,
+            'version' => 1,
+            'content' => 'Modelo antigo',
+            'is_active' => true,
+        ]);
+
+        $active = app(ContractGenerationService::class)->activeTemplate();
+
+        $this->assertSame(DefaultContractTemplate::VERSION, $active->version);
+        $this->assertSame(DefaultContractTemplate::content(), $active->content);
+        $this->assertTrue($active->is_active);
+        $this->assertFalse($old->fresh()->is_active);
+        $this->assertSame('Modelo antigo', $old->fresh()->content);
     }
 }

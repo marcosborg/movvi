@@ -1459,6 +1459,8 @@ return [
             'name_helper'       => ' ',
             'vat'               => 'NIPC / NIF',
             'vat_helper'        => ' ',
+            'tvde_license'      => 'Licença de operador TVDE',
+            'tvde_license_helper' => 'Número da licença emitida pelo IMT.',
             'address'           => 'Morada',
             'address_helper'    => ' ',
             'zip'               => 'Código Postal',

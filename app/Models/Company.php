@@ -29,6 +29,7 @@ class Company extends Model implements HasMedia
     protected $fillable = [
         'name',
         'vat',
+        'tvde_license',
         'address',
         'zip',
         'location',

@@ -28,6 +28,14 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.company.fields.vat_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('tvde_license') ? 'has-error' : '' }}">
+                            <label for="tvde_license">{{ trans('cruds.company.fields.tvde_license') }}</label>
+                            <input class="form-control" type="text" name="tvde_license" id="tvde_license" value="{{ old('tvde_license', $company->tvde_license) }}">
+                            @if($errors->has('tvde_license'))
+                                <span class="help-block" role="alert">{{ $errors->first('tvde_license') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.company.fields.tvde_license_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('address') ? 'has-error' : '' }}">
                             <label class="required" for="address">{{ trans('cruds.company.fields.address') }}</label>
                             <input class="form-control" type="text" name="address" id="address" value="{{ old('address', $company->address) }}" required>

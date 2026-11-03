@@ -7,6 +7,7 @@ use App\Models\ContractTemplate;
 use App\Models\Driver;
 use App\Models\VehicleItem;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ContractGenerationService
 {
@@ -18,21 +19,43 @@ class ContractGenerationService
     {
         $active = ContractTemplate::where('is_active', true)->latest('version')->first();
 
-        if ($active) {
+        if ($active && ($active->name !== DefaultContractTemplate::NAME || $active->version >= DefaultContractTemplate::VERSION)) {
             return $active;
         }
 
-        return ContractTemplate::create([
-            'name' => DefaultContractTemplate::NAME,
-            'version' => 1,
-            'content' => DefaultContractTemplate::content(),
-            'is_active' => true,
-            'created_by' => auth()->id(),
-        ]);
+        return DB::transaction(function () {
+            ContractTemplate::where('is_active', true)->update(['is_active' => false]);
+
+            $template = ContractTemplate::firstOrCreate(
+                [
+                    'name' => DefaultContractTemplate::NAME,
+                    'version' => DefaultContractTemplate::VERSION,
+                ],
+                [
+                    'content' => DefaultContractTemplate::content(),
+                    'is_active' => true,
+                    'created_by' => auth()->id(),
+                ]
+            );
+
+            if (! $template->is_active) {
+                $template->update(['is_active' => true]);
+            }
+
+            return $template;
+        });
     }
 
     public function generate(Driver $driver, ?ContractTemplate $template = null): AdminContract
     {
+        $driver->loadMissing('company');
+
+        if (blank(optional($driver->company)->tvde_license)) {
+            throw ValidationException::withMessages([
+                'company.tvde_license' => 'Preencha a licença de operador TVDE na ficha da empresa antes de gerar o contrato.',
+            ]);
+        }
+
         return DB::transaction(function () use ($driver, $template) {
             $template ??= $this->activeTemplate();
             $number = ((int) AdminContract::withTrashed()->lockForUpdate()->max('number')) + 1;
@@ -48,7 +71,6 @@ class ContractGenerationService
                 'generated_by' => auth()->id(),
             ]);
 
-            $driver->loadMissing('company');
             $vehicle = $this->activeVehicle($driver);
             $result = $this->renderer->render($template->content, $driver, $contract, $vehicle);
 

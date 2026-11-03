@@ -51,6 +51,14 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        {{ trans('cruds.company.fields.tvde_license') }}
+                                    </th>
+                                    <td>
+                                        {{ $company->tvde_license }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.company.fields.zip') }}
                                     </th>
                                     <td>

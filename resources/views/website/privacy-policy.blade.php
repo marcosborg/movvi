@@ -7,7 +7,7 @@
             <div>
                 <p class="text-uppercase text-muted small mb-1">Legal</p>
                 <h1 class="h3 mb-2">Política de Privacidade</h1>
-                <p class="text-muted mb-0">Última atualização: 06/06/2026</p>
+                <p class="text-muted mb-0">Última atualização: 03/11/2026</p>
             </div>
             <a class="btn btn-outline-secondary" href="{{ url('/') }}">Voltar</a>
         </div>
@@ -39,6 +39,12 @@
                     de cedência de viaturas, contactos comerciais, pedidos de informação, marcações,
                     candidaturas, documentos ou outros conteúdos enviados voluntariamente pelo utilizador.
                 </p>
+                <p>
+                    Relativamente a motoristas TVDE, podem ser tratados dados de identificação e contacto,
+                    habilitação e certificação, dados fiscais e bancários, dados contratuais e de faturação,
+                    matrícula e demais dados da viatura, localização e telemetria, quilometragem, tempos de
+                    atividade, manutenção, ocorrências, sinistros e comunicações operacionais.
+                </p>
 
                 <h2 class="h5 mt-4">3. Finalidades do tratamento</h2>
                 <p>Os dados pessoais são tratados para as seguintes finalidades:</p>
@@ -47,6 +53,8 @@
                     <li>Gerir pedidos relacionados com cedência de viaturas, stand, transfers e tours.</li>
                     <li>Prestar apoio ao cliente e apoio operacional aos utilizadores.</li>
                     <li>Cumprir obrigações legais, fiscais, administrativas ou contratuais aplicáveis.</li>
+                    <li>Gerir a frota, a manutenção, a quilometragem, a segurança e a prevenção de fraude.</li>
+                    <li>Validar licenças, certificados, viaturas, inspeções e seguros através dos sistemas legalmente previstos.</li>
                     <li>Melhorar os serviços, o funcionamento do website e a experiência do utilizador.</li>
                 </ul>
 
@@ -72,8 +80,22 @@
                     comunicação, gestão operacional, contabilidade ou apoio jurídico, sempre na medida necessária
                     e com garantias adequadas de proteção.
                 </p>
+                <p>
+                    Quando necessário à atividade TVDE ou ao cumprimento da lei, os dados podem também ser
+                    comunicados a plataformas TVDE, IMT, AMT, Autoridade Tributária, Segurança Social, ACT,
+                    autoridades policiais ou judiciais, seguradoras, oficinas e prestadores de telemática,
+                    incluindo Cartrack, bem como à plataforma de partilha de dados do IMT.
+                </p>
 
-                <h2 class="h5 mt-4">7. Direitos dos titulares</h2>
+                <h2 class="h5 mt-4">7. Comunicações automáticas</h2>
+                <p>
+                    As comunicações estritamente operacionais, como alertas de manutenção, segurança, sinalética
+                    e procedimentos da empresa, podem ser enviadas quando necessárias à execução do contrato,
+                    ao cumprimento de obrigações legais ou a interesses legítimos devidamente ponderados. As
+                    comunicações de marketing dependem de consentimento separado e revogável.
+                </p>
+
+                <h2 class="h5 mt-4">8. Direitos dos titulares</h2>
                 <p>
                     Nos termos da legislação aplicável, o titular dos dados pode solicitar o acesso, retificação,
                     apagamento, limitação do tratamento, oposição ao tratamento e portabilidade dos seus dados,
@@ -81,7 +103,7 @@
                     fundamento.
                 </p>
 
-                <h2 class="h5 mt-4">8. Cookies e tecnologias semelhantes</h2>
+                <h2 class="h5 mt-4">9. Cookies e tecnologias semelhantes</h2>
                 <p>
                     O website pode utilizar cookies ou tecnologias semelhantes para assegurar o seu correto
                     funcionamento, melhorar a navegação e analisar a utilização do serviço. O utilizador pode
@@ -89,20 +111,20 @@
                     funcionalidades poderem ficar limitadas.
                 </p>
 
-                <h2 class="h5 mt-4">9. Segurança</h2>
+                <h2 class="h5 mt-4">10. Segurança</h2>
                 <p>
                     A Movvi.pt adota medidas técnicas e organizativas adequadas para proteger os dados pessoais
                     contra acesso não autorizado, perda, alteração, divulgação ou destruição indevida.
                 </p>
 
-                <h2 class="h5 mt-4">10. Reclamações</h2>
+                <h2 class="h5 mt-4">11. Reclamações</h2>
                 <p>
                     O titular dos dados tem o direito de apresentar reclamação junto da autoridade de controlo
                     competente em matéria de proteção de dados, sem prejuízo de poder contactar previamente a
                     Movvi.pt para esclarecimento ou resolução de qualquer questão.
                 </p>
 
-                <h2 class="h5 mt-4">11. Alterações a esta política</h2>
+                <h2 class="h5 mt-4">12. Alterações a esta política</h2>
                 <p>
                     A Movvi.pt pode atualizar esta Política de Privacidade sempre que necessário. A versão em
                     vigor será publicada nesta página, com indicação da data da última atualização.

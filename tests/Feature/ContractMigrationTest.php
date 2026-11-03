@@ -27,6 +27,10 @@ class ContractMigrationTest extends TestCase
             $table->timestamps();
             $table->softDeletes();
         });
+        Schema::create('companies', function (Blueprint $table) {
+            $table->id();
+            $table->string('vat')->nullable();
+        });
     }
 
     public function test_contract_template_migration_adds_all_versioned_snapshot_fields(): void
@@ -42,5 +46,13 @@ class ContractMigrationTest extends TestCase
             'contract_template_id', 'template_version', 'source_content', 'rendered_content',
             'data_snapshot', 'generated_at', 'generated_by',
         ]));
+    }
+
+    public function test_company_license_migration_adds_the_tvde_license_field(): void
+    {
+        $migration = require database_path('migrations/2026_11_03_193000_add_tvde_license_to_companies.php');
+        $migration->up();
+
+        $this->assertTrue(Schema::hasColumn('companies', 'tvde_license'));
     }
 }

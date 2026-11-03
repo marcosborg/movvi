@@ -22,10 +22,18 @@ class ContractTemplateRendererTest extends TestCase
 
         $this->assertStringContainsString('CEDÊNCIA DE VIATURA', $content);
         $this->assertStringNotContainsStringIgnoringCase('aluguer', $content);
-        $this->assertStringContainsString('Avenida Vasco da Gama, N.º 774, Espaço 30, 4430-247 Mafamude, Vila Nova de Gaia', $content);
+        $this->assertStringContainsString('com sede em {{company.full_address}}', $content);
         $this->assertStringContainsString('365 dias, prorrogável por períodos sucessivos de 365 dias', $content);
         $this->assertStringContainsString('mensagens automáticas', $content);
-        $this->assertStringContainsString('sinalética, dicas, sugestões e procedimentos da empresa', $content);
+        $this->assertStringContainsString('Lei n.º 59/2026, de 25 de agosto', $content);
+        $this->assertStringContainsString('artigo 12.º do Código do Trabalho', $content);
+        $this->assertStringContainsString('{{company.tvde_license}}', $content);
+        $this->assertStringContainsString('Cartrack', $content);
+        $this->assertStringContainsString('comissão de gestão e cedência de viatura de 6%', $content);
+        $this->assertStringContainsString('formação inicial de 50 horas', $content);
+        $this->assertStringContainsString('dístico identificador inamovível', $content);
+        $this->assertStringContainsString('ANEXO I - AVISO DE PRIVACIDADE DO MOTORISTA', $content);
+        $this->assertStringContainsString('plataforma de partilha de dados do IMT', $content);
     }
 
     public function test_it_replaces_whitelisted_tags_and_returns_the_snapshot(): void
@@ -35,6 +43,7 @@ class ContractTemplateRendererTest extends TestCase
         $company = new Company([
             'name' => 'Adelmo Top Unipessoal, Lda',
             'vat' => '515025712',
+            'tvde_license' => 'TVDE-12345',
             'email' => 'geral@example.test',
         ]);
         $driver = new Driver([
@@ -63,6 +72,7 @@ class ContractTemplateRendererTest extends TestCase
         $this->assertSame('42|03/11/2026|Motorista &lt;Teste&gt;|Rua Um, 4000-001, Porto|MG|ZS|BB-11-BB', $result['content']);
         $this->assertSame('123456789', $result['data']['driver.vat']);
         $this->assertSame('Adelmo Top Unipessoal, Lda', $result['data']['company.name']);
+        $this->assertSame('TVDE-12345', $result['data']['company.tvde_license']);
 
         Carbon::setTestNow();
     }

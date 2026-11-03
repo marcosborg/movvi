@@ -15,6 +15,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use App\Models\ContractTemplate;
 use App\Services\Contracts\ContractGenerationService;
+use Illuminate\Support\Str;
 
 class AdminContractController extends Controller
 {
@@ -114,7 +115,10 @@ class AdminContractController extends Controller
         $canvas->page_text(46, 813, $companyName . ' | NIF ' . $companyVat, $font, 7.5, [0.45, 0.45, 0.45]);
         $canvas->page_text(474, 813, 'Página {PAGE_NUM} de {PAGE_COUNT}', $font, 7.5, [0.45, 0.45, 0.45]);
 
-        return $pdf->stream();
+        $driverName = Str::slug(optional($adminContract->driver)->name ?: 'motorista', '_');
+        $filename = sprintf('Contrato_%s_%s.pdf', $adminContract->number, $driverName);
+
+        return $pdf->stream($filename);
 
         //return $pdf->download($adminContract->created_at . '.pdf');
 

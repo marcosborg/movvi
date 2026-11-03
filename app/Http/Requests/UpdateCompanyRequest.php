@@ -25,6 +25,11 @@ class UpdateCompanyRequest extends FormRequest
                 'string',
                 'required',
             ],
+            'tvde_license' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
             'address' => [
                 'string',
                 'required',

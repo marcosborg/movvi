@@ -2,6 +2,10 @@
     $snapshot = $adminContract->data_snapshot ?? [];
     $companyName = $snapshot['company.name'] ?? 'ADELMO TOP UNIPESSOAL, LDA';
     $companyVat = $snapshot['company.vat'] ?? '515.025.712';
+    $companyTvdeLicense = $snapshot['company.tvde_license'] ?? '';
+    $companyAddress = $snapshot['company.address'] ?? 'Avenida Vasco da Gama, N.º 774, Espaço 30';
+    $companyZip = $snapshot['company.zip'] ?? '4430-247';
+    $companyLocation = $snapshot['company.location'] ?? 'Mafamude, Vila Nova de Gaia';
     $companyEmail = $snapshot['company.email'] ?? 'geral@movvi.com.pt';
     $logoPath = public_path('assets/website/assets/img/logo.png');
     $logoData = is_file($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : null;
@@ -135,6 +139,17 @@
             text-align: left;
         }
 
+        .page-break {
+            page-break-before: always;
+        }
+
+        .privacy-acknowledgement {
+            margin-top: 26px;
+            padding: 14px 16px;
+            border: 1px solid #d6dfdc;
+            page-break-inside: avoid;
+        }
+
         .signatures > div {
             display: inline-block;
             width: 48%;
@@ -145,14 +160,18 @@
             vertical-align: top;
         }
 
-        body > h2:last-of-type {
-            margin-top: 44px;
+        .vehicle-delivery h2 {
+            margin-top: 28px;
             page-break-before: auto;
         }
 
-        body > h2:last-of-type ~ p {
-            margin: 10px 0;
-            padding: 7px 0;
+        .vehicle-delivery {
+            page-break-inside: avoid;
+        }
+
+        .vehicle-delivery p {
+            margin: 5px 0;
+            padding: 5px 0;
             border-bottom: 1px solid #e1e6e4;
         }
 
@@ -180,8 +199,9 @@
                 <td class="company">
                     <strong>{{ mb_strtoupper($companyName) }}</strong><br>
                     NIF {{ $companyVat }}<br>
-                    Avenida Vasco da Gama, N.º 774, Espaço 30<br>
-                    4430-247 Mafamude, Vila Nova de Gaia<br>
+                    @if($companyTvdeLicense) Licença TVDE {{ $companyTvdeLicense }}<br> @endif
+                    {{ $companyAddress }}<br>
+                    {{ $companyZip }} {{ $companyLocation }}<br>
                     {{ $companyEmail }}
                 </td>
             </tr>
