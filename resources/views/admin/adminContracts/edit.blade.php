@@ -9,6 +9,9 @@
                     {{ trans('global.edit') }} {{ trans('cruds.adminContract.title_singular') }}
                 </div>
                 <div class="panel-body">
+                    @if($adminContract->rendered_content)
+                        <div class="alert alert-info">Este contrato é uma cópia arquivada da versão {{ $adminContract->template_version }}. O número, motorista e texto não podem ser alterados; apenas a data de assinatura pode ser atualizada.</div>
+                    @endif
                     <form method="POST" action="{{ route("admin.admin-contracts.update", [$adminContract->id]) }}"
                         enctype="multipart/form-data">
                         @method('PUT')
@@ -16,7 +19,7 @@
                         <div class="form-group {{ $errors->has('number') ? 'has-error' : '' }}">
                             <label class="required" for="number">{{ trans('cruds.adminContract.fields.number')
                                 }}</label>
-                            <input class="form-control" type="number" name="number" id="number"
+                            <input class="form-control" type="number" name="number" id="number" {{ $adminContract->rendered_content ? 'readonly' : '' }}
                                 value="{{ old('number', $adminContract->number) }}" step="1" required>
                             @if($errors->has('number'))
                             <span class="help-block" role="alert">{{ $errors->first('number') }}</span>
@@ -26,13 +29,16 @@
                         <div class="form-group {{ $errors->has('driver') ? 'has-error' : '' }}">
                             <label class="required" for="driver_id">{{ trans('cruds.adminContract.fields.driver')
                                 }}</label>
-                            <select class="form-control select2" name="driver_id" id="driver_id" required>
+                            <select class="form-control select2" name="driver_id" id="driver_id" required {{ $adminContract->rendered_content ? 'disabled' : '' }}>
                                 @foreach($drivers as $driver)
                                 <option value="{{ $driver->id }}" {{ (old('driver_id') ? old('driver_id') :
                                     $adminContract->driver->id ?? '') == $driver->id ? 'selected' : '' }}>{{
                                     $driver->name }} - NIF: {{ $driver->driver_vat }}</option>
                                 @endforeach
                             </select>
+                            @if($adminContract->rendered_content)
+                                <input type="hidden" name="driver_id" value="{{ $adminContract->driver_id }}">
+                            @endif
                             @if($errors->has('driver'))
                             <span class="help-block" role="alert">{{ $errors->first('driver') }}</span>
                             @endif

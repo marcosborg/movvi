@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use App\Models\ContractTemplate;
+use App\Services\Contracts\ContractGenerationService;
 
 class AdminContractController extends Controller
 {
@@ -25,20 +27,44 @@ class AdminContractController extends Controller
         return view('admin.adminContracts.index', compact('adminContracts'));
     }
 
-    public function create()
+    public function create(ContractGenerationService $generationService)
     {
         abort_if(Gate::denies('admin_contract_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $drivers = Driver::all();
+        $drivers = Driver::orderBy('name')->get();
+        $template = $generationService->activeTemplate();
+        $selectedDriverId = request('driver_id');
 
-        return view('admin.adminContracts.create', compact('drivers'));
+        return view('admin.adminContracts.create', compact('drivers', 'template', 'selectedDriverId'));
     }
 
-    public function store(StoreAdminContractRequest $request)
+    public function store(StoreAdminContractRequest $request, ContractGenerationService $generationService)
     {
-        $adminContract = AdminContract::create($request->all());
+        $driver = Driver::findOrFail($request->integer('driver_id'));
+        $template = $request->filled('contract_template_id')
+            ? ContractTemplate::findOrFail($request->integer('contract_template_id'))
+            : null;
+        $adminContract = $generationService->generate($driver, $template);
 
-        return redirect()->route('admin.admin-contracts.index');
+        if ($request->filled('signed_at')) {
+            $adminContract->signed_at = $request->input('signed_at');
+            $adminContract->save();
+        }
+
+        return redirect()
+            ->route('admin.admin-contracts.show', $adminContract)
+            ->with('message', 'Contrato gerado e arquivado com sucesso.');
+    }
+
+    public function generateForDriver(Driver $driver, ContractGenerationService $generationService)
+    {
+        abort_if(Gate::denies('admin_contract_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $contract = $generationService->generate($driver);
+
+        return redirect()
+            ->route('admin.admin-contracts.show', $contract)
+            ->with('message', 'Contrato gerado e arquivado com sucesso.');
     }
 
     public function edit(AdminContract $adminContract)
@@ -54,7 +80,9 @@ class AdminContractController extends Controller
 
     public function update(UpdateAdminContractRequest $request, AdminContract $adminContract)
     {
-        $adminContract->update($request->all());
+        $adminContract->update($adminContract->rendered_content
+            ? $request->only('signed_at')
+            : $request->all());
 
         return redirect()->route('admin.admin-contracts.index');
     }

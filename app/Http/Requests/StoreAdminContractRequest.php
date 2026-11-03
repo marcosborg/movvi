@@ -18,7 +18,7 @@ class StoreAdminContractRequest extends FormRequest
     {
         return [
             'number' => [
-                'required',
+                'nullable',
                 'integer',
                 'min:-2147483648',
                 'max:2147483647',
@@ -26,6 +26,12 @@ class StoreAdminContractRequest extends FormRequest
             'driver_id' => [
                 'required',
                 'integer',
+                'exists:drivers,id',
+            ],
+            'contract_template_id' => [
+                'nullable',
+                'integer',
+                'exists:contract_templates,id',
             ],
             'signed_at' => [
                 'date_format:' . config('panel.date_format'),

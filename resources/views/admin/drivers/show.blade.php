@@ -14,6 +14,15 @@
                             <a class="btn btn-default" href="{{ route('admin.drivers.index') }}">
                                 {{ trans('global.back_to_list') }}
                             </a>
+                            @can('admin_contract_create')
+                                <form method="POST" action="{{ route('admin.drivers.generate-contract', $driver) }}" style="display:inline-block" onsubmit="return confirm('Gerar e arquivar um novo contrato para este motorista?');">
+                                    @csrf
+                                    <button class="btn btn-primary" type="submit">Gerar contrato</button>
+                                </form>
+                            @endcan
+                            @if($driver->adminContracts->isNotEmpty())
+                                <a class="btn btn-info" href="{{ route('admin.admin-contracts.show', $driver->adminContracts->sortByDesc('id')->first()) }}" target="_blank">Último contrato</a>
+                            @endif
                         </div>
                         <table class="table table-bordered table-striped">
                             <tbody>

@@ -249,7 +249,7 @@ class DriverController extends Controller
     {
         abort_if(Gate::denies('driver_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $driver->load('user', 'card', 'electric', 'tool_card', 'local', 'contract_vat', 'state', 'company', 'driverDocuments', 'driverReceipts');
+        $driver->load('user', 'card', 'electric', 'tool_card', 'local', 'contract_vat', 'state', 'company', 'driverDocuments', 'driverReceipts', 'adminContracts');
 
         return view('admin.drivers.show', compact('driver'));
     }

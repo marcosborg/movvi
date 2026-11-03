@@ -7,6 +7,7 @@
                 <a class="btn btn-success" href="{{ route('admin.admin-contracts.create') }}">
                     {{ trans('global.add') }} {{ trans('cruds.adminContract.title_singular') }}
                 </a>
+        <a class="btn btn-primary" href="{{ route('admin.contract-templates.index') }}">Modelos e versões</a>
             </div>
         </div>
     @endcan
@@ -45,6 +46,7 @@
                                     <th>
                                         {{ trans('cruds.adminContract.fields.signed_at') }}
                                     </th>
+                                    <th>Versão</th>
                                     <th>
                                         &nbsp;
                                     </th>
@@ -77,6 +79,7 @@
                                         <td>
                                             {{ $adminContract->signed_at ?? '' }}
                                         </td>
+                                        <td>{{ $adminContract->template_version ? 'v'.$adminContract->template_version : 'Legado' }}</td>
                                         <td>
                                             @can('admin_contract_show')
                                                 <a class="btn btn-xs btn-primary" href="{{ route('admin.admin-contracts.show', $adminContract->id) }}">

@@ -21,9 +21,7 @@ class ContractController extends Controller
             'user_id' => auth()->user()->id
         ])->first();
 
-        $adminContract = AdminContract::where([
-            'driver_id' => $driver->id
-        ])->first();
+        $adminContract = $driver ? AdminContract::where('driver_id', $driver->id)->latest('id')->first() : null;
 
         return view('admin.contracts.index')->with([
             'adminContract' => $adminContract
@@ -37,9 +35,9 @@ class ContractController extends Controller
             'user_id' => auth()->user()->id
         ])->first();
 
-        $adminContract = AdminContract::where([
-            'driver_id' => $driver->id
-        ])->first();
+        abort_if(! $driver, 404);
+
+        $adminContract = AdminContract::where('driver_id', $driver->id)->latest('id')->firstOrFail();
 
         setlocale(LC_TIME, 'pt_PT.utf8');
         Carbon::setLocale('pt_PT');
@@ -65,9 +63,9 @@ class ContractController extends Controller
             'user_id' => auth()->user()->id
         ])->first();
 
-        $adminContract = AdminContract::where([
-            'driver_id' => $driver->id
-        ])->first();
+        abort_if(! $driver, 404);
+
+        $adminContract = AdminContract::where('driver_id', $driver->id)->latest('id')->firstOrFail();
 
         $adminContract->signed_at = date('Y-m-d');
         $adminContract->save();

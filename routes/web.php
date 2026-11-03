@@ -372,6 +372,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::resource('admin-statement-responsibilities', 'AdminStatementResponsibilityController');
 
     // Admin Contract
+    Route::post('drivers/{driver}/generate-contract', 'AdminContractController@generateForDriver')->name('drivers.generate-contract');
+    Route::get('contract-templates', 'ContractTemplateController@index')->name('contract-templates.index');
+    Route::get('contract-templates/{contractTemplate}/edit', 'ContractTemplateController@edit')->name('contract-templates.edit');
+    Route::put('contract-templates/{contractTemplate}', 'ContractTemplateController@update')->name('contract-templates.update');
     Route::delete('admin-contracts/destroy', 'AdminContractController@massDestroy')->name('admin-contracts.massDestroy');
     Route::resource('admin-contracts', 'AdminContractController');
 

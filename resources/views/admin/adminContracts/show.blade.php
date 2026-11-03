@@ -41,10 +41,21 @@
             height: 50px;
             line-height: 35px;
         }
+        h1 { font-size: 20px; text-align: center; margin-bottom: 24px; }
+        h2 { font-size: 15px; text-align: center; margin: 22px 0 10px; page-break-after: avoid; }
+        p { line-height: 1.45; margin: 8px 0; }
+        .signatures { width: 100%; margin-top: 50px; }
+        .signatures > div { display: inline-block; width: 48%; text-align: center; vertical-align: top; }
     </style>
 </head>
 
 <body>
+    @if($adminContract->rendered_content)
+        {!! $adminContract->rendered_content !!}
+        @if($adminContract->signed_at)
+            <p style="margin-top:30px;text-align:center"><strong>Assinado eletronicamente pelo motorista em {{ $adminContract->signed_at }}.</strong></p>
+        @endif
+    @else
     <h4 class="text-center">CONTRATO DE PRESTAÇÃO DE SERVIÇOS N.º{{ $adminContract->number }} /2023</h4>
     <br>
     <br>
@@ -153,6 +164,7 @@
             "CONTRATOS/CONTRATO".</strong></p>
     @endif
     <footer>Página 2 de 2</footer>
+    @endif
 </body>
 
 </html>
