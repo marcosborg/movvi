@@ -20,6 +20,13 @@ return new class extends Migration
             return;
         }
 
+        DB::table('permissions')
+            ->whereIn('title', self::PERMISSIONS)
+            ->update([
+                'deleted_at' => null,
+                'updated_at' => now(),
+            ]);
+
         $permissionIds = DB::table('permissions')
             ->whereIn('title', self::PERMISSIONS)
             ->pluck('id');
