@@ -68,6 +68,12 @@ class DocumentController extends Controller
             $document->addMedia(storage_path('tmp/uploads/' . basename($file)))->toMediaCollection('address');
         }
 
+        foreach (['passport', 'residence_permit'] as $collection) {
+            foreach ($request->input($collection, []) as $file) {
+                $document->addMedia(storage_path('tmp/uploads/' . basename($file)))->toMediaCollection($collection);
+            }
+        }
+
         if ($media = $request->input('ck-media', false)) {
             Media::whereIn('id', $media)->update(['model_id' => $document->id]);
         }
@@ -183,6 +189,20 @@ class DocumentController extends Controller
         foreach ($request->input('address', []) as $file) {
             if (count($media) === 0 || ! in_array($file, $media)) {
                 $document->addMedia(storage_path('tmp/uploads/' . basename($file)))->toMediaCollection('address');
+            }
+        }
+
+        foreach (['passport', 'residence_permit'] as $collection) {
+            foreach ($document->{$collection} as $mediaItem) {
+                if (! in_array($mediaItem->file_name, $request->input($collection, []))) {
+                    $mediaItem->delete();
+                }
+            }
+            $existing = $document->{$collection}->pluck('file_name')->toArray();
+            foreach ($request->input($collection, []) as $file) {
+                if (! in_array($file, $existing)) {
+                    $document->addMedia(storage_path('tmp/uploads/' . basename($file)))->toMediaCollection($collection);
+                }
             }
         }
 

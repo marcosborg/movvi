@@ -22,6 +22,8 @@ class Document extends Model implements HasMedia
         'tvde_driver_certificate_expires_at',
         'criminal_record_expires_at',
         'driving_license_expires_at',
+        'passport_expires_at',
+        'residence_permit_expires_at',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -33,6 +35,8 @@ class Document extends Model implements HasMedia
         'tvde_driver_certificate_expires_at',
         'criminal_record_expires_at',
         'driving_license_expires_at',
+        'passport_expires_at',
+        'residence_permit_expires_at',
         'notes',
         'created_at',
         'updated_at',
@@ -47,6 +51,8 @@ class Document extends Model implements HasMedia
         'driving_license',
         'iban',
         'address',
+        'passport',
+        'residence_permit',
     ];
 
     protected function serializeDate(DateTimeInterface $date)
@@ -104,6 +110,16 @@ class Document extends Model implements HasMedia
         return $this->getMedia('address');
     }
 
+    public function getPassportAttribute()
+    {
+        return $this->getMedia('passport');
+    }
+
+    public function getResidencePermitAttribute()
+    {
+        return $this->getMedia('residence_permit');
+    }
+
     public function getCitizenCardExpiresAtAttribute($value)
     {
         return $this->formatExpiryDate($value);
@@ -142,6 +158,26 @@ class Document extends Model implements HasMedia
     public function setDrivingLicenseExpiresAtAttribute($value): void
     {
         $this->attributes['driving_license_expires_at'] = $this->parseExpiryDate($value);
+    }
+
+    public function getPassportExpiresAtAttribute($value)
+    {
+        return $this->formatExpiryDate($value);
+    }
+
+    public function setPassportExpiresAtAttribute($value): void
+    {
+        $this->attributes['passport_expires_at'] = $this->parseExpiryDate($value);
+    }
+
+    public function getResidencePermitExpiresAtAttribute($value)
+    {
+        return $this->formatExpiryDate($value);
+    }
+
+    public function setResidencePermitExpiresAtAttribute($value): void
+    {
+        $this->attributes['residence_permit_expires_at'] = $this->parseExpiryDate($value);
     }
 
     private function formatExpiryDate($value): ?string

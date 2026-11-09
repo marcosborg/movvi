@@ -36,6 +36,8 @@ class StoreDocumentRequest extends FormRequest
             'iban' => [
                 'array',
             ],
+            'passport' => ['array'],
+            'residence_permit' => ['array'],
             'address' => [
                 'array',
             ],
@@ -43,6 +45,8 @@ class StoreDocumentRequest extends FormRequest
             'tvde_driver_certificate_expires_at' => ['nullable', 'date_format:' . config('panel.date_format')],
             'criminal_record_expires_at' => ['nullable', 'date_format:' . config('panel.date_format')],
             'driving_license_expires_at' => ['nullable', 'date_format:' . config('panel.date_format')],
+            'passport_expires_at' => ['nullable', 'date_format:' . config('panel.date_format')],
+            'residence_permit_expires_at' => ['nullable', 'date_format:' . config('panel.date_format')],
         ];
     }
 }

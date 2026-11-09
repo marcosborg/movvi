@@ -5,7 +5,7 @@ namespace App\Services\Contracts;
 class DefaultContractTemplate
 {
     public const NAME = 'Contrato de prestação de serviços de motorista e cedência de viatura TVDE';
-    public const VERSION = 3;
+    public const VERSION = 4;
 
     public static function content(): string
     {
@@ -13,7 +13,17 @@ class DefaultContractTemplate
 <h1>CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE MOTORISTA E CEDÊNCIA DE VIATURA PARA TVDE</h1>
 <p><strong>Contrato n.º {{contract.number}}</strong></p>
 <p><strong>PRIMEIRO OUTORGANTE - {{company.name}}</strong>, pessoa coletiva n.º {{company.vat}}, titular da licença de operador TVDE n.º <strong>{{company.tvde_license}}</strong>, com sede em {{company.full_address}}, doravante designada "A CONTRATANTE", representada pelo seu gerente com poderes para o ato.</p>
-<p><strong>SEGUNDO OUTORGANTE - {{driver.name}}</strong>, titular do documento de identificação n.º {{driver.citizen_card}}, NIF {{driver.vat}}, carta de condução n.º {{driver.driver_license}} e certificado de motorista TVDE n.º {{driver.tvde_certificate_number}}, residente em {{driver.full_address}}, com IBAN {{driver.iban}}, doravante designado "O MOTORISTA".</p>
+<p><strong>SEGUNDO OUTORGANTE - {{driver.name}}</strong>, titular do documento de identificação n.º {{driver.citizen_card}}, NIF {{driver.vat}}, carta de condução n.º {{driver.driver_license}} e certificado de motorista TVDE n.º {{driver.tvde_certificate_number}}, residente em {{driver.full_address}}{{driver.iban_clause}}, doravante designado "O MOTORISTA".</p>
+<table class="document-validities">
+    <thead><tr><th>Documento</th><th>Validade</th></tr></thead>
+    <tbody>
+        <tr><td>Documento de identificação</td><td>{{documents.citizen_card_expires_at}}</td></tr>
+        <tr><td>Certificado de motorista TVDE</td><td>{{documents.tvde_certificate_expires_at}}</td></tr>
+        <tr><td>Carta de condução</td><td>{{documents.driving_license_expires_at}}</td></tr>
+        <tr><td>Passaporte (quando aplicável)</td><td>{{documents.passport_expires_at}}</td></tr>
+        <tr><td>Autorização de residência (quando aplicável)</td><td>{{documents.residence_permit_expires_at}}</td></tr>
+    </tbody>
+</table>
 <p>Considerando que a CONTRATANTE tem como atividade o transporte de passageiros em plataformas autorizadas e que o MOTORISTA se encontra apto a exercer a atividade TVDE, as partes celebram de boa-fé o presente contrato, que se rege pelas cláusulas seguintes.</p>
 
 <h2>CLÁUSULA PRIMEIRA - OBJETO</h2>

@@ -61,7 +61,6 @@ class ContractGenerationService
             'driver.address' => ['value' => $driver->address, 'label' => 'morada'],
             'driver.zip' => ['value' => $driver->zip, 'label' => 'código postal'],
             'driver.city' => ['value' => $driver->city, 'label' => 'localidade'],
-            'driver.iban' => ['value' => $driver->iban, 'label' => 'IBAN'],
             'company.tvde_license' => ['value' => optional($driver->company)->tvde_license, 'label' => 'licença de operador TVDE da empresa'],
         ])->filter(fn (array $field) => blank($field['value']));
 

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Company;
 use App\Models\ContractTemplate;
 use App\Models\Driver;
+use App\Models\Document;
 use App\Models\VehicleBrand;
 use App\Models\VehicleItem;
 use App\Models\VehicleModel;
@@ -61,6 +62,19 @@ class ContractGenerationServiceTest extends TestCase
         Schema::create('vehicle_brands', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->timestamps();
+            $table->softDeletes();
+        });
+        Schema::create('documents', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('driver_id');
+            $table->date('citizen_card_expires_at')->nullable();
+            $table->date('tvde_driver_certificate_expires_at')->nullable();
+            $table->date('criminal_record_expires_at')->nullable();
+            $table->date('driving_license_expires_at')->nullable();
+            $table->date('passport_expires_at')->nullable();
+            $table->date('residence_permit_expires_at')->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
@@ -159,6 +173,12 @@ class ContractGenerationServiceTest extends TestCase
             'content' => 'Contrato {{contract.number}} — {{driver.name}} — {{vehicle.license_plate}}',
             'is_active' => true,
         ]);
+        Document::create([
+            'driver_id' => $driver->id,
+            'citizen_card_expires_at' => '2030-12-31',
+            'tvde_driver_certificate_expires_at' => '2031-11-30',
+            'driving_license_expires_at' => '2032-10-29',
+        ]);
 
         $contract = app(ContractGenerationService::class)->generate($driver, $template);
 
@@ -168,6 +188,7 @@ class ContractGenerationServiceTest extends TestCase
         $this->assertSame('AA-00-AA', $contract->data_snapshot['vehicle.license_plate']);
         $this->assertSame('TVDE-12345', $contract->data_snapshot['company.tvde_license']);
         $this->assertSame('CMTVDE-98765', $contract->data_snapshot['driver.tvde_certificate_number']);
+        $this->assertSame('2030-12-31', $contract->data_snapshot['documents.citizen_card_expires_at']);
         $this->assertSame($template->content, $contract->source_content);
 
         $template->update(['content' => 'Texto alterado']);
@@ -206,8 +227,35 @@ class ContractGenerationServiceTest extends TestCase
             $this->assertStringContainsString('NIF', $message);
             $this->assertStringContainsString('certificado de motorista TVDE', $message);
             $this->assertStringContainsString('morada', $message);
-            $this->assertStringContainsString('IBAN', $message);
+            $this->assertStringNotContainsString('IBAN', $message);
         }
+    }
+
+    public function test_iban_is_optional_and_the_default_contract_omits_an_empty_iban_clause(): void
+    {
+        $company = Company::create([
+            'name' => 'Empresa TVDE',
+            'vat' => '515025712',
+            'tvde_license' => 'TVDE-12345',
+        ]);
+        $driver = Driver::create([
+            'company_id' => $company->id,
+            'name' => 'Motorista Sem Iban',
+            'email' => 'sem-iban@example.test',
+            'phone' => '910000001',
+            'driver_vat' => '245123457',
+            'citizen_card' => '12345679',
+            'driver_license' => 'P-123457',
+            'tvde_certificate_number' => 'CMTVDE-98766',
+            'address' => 'Rua Dois',
+            'zip' => '4000-002',
+            'city' => 'Porto',
+        ]);
+
+        $contract = app(ContractGenerationService::class)->generate($driver);
+
+        $this->assertSame('', $contract->data_snapshot['driver.iban_clause']);
+        $this->assertStringNotContainsString('com IBAN ,', $contract->rendered_content);
     }
 
     public function test_it_activates_the_new_default_template_without_changing_the_old_version(): void

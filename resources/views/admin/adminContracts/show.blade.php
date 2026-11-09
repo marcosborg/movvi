@@ -132,6 +132,25 @@
             margin-bottom: 4px;
         }
 
+        .document-validities {
+            width: 100%;
+            margin: 12px 0 16px;
+            border-collapse: collapse;
+            page-break-inside: avoid;
+        }
+
+        .document-validities th,
+        .document-validities td {
+            padding: 5px 7px;
+            border: 1px solid #d6dfdc;
+            text-align: left;
+        }
+
+        .document-validities th {
+            color: #fff;
+            background: #08785b;
+        }
+
         .signatures {
             width: 100%;
             margin-top: 38px;

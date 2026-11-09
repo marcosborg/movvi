@@ -72,6 +72,8 @@
                             <span class="help-block">{{ trans('cruds.document.fields.driving_license_helper') }}</span>
                         </div>
                         @include('admin.documents.partials.expiryDate', ['field' => 'driving_license_expires_at', 'label' => 'Validade da carta de condução'])
+                        @include('admin.documents.partials.optionalDocument', ['field' => 'passport', 'label' => 'Passaporte'])
+                        @include('admin.documents.partials.optionalDocument', ['field' => 'residence_permit', 'label' => 'Autorização de residência'])
                         <div class="form-group {{ $errors->has('iban') ? 'has-error' : '' }}">
                             <label for="iban">{{ trans('cruds.document.fields.iban') }}</label>
                             <div class="needsclick dropzone" id="iban-dropzone">

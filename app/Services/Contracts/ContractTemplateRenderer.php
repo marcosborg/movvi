@@ -4,8 +4,10 @@ namespace App\Services\Contracts;
 
 use App\Models\AdminContract;
 use App\Models\Driver;
+use App\Models\Document;
 use App\Models\VehicleItem;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class ContractTemplateRenderer
 {
@@ -39,6 +41,12 @@ class ContractTemplateRenderer
             'driver.city' => 'Localidade do motorista',
             'driver.full_address' => 'Morada completa do motorista',
             'driver.iban' => 'IBAN do motorista',
+            'driver.iban_clause' => 'Cláusula de IBAN, quando preenchido',
+            'documents.citizen_card_expires_at' => 'Validade do documento de identificação',
+            'documents.tvde_certificate_expires_at' => 'Validade do certificado TVDE',
+            'documents.driving_license_expires_at' => 'Validade da carta de condução',
+            'documents.passport_expires_at' => 'Validade do passaporte',
+            'documents.residence_permit_expires_at' => 'Validade da autorização de residência',
             'company.name' => 'Nome da empresa',
             'company.vat' => 'NIF da empresa',
             'company.tvde_license' => 'Licença de operador TVDE',
@@ -57,6 +65,9 @@ class ContractTemplateRenderer
     private function values(Driver $driver, AdminContract $contract, ?VehicleItem $vehicle): array
     {
         $company = $driver->company;
+        $documents = $driver->exists && Schema::hasTable('documents')
+            ? Document::where('driver_id', $driver->id)->latest('id')->first()
+            : null;
 
         return [
             'contract.number' => $contract->number,
@@ -73,6 +84,12 @@ class ContractTemplateRenderer
             'driver.city' => $driver->city,
             'driver.full_address' => collect([$driver->address, $driver->zip, $driver->city])->filter()->implode(', '),
             'driver.iban' => $driver->iban,
+            'driver.iban_clause' => filled($driver->iban) ? ', com IBAN '.$driver->iban : '',
+            'documents.citizen_card_expires_at' => $this->dateOrNotProvided(optional($documents)->citizen_card_expires_at),
+            'documents.tvde_certificate_expires_at' => $this->dateOrNotProvided(optional($documents)->tvde_driver_certificate_expires_at),
+            'documents.driving_license_expires_at' => $this->dateOrNotProvided(optional($documents)->driving_license_expires_at),
+            'documents.passport_expires_at' => $this->dateOrNotProvided(optional($documents)->passport_expires_at),
+            'documents.residence_permit_expires_at' => $this->dateOrNotProvided(optional($documents)->residence_permit_expires_at),
             'company.name' => optional($company)->name,
             'company.vat' => optional($company)->vat,
             'company.tvde_license' => optional($company)->tvde_license,
@@ -86,5 +103,10 @@ class ContractTemplateRenderer
             'vehicle.license_plate' => optional($vehicle)->license_plate ?: $driver->license_plate,
             'vehicle.year' => optional($vehicle)->year,
         ];
+    }
+
+    private function dateOrNotProvided($value): string
+    {
+        return filled($value) ? (string) $value : 'Não indicado';
     }
 }

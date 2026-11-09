@@ -468,16 +468,19 @@ class MobileController extends Controller
                 [
                     'key' => 'citizen_card',
                     'title' => 'Cartao de cidadao',
+                    'expires_at' => $document->citizen_card_expires_at,
                     'files' => $this->serializeMediaCollection($document->citizen_card),
                 ],
                 [
                     'key' => 'tvde_driver_certificate',
                     'title' => 'Certificado TVDE',
+                    'expires_at' => $document->tvde_driver_certificate_expires_at,
                     'files' => $this->serializeMediaCollection($document->tvde_driver_certificate),
                 ],
                 [
                     'key' => 'criminal_record',
                     'title' => 'Registo criminal',
+                    'expires_at' => $document->criminal_record_expires_at,
                     'files' => $this->serializeMediaCollection($document->criminal_record),
                 ],
                 [
@@ -488,7 +491,20 @@ class MobileController extends Controller
                 [
                     'key' => 'driving_license',
                     'title' => 'Carta de conducao',
+                    'expires_at' => $document->driving_license_expires_at,
                     'files' => $this->serializeMediaCollection($document->driving_license),
+                ],
+                [
+                    'key' => 'passport',
+                    'title' => 'Passaporte (opcional)',
+                    'expires_at' => $document->passport_expires_at,
+                    'files' => $this->serializeMediaCollection($document->passport),
+                ],
+                [
+                    'key' => 'residence_permit',
+                    'title' => 'Autorizacao de residencia (opcional)',
+                    'expires_at' => $document->residence_permit_expires_at,
+                    'files' => $this->serializeMediaCollection($document->residence_permit),
                 ],
                 [
                     'key' => 'iban',

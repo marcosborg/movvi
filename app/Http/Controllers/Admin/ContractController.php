@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Str;
 
 class ContractController extends Controller
 {
@@ -49,10 +50,13 @@ class ContractController extends Controller
                 'enable_html5_parser' => true,
             ]);
 
+        $driverName = Str::slug($driver->name ?: 'motorista', '_');
+        $filename = sprintf('Contrato_%s_%s.pdf', $adminContract->number, $driverName);
+
         if ($request->download) {
-            return $pdf->download($adminContract->created_at . '.pdf');
+            return $pdf->download($filename);
         } else {
-            return $pdf->stream();
+            return $pdf->stream($filename);
         }
 
     }
