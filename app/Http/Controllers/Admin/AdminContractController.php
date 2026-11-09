@@ -90,7 +90,15 @@ class AdminContractController extends Controller
 
     public function show(AdminContract $adminContract)
     {
-        abort_if(Gate::denies('admin_contract_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        // A user who can generate a contract must also be able to open the
+        // immutable PDF they have just created. Keep the dedicated show
+        // permission for read-only roles, while avoiding a dead-end after
+        // generation for operational roles.
+        abort_if(
+            Gate::denies('admin_contract_show') && Gate::denies('admin_contract_create'),
+            Response::HTTP_FORBIDDEN,
+            '403 Forbidden'
+        );
 
         $adminContract->load('driver');
 

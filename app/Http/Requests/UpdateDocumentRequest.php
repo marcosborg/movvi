@@ -39,6 +39,10 @@ class UpdateDocumentRequest extends FormRequest
             'address' => [
                 'array',
             ],
+            'citizen_card_expires_at' => ['nullable', 'date_format:' . config('panel.date_format')],
+            'tvde_driver_certificate_expires_at' => ['nullable', 'date_format:' . config('panel.date_format')],
+            'criminal_record_expires_at' => ['nullable', 'date_format:' . config('panel.date_format')],
+            'driving_license_expires_at' => ['nullable', 'date_format:' . config('panel.date_format')],
         ];
     }
 }

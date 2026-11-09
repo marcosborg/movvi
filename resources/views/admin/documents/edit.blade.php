@@ -33,6 +33,7 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.document.fields.citizen_card_helper') }}</span>
                         </div>
+                        @include('admin.documents.partials.expiryDate', ['field' => 'citizen_card_expires_at', 'label' => 'Validade do documento de identificação', 'document' => $document])
                         <div class="form-group {{ $errors->has('tvde_driver_certificate') ? 'has-error' : '' }}">
                             <label for="tvde_driver_certificate">{{ trans('cruds.document.fields.tvde_driver_certificate') }}</label>
                             <div class="needsclick dropzone" id="tvde_driver_certificate-dropzone">
@@ -42,6 +43,7 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.document.fields.tvde_driver_certificate_helper') }}</span>
                         </div>
+                        @include('admin.documents.partials.expiryDate', ['field' => 'tvde_driver_certificate_expires_at', 'label' => 'Validade do certificado TVDE', 'document' => $document])
                         <div class="form-group {{ $errors->has('criminal_record') ? 'has-error' : '' }}">
                             <label for="criminal_record">{{ trans('cruds.document.fields.criminal_record') }}</label>
                             <div class="needsclick dropzone" id="criminal_record-dropzone">
@@ -51,6 +53,7 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.document.fields.criminal_record_helper') }}</span>
                         </div>
+                        @include('admin.documents.partials.expiryDate', ['field' => 'criminal_record_expires_at', 'label' => 'Validade do registo criminal', 'document' => $document])
                         <div class="form-group {{ $errors->has('profile_picture') ? 'has-error' : '' }}">
                             <label for="profile_picture">{{ trans('cruds.document.fields.profile_picture') }}</label>
                             <div class="needsclick dropzone" id="profile_picture-dropzone">
@@ -69,6 +72,7 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.document.fields.driving_license_helper') }}</span>
                         </div>
+                        @include('admin.documents.partials.expiryDate', ['field' => 'driving_license_expires_at', 'label' => 'Validade da carta de condução', 'document' => $document])
                         <div class="form-group {{ $errors->has('iban') ? 'has-error' : '' }}">
                             <label for="iban">{{ trans('cruds.document.fields.iban') }}</label>
                             <div class="needsclick dropzone" id="iban-dropzone">

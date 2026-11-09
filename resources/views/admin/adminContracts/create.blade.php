@@ -8,6 +8,9 @@
                     {{ trans('global.create') }} {{ trans('cruds.adminContract.title_singular') }}
                 </div>
                 <div class="panel-body">
+                    @if($errors->any())
+                        <div class="alert alert-danger">{{ $errors->first() }}</div>
+                    @endif
                     <form method="POST" action="{{ route("admin.admin-contracts.store") }}" enctype="multipart/form-data">
                         @csrf
                         <div class="alert alert-info">O número será atribuído automaticamente. Será usada a versão {{ $template->version }} do modelo ativo e ficará guardada uma cópia imutável do texto gerado.</div>

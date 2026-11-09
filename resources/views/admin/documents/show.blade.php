@@ -43,6 +43,7 @@
                                                 {{ trans('global.view_file') }}
                                             </a>
                                         @endforeach
+                                        @if($document->citizen_card_expires_at)<div><strong>Validade:</strong> {{ $document->citizen_card_expires_at }}</div>@endif
                                     </td>
                                 </tr>
                                 <tr>
@@ -55,6 +56,7 @@
                                                 {{ trans('global.view_file') }}
                                             </a>
                                         @endforeach
+                                        @if($document->tvde_driver_certificate_expires_at)<div><strong>Validade:</strong> {{ $document->tvde_driver_certificate_expires_at }}</div>@endif
                                     </td>
                                 </tr>
                                 <tr>
@@ -67,6 +69,7 @@
                                                 {{ trans('global.view_file') }}
                                             </a>
                                         @endforeach
+                                        @if($document->criminal_record_expires_at)<div><strong>Validade:</strong> {{ $document->criminal_record_expires_at }}</div>@endif
                                     </td>
                                 </tr>
                                 <tr>
@@ -92,6 +95,7 @@
                                                 {{ trans('global.view_file') }}
                                             </a>
                                         @endforeach
+                                        @if($document->driving_license_expires_at)<div><strong>Validade:</strong> {{ $document->driving_license_expires_at }}</div>@endif
                                     </td>
                                 </tr>
                                 <tr>

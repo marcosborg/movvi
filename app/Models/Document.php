@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,10 @@ class Document extends Model implements HasMedia
     public $table = 'documents';
 
     protected $dates = [
+        'citizen_card_expires_at',
+        'tvde_driver_certificate_expires_at',
+        'criminal_record_expires_at',
+        'driving_license_expires_at',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -24,6 +29,10 @@ class Document extends Model implements HasMedia
 
     protected $fillable = [
         'driver_id',
+        'citizen_card_expires_at',
+        'tvde_driver_certificate_expires_at',
+        'criminal_record_expires_at',
+        'driving_license_expires_at',
         'notes',
         'created_at',
         'updated_at',
@@ -93,5 +102,55 @@ class Document extends Model implements HasMedia
     public function getAddressAttribute()
     {
         return $this->getMedia('address');
+    }
+
+    public function getCitizenCardExpiresAtAttribute($value)
+    {
+        return $this->formatExpiryDate($value);
+    }
+
+    public function setCitizenCardExpiresAtAttribute($value): void
+    {
+        $this->attributes['citizen_card_expires_at'] = $this->parseExpiryDate($value);
+    }
+
+    public function getTvdeDriverCertificateExpiresAtAttribute($value)
+    {
+        return $this->formatExpiryDate($value);
+    }
+
+    public function setTvdeDriverCertificateExpiresAtAttribute($value): void
+    {
+        $this->attributes['tvde_driver_certificate_expires_at'] = $this->parseExpiryDate($value);
+    }
+
+    public function getCriminalRecordExpiresAtAttribute($value)
+    {
+        return $this->formatExpiryDate($value);
+    }
+
+    public function setCriminalRecordExpiresAtAttribute($value): void
+    {
+        $this->attributes['criminal_record_expires_at'] = $this->parseExpiryDate($value);
+    }
+
+    public function getDrivingLicenseExpiresAtAttribute($value)
+    {
+        return $this->formatExpiryDate($value);
+    }
+
+    public function setDrivingLicenseExpiresAtAttribute($value): void
+    {
+        $this->attributes['driving_license_expires_at'] = $this->parseExpiryDate($value);
+    }
+
+    private function formatExpiryDate($value): ?string
+    {
+        return $value ? Carbon::parse($value)->format(config('panel.date_format')) : null;
+    }
+
+    private function parseExpiryDate($value): ?string
+    {
+        return $value ? Carbon::createFromFormat(config('panel.date_format'), $value)->format('Y-m-d') : null;
     }
 }

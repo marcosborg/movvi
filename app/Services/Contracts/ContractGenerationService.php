@@ -50,9 +50,23 @@ class ContractGenerationService
     {
         $driver->loadMissing('company');
 
-        if (blank(optional($driver->company)->tvde_license)) {
+        $missing = collect([
+            'driver.name' => ['value' => $driver->name, 'label' => 'nome do motorista'],
+            'driver.email' => ['value' => $driver->effective_email, 'label' => 'e-mail'],
+            'driver.phone' => ['value' => $driver->phone, 'label' => 'telefone'],
+            'driver.driver_vat' => ['value' => $driver->driver_vat, 'label' => 'NIF'],
+            'driver.citizen_card' => ['value' => $driver->citizen_card, 'label' => 'documento de identificação'],
+            'driver.driver_license' => ['value' => $driver->driver_license, 'label' => 'carta de condução'],
+            'driver.address' => ['value' => $driver->address, 'label' => 'morada'],
+            'driver.zip' => ['value' => $driver->zip, 'label' => 'código postal'],
+            'driver.city' => ['value' => $driver->city, 'label' => 'localidade'],
+            'driver.iban' => ['value' => $driver->iban, 'label' => 'IBAN'],
+            'company.tvde_license' => ['value' => optional($driver->company)->tvde_license, 'label' => 'licença de operador TVDE da empresa'],
+        ])->filter(fn (array $field) => blank($field['value']));
+
+        if ($missing->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'company.tvde_license' => 'Preencha a licença de operador TVDE na ficha da empresa antes de gerar o contrato.',
+                'contract_data' => 'Não foi possível gerar o contrato. Preencha primeiro: ' . $missing->pluck('label')->implode(', ') . '.',
             ]);
         }
 

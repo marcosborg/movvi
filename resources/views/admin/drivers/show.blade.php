@@ -9,6 +9,9 @@
                     {{ trans('global.show') }} {{ trans('cruds.driver.title') }}
                 </div>
                 <div class="panel-body">
+                    @if($errors->any())
+                        <div class="alert alert-danger">{{ $errors->first() }}</div>
+                    @endif
                     <div class="form-group">
                         <div class="form-group">
                             <a class="btn btn-default" href="{{ route('admin.drivers.index') }}">

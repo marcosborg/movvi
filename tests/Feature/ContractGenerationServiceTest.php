@@ -127,9 +127,14 @@ class ContractGenerationServiceTest extends TestCase
             'company_id' => $company->id,
             'name' => 'Motorista Um',
             'email' => 'motorista@example.test',
+            'phone' => '910000000',
+            'driver_vat' => '245123456',
+            'citizen_card' => '12345678',
+            'driver_license' => 'P-123456',
             'address' => 'Rua Um',
             'zip' => '4000-001',
             'city' => 'Porto',
+            'iban' => 'PT50000000000000000000000',
         ]);
         $brand = VehicleBrand::create(['name' => 'MG']);
         $model = VehicleModel::create(['name' => 'ZS']);
@@ -174,6 +179,31 @@ class ContractGenerationServiceTest extends TestCase
         $this->expectException(ValidationException::class);
 
         app(ContractGenerationService::class)->generate($driver);
+    }
+
+    public function test_it_lists_missing_contract_data_before_generation(): void
+    {
+        $company = Company::create([
+            'name' => 'Empresa TVDE',
+            'vat' => '515025712',
+            'tvde_license' => 'TVDE-12345',
+        ]);
+        $driver = Driver::create([
+            'company_id' => $company->id,
+            'name' => 'Motorista Incompleto',
+            'email' => 'motorista@example.test',
+        ]);
+
+        try {
+            app(ContractGenerationService::class)->generate($driver);
+            $this->fail('Expected incomplete contract data to be rejected.');
+        } catch (ValidationException $exception) {
+            $message = $exception->errors()['contract_data'][0];
+            $this->assertStringContainsString('telefone', $message);
+            $this->assertStringContainsString('NIF', $message);
+            $this->assertStringContainsString('morada', $message);
+            $this->assertStringContainsString('IBAN', $message);
+        }
     }
 
     public function test_it_activates_the_new_default_template_without_changing_the_old_version(): void
