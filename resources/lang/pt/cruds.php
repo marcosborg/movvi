@@ -983,6 +983,8 @@ return [
             'state_helper'          => ' ',
             'driver_license'        => 'Carta de condução',
             'driver_license_helper' => ' ',
+            'tvde_certificate_number'        => 'Certificado de motorista TVDE',
+            'tvde_certificate_number_helper' => 'Número do certificado TVDE do motorista',
             'driver_vat'            => 'NIF do motorista',
             'driver_vat_helper'     => ' ',
             'user'                  => 'Utilizador',

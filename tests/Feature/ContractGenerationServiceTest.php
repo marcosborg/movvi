@@ -47,6 +47,7 @@ class ContractGenerationServiceTest extends TestCase
             $table->string('driver_vat')->nullable();
             $table->string('citizen_card')->nullable();
             $table->string('driver_license')->nullable();
+            $table->string('tvde_certificate_number')->nullable();
             $table->string('address')->nullable();
             $table->string('zip')->nullable();
             $table->string('city')->nullable();
@@ -131,6 +132,7 @@ class ContractGenerationServiceTest extends TestCase
             'driver_vat' => '245123456',
             'citizen_card' => '12345678',
             'driver_license' => 'P-123456',
+            'tvde_certificate_number' => 'CMTVDE-98765',
             'address' => 'Rua Um',
             'zip' => '4000-001',
             'city' => 'Porto',
@@ -165,6 +167,7 @@ class ContractGenerationServiceTest extends TestCase
         $this->assertSame('Contrato 1 — Motorista Um — AA-00-AA', $contract->rendered_content);
         $this->assertSame('AA-00-AA', $contract->data_snapshot['vehicle.license_plate']);
         $this->assertSame('TVDE-12345', $contract->data_snapshot['company.tvde_license']);
+        $this->assertSame('CMTVDE-98765', $contract->data_snapshot['driver.tvde_certificate_number']);
         $this->assertSame($template->content, $contract->source_content);
 
         $template->update(['content' => 'Texto alterado']);
@@ -201,6 +204,7 @@ class ContractGenerationServiceTest extends TestCase
             $message = $exception->errors()['contract_data'][0];
             $this->assertStringContainsString('telefone', $message);
             $this->assertStringContainsString('NIF', $message);
+            $this->assertStringContainsString('certificado de motorista TVDE', $message);
             $this->assertStringContainsString('morada', $message);
             $this->assertStringContainsString('IBAN', $message);
         }

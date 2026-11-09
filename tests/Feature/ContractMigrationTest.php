@@ -31,6 +31,10 @@ class ContractMigrationTest extends TestCase
             $table->id();
             $table->string('vat')->nullable();
         });
+        Schema::create('drivers', function (Blueprint $table) {
+            $table->id();
+            $table->string('driver_license')->nullable();
+        });
     }
 
     public function test_contract_template_migration_adds_all_versioned_snapshot_fields(): void
@@ -54,5 +58,13 @@ class ContractMigrationTest extends TestCase
         $migration->up();
 
         $this->assertTrue(Schema::hasColumn('companies', 'tvde_license'));
+    }
+
+    public function test_driver_certificate_migration_adds_the_tvde_certificate_number(): void
+    {
+        $migration = require database_path('migrations/2026_11_09_120500_add_tvde_certificate_number_to_drivers.php');
+        $migration->up();
+
+        $this->assertTrue(Schema::hasColumn('drivers', 'tvde_certificate_number'));
     }
 }

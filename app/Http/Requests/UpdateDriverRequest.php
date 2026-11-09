@@ -101,6 +101,10 @@ class UpdateDriverRequest extends FormRequest
                 'string',
                 'nullable',
             ],
+            'tvde_certificate_number' => [
+                'string',
+                'nullable',
+            ],
             'driver_vat' => [
                 'string',
                 'required',

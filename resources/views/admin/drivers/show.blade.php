@@ -215,6 +215,14 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        {{ trans('cruds.driver.fields.tvde_certificate_number') }}
+                                    </th>
+                                    <td>
+                                        {{ $driver->tvde_certificate_number }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.driver.fields.driver_vat') }}
                                     </th>
                                     <td>

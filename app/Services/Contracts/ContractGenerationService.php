@@ -57,6 +57,7 @@ class ContractGenerationService
             'driver.driver_vat' => ['value' => $driver->driver_vat, 'label' => 'NIF'],
             'driver.citizen_card' => ['value' => $driver->citizen_card, 'label' => 'documento de identificação'],
             'driver.driver_license' => ['value' => $driver->driver_license, 'label' => 'carta de condução'],
+            'driver.tvde_certificate_number' => ['value' => $driver->tvde_certificate_number, 'label' => 'certificado de motorista TVDE'],
             'driver.address' => ['value' => $driver->address, 'label' => 'morada'],
             'driver.zip' => ['value' => $driver->zip, 'label' => 'código postal'],
             'driver.city' => ['value' => $driver->city, 'label' => 'localidade'],

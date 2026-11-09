@@ -45,6 +45,7 @@ class Driver extends Model
         'city',
         'state_id',
         'driver_license',
+        'tvde_certificate_number',
         'driver_vat',
         'uber_uuid',
         'bolt_name',

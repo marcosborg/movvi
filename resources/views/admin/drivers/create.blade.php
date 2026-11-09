@@ -231,6 +231,14 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.driver.fields.driver_license_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('tvde_certificate_number') ? 'has-error' : '' }}">
+                            <label for="tvde_certificate_number">{{ trans('cruds.driver.fields.tvde_certificate_number') }}</label>
+                            <input class="form-control" type="text" name="tvde_certificate_number" id="tvde_certificate_number" value="{{ old('tvde_certificate_number', '') }}">
+                            @if($errors->has('tvde_certificate_number'))
+                                <span class="help-block" role="alert">{{ $errors->first('tvde_certificate_number') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.driver.fields.tvde_certificate_number_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('driver_vat') ? 'has-error' : '' }}">
                             <label class="required" for="driver_vat">{{ trans('cruds.driver.fields.driver_vat') }}</label>
                             <input class="form-control" type="text" name="driver_vat" id="driver_vat" value="{{ old('driver_vat', '') }}" required>
