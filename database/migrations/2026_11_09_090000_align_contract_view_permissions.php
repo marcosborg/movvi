@@ -16,21 +16,23 @@ return new class extends Migration
             ->where('title', 'admin_contract_create')
             ->whereNull('deleted_at')
             ->value('id');
-        $readPermissionIds = DB::table('permissions')
-            ->whereIn('title', ['admin_contract_access', 'admin_contract_show'])
+        $contractPermissionIds = DB::table('permissions')
+            ->whereIn('title', ['admin_contract_access', 'admin_contract_create', 'admin_contract_show'])
             ->whereNull('deleted_at')
             ->pluck('id');
 
-        if (! $createPermissionId || $readPermissionIds->isEmpty()) {
+        if (! $createPermissionId || $contractPermissionIds->isEmpty()) {
             return;
         }
 
         $roleIds = DB::table('permission_role')
             ->where('permission_id', $createPermissionId)
-            ->pluck('role_id');
+            ->pluck('role_id')
+            ->merge(DB::table('roles')->whereIn('title', ['Gestor', 'Manager'])->pluck('id'))
+            ->unique();
 
         foreach ($roleIds as $roleId) {
-            foreach ($readPermissionIds as $permissionId) {
+            foreach ($contractPermissionIds as $permissionId) {
                 DB::table('permission_role')->updateOrInsert([
                     'permission_id' => $permissionId,
                     'role_id' => $roleId,
