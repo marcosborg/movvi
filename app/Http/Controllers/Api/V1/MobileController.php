@@ -1038,6 +1038,9 @@ class MobileController extends Controller
             : null;
 
         $accountSummary = $currentAccount ? (json_decode($currentAccount->data, true) ?? []) : null;
+        if (is_array($accountSummary)) {
+            $accountSummary['adjustment_details'] = $this->serializeAccountAdjustments($accountSummary);
+        }
         $driver->loadMissing(['cards:id,code,type', 'card:id,code,type']);
         $fuelDetails = $this->serializeDriverFuelTransactions($driver, $week);
         $carTrackDetails = $this->driverCarTrackDetails($driver->id, $week->id)
@@ -1069,6 +1072,39 @@ class MobileController extends Controller
             'recent_receipts' => $this->serializeRecentReceipts($driver),
             'actions' => $this->driverActions(),
         ];
+    }
+
+    private function serializeAccountAdjustments(array $accountSummary): array
+    {
+        $adjustments = $accountSummary['adjustment_details'] ?? $accountSummary['adjustments_array'] ?? [];
+
+        if (! is_array($adjustments)) {
+            return [];
+        }
+
+        return collect($adjustments)
+            ->map(function ($adjustment) {
+                $adjustment = is_object($adjustment) ? (array) $adjustment : $adjustment;
+                if (! is_array($adjustment)) {
+                    return null;
+                }
+
+                $amount = (float) ($adjustment['amount'] ?? 0);
+                $type = ($adjustment['type'] ?? null) === 'deduct' ? 'deduct' : 'refund';
+
+                return [
+                    'id' => isset($adjustment['id']) ? (int) $adjustment['id'] : null,
+                    'name' => trim((string) ($adjustment['name'] ?? 'Ajuste')) ?: 'Ajuste',
+                    'type' => $type,
+                    'amount' => $amount,
+                    'signed_amount' => $type === 'deduct' ? -$amount : $amount,
+                    'category' => (string) ($adjustment['category'] ?? 'general'),
+                    'category_label' => (string) ($adjustment['category_label'] ?? ''),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
     }
 
     private function serializeDriverFuelTransactions(Driver $driver, TvdeWeek $week): array

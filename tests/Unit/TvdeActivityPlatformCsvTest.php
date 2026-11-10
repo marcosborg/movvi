@@ -125,6 +125,70 @@ class TvdeActivityPlatformCsvTest extends TestCase
         $this->assertSame(100.0, $activity['referral_bonus']);
     }
 
+    public function test_it_sums_uber_promotion_and_challenge_columns(): void
+    {
+        $harness = new class extends TvdeActivityController {
+            public function mapping(array $header): array
+            {
+                return $this->resolvePlatformCsvMappingFromHeader($header, 'uber', $this->platformCsvMapping('uber'));
+            }
+
+            public function activity(array $row, array $mapping): ?array
+            {
+                return $this->mapPlatformActivityRow($row, $mapping, 10, 20, 30);
+            }
+        };
+
+        $header = [
+            'UUID do motorista',
+            'Pago a si',
+            'Pago a si : Os seus rendimentos : Tarifa',
+            'Pago a si:Promoção:Desafio semanal',
+            'Pago a si:Outros rendimentos:Bónus',
+        ];
+        $activity = $harness->activity(
+            ['driver-1', '375', '400', '250', '20'],
+            $harness->mapping($header)
+        );
+
+        $this->assertSame(270.0, $activity['referral_bonus']);
+    }
+
+    public function test_it_reads_bolt_campaign_bonus_column(): void
+    {
+        $harness = new class extends TvdeActivityController {
+            public function mapping(array $header): array
+            {
+                return $this->resolvePlatformCsvMappingFromHeader($header, 'bolt', $this->platformCsvMapping('bolt'));
+            }
+
+            public function activity(array $row, array $mapping): ?array
+            {
+                return $this->mapPlatformActivityRow($row, $mapping, 10, 20, 30);
+            }
+        };
+
+        $header = array_fill(0, 29, '');
+        $header[3] = 'Ganhos brutos (total)|EUR';
+        $header[9] = 'Gorjetas dos passageiros|EUR';
+        $header[21] = 'Ganhos liquidos|EUR';
+        $header[27] = 'Identificador do motorista';
+        $header[28] = 'Identificador individual';
+        $header[] = 'Bónus de campanha|EUR';
+
+        $row = array_fill(0, 30, '');
+        $row[3] = '500';
+        $row[9] = '10';
+        $row[21] = '420';
+        $row[27] = 'legacy-driver';
+        $row[28] = 'driver-1';
+        $row[29] = '75';
+
+        $activity = $harness->activity($row, $harness->mapping($header));
+
+        $this->assertSame(75.0, $activity['referral_bonus']);
+    }
+
     public function test_it_reads_current_bolt_csv_export_format(): void
     {
         $harness = new class extends TvdeActivityController {

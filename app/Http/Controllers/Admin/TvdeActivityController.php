@@ -437,7 +437,39 @@ class TvdeActivityController extends Controller
             }
         }
 
+        $promotionIndexes = [];
+        foreach ($header as $index => $label) {
+            $normalizedLabel = $this->normalizeCsvHeaderLabel($label);
+
+            if ($this->isPlatformPromotionHeader($normalizedLabel)) {
+                $promotionIndexes[] = $index;
+            }
+        }
+
+        $existingPromotionIndexes = $fallback['referral_bonus'] ?? null;
+        if ($existingPromotionIndexes !== null) {
+            $promotionIndexes = array_merge(
+                is_array($existingPromotionIndexes) ? $existingPromotionIndexes : [$existingPromotionIndexes],
+                $promotionIndexes
+            );
+        }
+
+        $promotionIndexes = array_values(array_unique($promotionIndexes));
+        if (count($promotionIndexes) === 1) {
+            $fallback['referral_bonus'] = $promotionIndexes[0];
+        } elseif (count($promotionIndexes) > 1) {
+            $fallback['referral_bonus'] = $promotionIndexes;
+        }
+
         return $fallback;
+    }
+
+    protected function isPlatformPromotionHeader(string $normalizedLabel): bool
+    {
+        return (bool) preg_match(
+            '/(^|[:|\s])(promocao|promocoes|bonus|desafio|campanha|recompensa)([:|\s]|$)/u',
+            $normalizedLabel
+        );
     }
 
     protected function normalizeCsvHeaderLabel($label): string
@@ -477,11 +509,17 @@ class TvdeActivityController extends Controller
         $gross = $this->normalizeImportedNumber($row[$mapping['gross']] ?? null);
         $net = $this->normalizeImportedNumber($row[$mapping['net']] ?? null);
         $tips = $this->normalizeImportedNumber($row[$mapping['tips']] ?? null);
-        $referralBonus = $this->normalizeImportedNumber(
-            isset($mapping['referral_bonus']) && $mapping['referral_bonus'] !== null
-                ? ($row[$mapping['referral_bonus']] ?? null)
-                : null
-        );
+        $referralBonusIndexes = $mapping['referral_bonus'] ?? null;
+        $referralBonusIndexes = $referralBonusIndexes === null
+            ? []
+            : (is_array($referralBonusIndexes) ? $referralBonusIndexes : [$referralBonusIndexes]);
+        $referralBonus = 0.0;
+        foreach ($referralBonusIndexes as $referralBonusIndex) {
+            $value = $this->normalizeImportedNumber($row[$referralBonusIndex] ?? null);
+            if ($value !== null) {
+                $referralBonus += $value;
+            }
+        }
         $occurredAt = $this->normalizeActivityDate(
             isset($mapping['occurred_at']) && $mapping['occurred_at'] !== null
                 ? ($row[$mapping['occurred_at']] ?? null)
