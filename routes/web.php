@@ -48,6 +48,9 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::patch('support-tickets/{supportTicket}/assign', 'SupportTicketController@assign')->name('support-tickets.assign');
     Route::patch('support-tickets/{supportTicket}/close', 'SupportTicketController@close')->name('support-tickets.close');
 
+    Route::get('driver-referrals', 'DriverReferralController@index')->name('driver-referrals.index');
+    Route::patch('driver-referrals/{driverReferral}', 'DriverReferralController@update')->name('driver-referrals.update');
+
     Route::get('/select-company/{company_id}', 'HomeController@selectCompany');
 
     // Permissions

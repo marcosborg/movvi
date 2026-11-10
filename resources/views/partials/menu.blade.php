@@ -1666,6 +1666,14 @@
                     @if($ticketAttentionCount > 0)<span class="pull-right-container"><small class="label pull-right bg-yellow">{{ $ticketAttentionCount }}</small></span>@endif
                 </a>
             </li>
+            @if(auth()->user()->hasRole('Admin') || auth()->user()->hasRole('Gestor'))
+            <li class="{{ request()->is('admin/driver-referrals') || request()->is('admin/driver-referrals/*') ? 'active' : '' }}">
+                <a href="{{ route('admin.driver-referrals.index') }}">
+                    <i class="fa-fw fas fa-gift"></i>
+                    <span>Indique e Ganhe</span>
+                </a>
+            </li>
+            @endif
             @php($unread = \App\Models\QaTopic::unreadCount())
             <li class="{{ request()->is("admin/messenger") || request()->is("admin/messenger/*") ? "active" : "" }}">
                 <a href="{{ route("admin.messenger.index") }}">

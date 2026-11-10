@@ -187,6 +187,16 @@ class Driver extends Model
         return $this->hasMany(VehicleUsage::class, 'driver_id', 'id');
     }
 
+    public function referralsMade()
+    {
+        return $this->hasMany(DriverReferral::class, 'referrer_driver_id');
+    }
+
+    public function referralReceived()
+    {
+        return $this->hasOne(DriverReferral::class, 'referred_driver_id');
+    }
+
     public function activeVehicleUsages()
     {
         return $this->hasMany(VehicleUsage::class, 'driver_id', 'id')

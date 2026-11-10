@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\CompanyReportApiController;
 use App\Http\Controllers\Api\V1\ContaAzulController;
 use App\Http\Controllers\Api\V1\DriverController;
 use App\Http\Controllers\Api\V1\MobileController;
+use App\Http\Controllers\Api\V1\MobileDriverReferralController;
 use App\Http\Controllers\Api\V1\MobileInspectionController;
 use App\Http\Controllers\Api\V1\MobileVehicleQrController;
 use App\Http\Controllers\Api\V1\PublicController;
@@ -57,6 +58,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin', '
             Route::post('{inspection}/close', [MobileInspectionController::class, 'close'])->name('close');
         });
         Route::prefix('driver')->name('driver.')->group(function () {
+            Route::get('referrals', [MobileDriverReferralController::class, 'index'])->name('referrals.index');
+            Route::post('referrals', [MobileDriverReferralController::class, 'store'])->name('referrals.store');
             Route::get('vehicle-qr/{token}', [MobileVehicleQrController::class, 'show'])->name('vehicleQr.show');
             Route::post('vehicle-qr/{token}/confirm', [MobileVehicleQrController::class, 'confirm'])->name('vehicleQr.confirm');
             Route::get('weeks', [MobileController::class, 'driverWeeks'])->name('weeks');
