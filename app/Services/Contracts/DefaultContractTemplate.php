@@ -5,7 +5,7 @@ namespace App\Services\Contracts;
 class DefaultContractTemplate
 {
     public const NAME = 'Contrato de prestação de serviços de motorista e cedência de viatura TVDE';
-    public const VERSION = 7;
+    public const VERSION = 8;
 
     public static function content(): string
     {
@@ -27,7 +27,7 @@ class DefaultContractTemplate
 
 <h2>CLÁUSULA PRIMEIRA - OBJETO</h2>
 <p>1. O contrato tem por objeto a prestação de serviços de condução no âmbito da atividade TVDE, com utilização exclusiva para esse fim da viatura disponibilizada pela CONTRATANTE.</p>
-<table class="vehicle-details">
+<table class="document-validities vehicle-details">
     <tbody>
         <tr><th>Marca / Modelo</th><td>{{vehicle.brand_model}}</td></tr>
         <tr><th>Ano</th><td>{{vehicle.year}}</td></tr>
@@ -112,7 +112,6 @@ class DefaultContractTemplate
     <p>Observações: ____________________________________________________________________</p>
 </section>
 
-<div class="page-break"></div>
 <h1>ANEXO I - AVISO DE PRIVACIDADE DO MOTORISTA</h1>
 <p><strong>Responsável pelo tratamento:</strong> {{company.name}}, NIF {{company.vat}}, com sede em {{company.full_address}}, contacto {{company.email}}.</p>
 

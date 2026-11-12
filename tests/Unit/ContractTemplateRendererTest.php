@@ -33,6 +33,7 @@ class ContractTemplateRendererTest extends TestCase
         $this->assertStringContainsString('{{driver.identification_type}}', $content);
         $this->assertStringContainsString('{{vehicle.brand_model}}', $content);
         $this->assertStringNotContainsString('Passaporte (quando aplicável)', $content);
+        $this->assertStringNotContainsString('<div class="page-break"></div>', $content);
         $this->assertStringContainsString('formação inicial de 50 horas', $content);
         $this->assertStringContainsString('dístico identificador inamovível', $content);
         $this->assertStringContainsString('ANEXO I - AVISO DE PRIVACIDADE DO MOTORISTA', $content);
