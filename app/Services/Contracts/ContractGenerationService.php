@@ -7,6 +7,7 @@ use App\Models\ContractTemplate;
 use App\Models\Driver;
 use App\Models\VehicleItem;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class ContractGenerationService
@@ -46,9 +47,12 @@ class ContractGenerationService
         });
     }
 
-    public function generate(Driver $driver, ?ContractTemplate $template = null): AdminContract
+    public function generate(Driver $driver, ?ContractTemplate $template = null, array $overrides = []): AdminContract
     {
         $driver->loadMissing('company');
+        if (Schema::hasTable('contract_vats')) {
+            $driver->loadMissing('contract_vat');
+        }
 
         $missing = collect([
             'driver.name' => ['value' => $driver->name, 'label' => 'nome do motorista'],
@@ -70,7 +74,31 @@ class ContractGenerationService
             ]);
         }
 
-        return DB::transaction(function () use ($driver, $template) {
+        $vehicle = $this->activeVehicle($driver);
+        if ($overrides !== []) {
+            $previewContract = new AdminContract(['generated_at' => now()]);
+            $values = $this->renderer->values($driver, $previewContract, $vehicle, $overrides);
+            $missingContractData = collect([
+                'documents.citizen_card_expires_at' => 'validade do documento de identificação',
+                'documents.tvde_certificate_expires_at' => 'validade do certificado TVDE',
+                'documents.driving_license_expires_at' => 'validade da carta de condução',
+                'vehicle.year' => 'ano da viatura',
+            ])->filter(fn (string $label, string $key) => blank($values[$key] ?? null) || ($values[$key] ?? null) === 'Não indicado');
+
+            $hasWeeklyValue = ($values['driver.weekly_cedencia'] ?? 'Não indicado') !== 'Não indicado';
+            $hasCommission = ($values['driver.commission_percent'] ?? 'Não indicada') !== 'Não indicada';
+            if (! $hasWeeklyValue && ! $hasCommission) {
+                $missingContractData->put('financial.terms', 'valor semanal da cedência ou percentagem de comissão');
+            }
+
+            if ($missingContractData->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'contract_data' => 'Não foi possível gerar o contrato. Preencha primeiro: '.$missingContractData->implode(', ').'.',
+                ]);
+            }
+        }
+
+        return DB::transaction(function () use ($driver, $template, $overrides, $vehicle) {
             $template ??= $this->activeTemplate();
             $number = ((int) AdminContract::withTrashed()->lockForUpdate()->max('number')) + 1;
             $generatedAt = now();
@@ -85,8 +113,7 @@ class ContractGenerationService
                 'generated_by' => auth()->id(),
             ]);
 
-            $vehicle = $this->activeVehicle($driver);
-            $result = $this->renderer->render($template->content, $driver, $contract, $vehicle);
+            $result = $this->renderer->render($template->content, $driver, $contract, $vehicle, $overrides);
 
             $contract->rendered_content = $result['content'];
             $contract->data_snapshot = $result['data'];
@@ -94,6 +121,39 @@ class ContractGenerationService
 
             return $contract;
         });
+    }
+
+    public function formDefaults(Driver $driver): array
+    {
+        $driver->loadMissing('company');
+        if (Schema::hasTable('contract_vats')) {
+            $driver->loadMissing('contract_vat');
+        }
+        $contract = new AdminContract(['generated_at' => now()]);
+        $vehicle = $this->activeVehicle($driver);
+        $values = $this->renderer->values($driver, $contract, $vehicle);
+
+        return [
+            'weekly_cedencia' => $values['driver.weekly_cedencia'] === 'Não indicado'
+                ? null
+                : str_replace(['.', ',', ' €'], ['', '.', ''], $values['driver.weekly_cedencia']),
+            'commission_percent' => $values['driver.commission_percent'] === 'Não indicada'
+                ? null
+                : str_replace(['.', ',', ' %'], ['', '.', ''], $values['driver.commission_percent']),
+            'vehicle_year' => $values['vehicle.year'],
+            'document_expiries' => [
+                'citizen_card_expires_at' => $this->editableDate($values['documents.citizen_card_expires_at']),
+                'tvde_driver_certificate_expires_at' => $this->editableDate($values['documents.tvde_certificate_expires_at']),
+                'driving_license_expires_at' => $this->editableDate($values['documents.driving_license_expires_at']),
+                'passport_expires_at' => $this->editableDate($values['documents.passport_expires_at']),
+                'residence_permit_expires_at' => $this->editableDate($values['documents.residence_permit_expires_at']),
+            ],
+        ];
+    }
+
+    private function editableDate($value): ?string
+    {
+        return $value === 'Não indicado' ? null : (string) $value;
     }
 
     private function activeVehicle(Driver $driver): ?VehicleItem

@@ -35,8 +35,10 @@ class AdminContractController extends Controller
         $drivers = Driver::orderBy('name')->get();
         $template = $generationService->activeTemplate();
         $selectedDriverId = request('driver_id');
+        $selectedDriver = $selectedDriverId ? Driver::find($selectedDriverId) : null;
+        $defaults = $selectedDriver ? $generationService->formDefaults($selectedDriver) : [];
 
-        return view('admin.adminContracts.create', compact('drivers', 'template', 'selectedDriverId'));
+        return view('admin.adminContracts.create', compact('defaults', 'drivers', 'template', 'selectedDriverId'));
     }
 
     public function store(StoreAdminContractRequest $request, ContractGenerationService $generationService)
@@ -45,7 +47,12 @@ class AdminContractController extends Controller
         $template = $request->filled('contract_template_id')
             ? ContractTemplate::findOrFail($request->integer('contract_template_id'))
             : null;
-        $adminContract = $generationService->generate($driver, $template);
+        $adminContract = $generationService->generate($driver, $template, $request->only([
+            'weekly_cedencia',
+            'commission_percent',
+            'vehicle_year',
+            'document_expiries',
+        ]));
 
         if ($request->filled('signed_at')) {
             $adminContract->signed_at = $request->input('signed_at');
@@ -61,11 +68,7 @@ class AdminContractController extends Controller
     {
         abort_if(Gate::denies('admin_contract_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $contract = $generationService->generate($driver);
-
-        return redirect()
-            ->route('admin.admin-contracts.show', $contract)
-            ->with('message', 'Contrato gerado e arquivado com sucesso.');
+        return redirect()->route('admin.admin-contracts.create', ['driver_id' => $driver->id]);
     }
 
     public function edit(AdminContract $adminContract)

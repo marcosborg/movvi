@@ -5,7 +5,7 @@ namespace App\Services\Contracts;
 class DefaultContractTemplate
 {
     public const NAME = 'Contrato de prestação de serviços de motorista e cedência de viatura TVDE';
-    public const VERSION = 5;
+    public const VERSION = 6;
 
     public static function content(): string
     {
@@ -36,13 +36,13 @@ class DefaultContractTemplate
 <p>3. Nenhuma disposição deste contrato afasta normas laborais imperativas ou impede o reconhecimento de um contrato de trabalho quando se verifiquem os respetivos pressupostos legais.</p>
 
 <h2>CLÁUSULA TERCEIRA - CONDIÇÕES FINANCEIRAS</h2>
-<p>1. Pela cedência da viatura, o MOTORISTA pagará à CONTRATANTE <strong>{{driver.weekly_cedencia}}</strong> por semana, a deduzir da faturação semanal, acrescido de IVA à taxa legal aplicável quando devido.</p>
+<p>1. {{financial.weekly_clause}}</p>
 <p>2. Se a faturação semanal for inferior ao valor acordado, o montante em falta será liquidado até à quarta-feira seguinte ao fecho da semana.</p>
 <p>3. O MOTORISTA compromete-se a emitir a respetiva fatura ou recibo verde referente à semana anterior.</p>
 <p>4. São deduzidos os impostos, carregamentos, portagens não reembolsadas e demais encargos imputáveis ao MOTORISTA nos termos legais e contratuais.</p>
 <p>5. O MOTORISTA poderá circular até 2.000 km por semana sem custo adicional. Cada quilómetro excedente será cobrado a €0,10, acrescido de IVA à taxa legal aplicável quando devido.</p>
 <p>6. Para controlo dos quilómetros, prevalecem os dados do sistema telemático Cartrack ou de outro sistema de rastreio adotado pela CONTRATANTE. A fotografia do odómetro pode ser solicitada como elemento complementar de conferência.</p>
-<p>7. Além do valor indicado no n.º 1, será deduzida uma comissão de gestão e cedência de viatura de 6%, calculada sobre a faturação do MOTORISTA sem IVA, acrescida de IVA à taxa legal aplicável quando devido.</p>
+<p>7. {{financial.commission_clause}}</p>
 <p>8. Todos os acertos, deduções e encargos devem constar de registo discriminado disponibilizado ao MOTORISTA.</p>
 
 <h2>CLÁUSULA QUARTA - CAUÇÃO</h2>

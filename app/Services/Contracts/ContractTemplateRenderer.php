@@ -12,9 +12,9 @@ use Illuminate\Support\Facades\Schema;
 
 class ContractTemplateRenderer
 {
-    public function render(string $content, Driver $driver, AdminContract $contract, ?VehicleItem $vehicle = null): array
+    public function render(string $content, Driver $driver, AdminContract $contract, ?VehicleItem $vehicle = null, array $overrides = []): array
     {
-        $values = $this->values($driver, $contract, $vehicle);
+        $values = $this->values($driver, $contract, $vehicle, $overrides);
         $rendered = preg_replace_callback('/\{\{\s*([a-z0-9_.]+)\s*\}\}/i', function (array $match) use ($values) {
             return e((string) ($values[$match[1]] ?? ''));
         }, $content);
@@ -44,6 +44,9 @@ class ContractTemplateRenderer
             'driver.iban' => 'IBAN do motorista',
             'driver.iban_clause' => 'Cláusula de IBAN, quando preenchido',
             'driver.weekly_cedencia' => 'Valor semanal da cedência',
+            'driver.commission_percent' => 'Percentagem de comissão',
+            'financial.weekly_clause' => 'Cláusula do valor semanal',
+            'financial.commission_clause' => 'Cláusula da comissão',
             'documents.citizen_card_expires_at' => 'Validade do documento de identificação',
             'documents.tvde_certificate_expires_at' => 'Validade do certificado TVDE',
             'documents.driving_license_expires_at' => 'Validade da carta de condução',
@@ -64,13 +67,23 @@ class ContractTemplateRenderer
         ];
     }
 
-    private function values(Driver $driver, AdminContract $contract, ?VehicleItem $vehicle): array
+    public function values(Driver $driver, AdminContract $contract, ?VehicleItem $vehicle = null, array $overrides = []): array
     {
         $company = $driver->company;
         $documents = $driver->exists && Schema::hasTable('documents')
             ? Document::where('driver_id', $driver->id)->latest('id')->first()
             : null;
-        $weeklyCedencia = $this->weeklyCedencia($driver, $contract);
+        $weeklyCedencia = array_key_exists('weekly_cedencia', $overrides)
+            ? $this->nullableFloat($overrides['weekly_cedencia'])
+            : $this->weeklyCedencia($driver, $contract);
+        $contractVat = $driver->relationLoaded('contract_vat')
+            ? $driver->getRelation('contract_vat')
+            : ($driver->exists && Schema::hasTable('contract_vats') ? $driver->contract_vat : null);
+        $commissionPercent = array_key_exists('commission_percent', $overrides)
+            ? $this->nullableFloat($overrides['commission_percent'])
+            : $this->nullableFloat(optional($contractVat)->percent);
+        $documentOverrides = $overrides['document_expiries'] ?? [];
+        $vehicleYear = $overrides['vehicle_year'] ?? optional($vehicle)->year;
 
         return [
             'contract.number' => $contract->number,
@@ -91,11 +104,20 @@ class ContractTemplateRenderer
             'driver.weekly_cedencia' => $weeklyCedencia !== null
                 ? number_format($weeklyCedencia, 2, ',', '.').' €'
                 : 'Não indicado',
-            'documents.citizen_card_expires_at' => $this->dateOrNotProvided(optional($documents)->citizen_card_expires_at),
-            'documents.tvde_certificate_expires_at' => $this->dateOrNotProvided(optional($documents)->tvde_driver_certificate_expires_at),
-            'documents.driving_license_expires_at' => $this->dateOrNotProvided(optional($documents)->driving_license_expires_at),
-            'documents.passport_expires_at' => $this->dateOrNotProvided(optional($documents)->passport_expires_at),
-            'documents.residence_permit_expires_at' => $this->dateOrNotProvided(optional($documents)->residence_permit_expires_at),
+            'driver.commission_percent' => $commissionPercent !== null
+                ? number_format($commissionPercent, 2, ',', '.').' %'
+                : 'Não indicada',
+            'financial.weekly_clause' => $weeklyCedencia !== null && $weeklyCedencia > 0
+                ? 'Pela cedência da viatura, o MOTORISTA pagará à CONTRATANTE '.number_format($weeklyCedencia, 2, ',', '.').' € por semana, a deduzir da faturação semanal, acrescido de IVA à taxa legal aplicável quando devido.'
+                : 'Não é devido um valor semanal fixo pela cedência da viatura, aplicando-se a comissão percentual prevista neste contrato.',
+            'financial.commission_clause' => $commissionPercent !== null && $commissionPercent > 0
+                ? 'Será deduzida uma comissão de gestão e cedência de viatura de '.number_format($commissionPercent, 2, ',', '.').' %, calculada sobre a faturação do MOTORISTA sem IVA, acrescida de IVA à taxa legal aplicável quando devido.'
+                : 'Não será deduzida uma comissão percentual adicional.',
+            'documents.citizen_card_expires_at' => $this->dateOrNotProvided($documentOverrides['citizen_card_expires_at'] ?? optional($documents)->citizen_card_expires_at),
+            'documents.tvde_certificate_expires_at' => $this->dateOrNotProvided($documentOverrides['tvde_driver_certificate_expires_at'] ?? optional($documents)->tvde_driver_certificate_expires_at),
+            'documents.driving_license_expires_at' => $this->dateOrNotProvided($documentOverrides['driving_license_expires_at'] ?? optional($documents)->driving_license_expires_at),
+            'documents.passport_expires_at' => $this->dateOrNotProvided($documentOverrides['passport_expires_at'] ?? optional($documents)->passport_expires_at),
+            'documents.residence_permit_expires_at' => $this->dateOrNotProvided($documentOverrides['residence_permit_expires_at'] ?? optional($documents)->residence_permit_expires_at),
             'company.name' => optional($company)->name,
             'company.vat' => optional($company)->vat,
             'company.tvde_license' => optional($company)->tvde_license,
@@ -107,7 +129,7 @@ class ContractTemplateRenderer
             'vehicle.brand' => optional(optional($vehicle)->vehicle_brand)->name ?: $driver->brand,
             'vehicle.model' => optional(optional($vehicle)->vehicle_model)->name ?: $driver->model,
             'vehicle.license_plate' => optional($vehicle)->license_plate ?: $driver->license_plate,
-            'vehicle.year' => optional($vehicle)->year,
+            'vehicle.year' => $vehicleYear,
         ];
     }
 
@@ -137,5 +159,10 @@ class ContractTemplateRenderer
             ->first();
 
         return $carHire && $carHire->amount !== null ? (float) $carHire->amount : null;
+    }
+
+    private function nullableFloat($value): ?float
+    {
+        return filled($value) ? (float) str_replace(',', '.', (string) $value) : null;
     }
 }

@@ -29,7 +29,7 @@ class ContractTemplateRendererTest extends TestCase
         $this->assertStringContainsString('artigo 12.º do Código do Trabalho', $content);
         $this->assertStringContainsString('{{company.tvde_license}}', $content);
         $this->assertStringContainsString('Cartrack', $content);
-        $this->assertStringContainsString('comissão de gestão e cedência de viatura de 6%', $content);
+        $this->assertStringContainsString('{{financial.commission_clause}}', $content);
         $this->assertStringContainsString('formação inicial de 50 horas', $content);
         $this->assertStringContainsString('dístico identificador inamovível', $content);
         $this->assertStringContainsString('ANEXO I - AVISO DE PRIVACIDADE DO MOTORISTA', $content);
@@ -86,6 +86,30 @@ class ContractTemplateRendererTest extends TestCase
         $result = (new ContractTemplateRenderer())->render('Antes {{driver.unknown}} Depois', $driver, $contract);
 
         $this->assertSame('Antes  Depois', $result['content']);
+    }
+
+    public function test_financial_and_document_overrides_are_rendered_for_commission_contracts(): void
+    {
+        $driver = new Driver(['name' => 'Jorge Cabral']);
+        $driver->setRelation('company', null);
+        $driver->setRelation('contract_vat', null);
+        $contract = new AdminContract(['number' => 7, 'generated_at' => now()]);
+
+        $result = (new ContractTemplateRenderer())->render(
+            '{{driver.commission_percent}}|{{financial.weekly_clause}}|{{documents.citizen_card_expires_at}}|{{vehicle.year}}',
+            $driver,
+            $contract,
+            null,
+            [
+                'commission_percent' => 15,
+                'vehicle_year' => 2023,
+                'document_expiries' => ['citizen_card_expires_at' => '31/12/2030'],
+            ]
+        );
+
+        $this->assertStringContainsString('15,00 %', $result['content']);
+        $this->assertStringContainsString('Não é devido um valor semanal fixo', $result['content']);
+        $this->assertStringContainsString('31/12/2030|2023', $result['content']);
     }
 
     public function test_generated_snapshot_can_be_rendered_as_a_pdf(): void

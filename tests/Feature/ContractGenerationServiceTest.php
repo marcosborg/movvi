@@ -317,6 +317,56 @@ class ContractGenerationServiceTest extends TestCase
         $contract = app(ContractGenerationService::class)->generate($driver);
 
         $this->assertSame('320,00 €', $contract->data_snapshot['driver.weekly_cedencia']);
-        $this->assertStringContainsString('<strong>320,00 €</strong> por semana', $contract->rendered_content);
+        $this->assertStringContainsString('320,00 € por semana', $contract->rendered_content);
+    }
+
+    public function test_contract_overrides_fill_validities_vehicle_year_and_commission_terms(): void
+    {
+        $company = Company::create([
+            'name' => 'Empresa TVDE',
+            'vat' => '515025712',
+            'tvde_license' => 'TVDE-12345',
+        ]);
+        $driver = Driver::create([
+            'company_id' => $company->id,
+            'name' => 'Jorge Cabral',
+            'email' => 'jorge@example.test',
+            'phone' => '910000003',
+            'driver_vat' => '245123459',
+            'citizen_card' => '12345681',
+            'driver_license' => 'P-123459',
+            'tvde_certificate_number' => 'CMTVDE-98768',
+            'address' => 'Rua Quatro',
+            'zip' => '4000-004',
+            'city' => 'Porto',
+        ]);
+        $vehicle = VehicleItem::create([
+            'driver_id' => $driver->id,
+            'license_plate' => 'CC-22-CC',
+        ]);
+        VehicleUsage::create([
+            'driver_id' => $driver->id,
+            'vehicle_item_id' => $vehicle->id,
+            'start_date' => now()->subDay(),
+            'usage_exceptions' => 'usage',
+        ]);
+
+        $contract = app(ContractGenerationService::class)->generate($driver, null, [
+            'weekly_cedencia' => null,
+            'commission_percent' => 12.5,
+            'vehicle_year' => 2024,
+            'document_expiries' => [
+                'citizen_card_expires_at' => '31/12/2030',
+                'tvde_driver_certificate_expires_at' => '30/11/2031',
+                'driving_license_expires_at' => '29/10/2032',
+            ],
+        ]);
+
+        $this->assertSame('2024', (string) $contract->data_snapshot['vehicle.year']);
+        $this->assertSame('12,50 %', $contract->data_snapshot['driver.commission_percent']);
+        $this->assertSame('31/12/2030', $contract->data_snapshot['documents.citizen_card_expires_at']);
+        $this->assertStringContainsString('comissão de gestão e cedência de viatura de 12,50 %', $contract->rendered_content);
+        $this->assertStringContainsString('Não é devido um valor semanal fixo', $contract->rendered_content);
+        $this->assertStringContainsString('ano 2024', $contract->rendered_content);
     }
 }
