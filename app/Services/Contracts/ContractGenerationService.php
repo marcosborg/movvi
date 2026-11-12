@@ -79,6 +79,7 @@ class ContractGenerationService
             $previewContract = new AdminContract(['generated_at' => now()]);
             $values = $this->renderer->values($driver, $previewContract, $vehicle, $overrides);
             $missingContractData = collect([
+                'driver.identification_type' => 'tipo do documento de identificação (CC ou BI)',
                 'documents.citizen_card_expires_at' => 'validade do documento de identificação',
                 'documents.tvde_certificate_expires_at' => 'validade do certificado TVDE',
                 'documents.driving_license_expires_at' => 'validade da carta de condução',
@@ -141,6 +142,7 @@ class ContractGenerationService
                 ? null
                 : str_replace(['.', ',', ' %'], ['', '.', ''], $values['driver.commission_percent']),
             'vehicle_year' => $values['vehicle.year'],
+            'identification_type' => null,
             'document_expiries' => [
                 'citizen_card_expires_at' => $this->editableDate($values['documents.citizen_card_expires_at']),
                 'tvde_driver_certificate_expires_at' => $this->editableDate($values['documents.tvde_certificate_expires_at']),

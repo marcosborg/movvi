@@ -50,6 +50,7 @@ class AdminContractController extends Controller
         $adminContract = $generationService->generate($driver, $template, $request->only([
             'weekly_cedencia',
             'commission_percent',
+            'identification_type',
             'vehicle_year',
             'document_expiries',
         ]));

@@ -30,6 +30,9 @@ class ContractTemplateRendererTest extends TestCase
         $this->assertStringContainsString('{{company.tvde_license}}', $content);
         $this->assertStringContainsString('Cartrack', $content);
         $this->assertStringContainsString('{{financial.commission_clause}}', $content);
+        $this->assertStringContainsString('{{driver.identification_type}}', $content);
+        $this->assertStringContainsString('{{vehicle.brand_model}}', $content);
+        $this->assertStringNotContainsString('Passaporte (quando aplicável)', $content);
         $this->assertStringContainsString('formação inicial de 50 horas', $content);
         $this->assertStringContainsString('dístico identificador inamovível', $content);
         $this->assertStringContainsString('ANEXO I - AVISO DE PRIVACIDADE DO MOTORISTA', $content);
@@ -96,18 +99,19 @@ class ContractTemplateRendererTest extends TestCase
         $contract = new AdminContract(['number' => 7, 'generated_at' => now()]);
 
         $result = (new ContractTemplateRenderer())->render(
-            '{{driver.commission_percent}}|{{financial.weekly_clause}}|{{documents.citizen_card_expires_at}}|{{vehicle.year}}',
+            '{{driver.identification_type}}|{{driver.commission_percent}}|{{financial.weekly_clause}}|{{documents.citizen_card_expires_at}}|{{vehicle.year}}',
             $driver,
             $contract,
             null,
             [
                 'commission_percent' => 15,
+                'identification_type' => 'BI',
                 'vehicle_year' => 2023,
                 'document_expiries' => ['citizen_card_expires_at' => '31/12/2030'],
             ]
         );
 
-        $this->assertStringContainsString('15,00 %', $result['content']);
+        $this->assertStringContainsString('BI|15,00 %', $result['content']);
         $this->assertStringContainsString('Não é devido um valor semanal fixo', $result['content']);
         $this->assertStringContainsString('31/12/2030|2023', $result['content']);
     }

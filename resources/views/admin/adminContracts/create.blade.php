@@ -52,12 +52,21 @@
                         <div class="panel panel-default">
                             <div class="panel-heading"><strong>Validade dos documentos</strong></div>
                             <div class="panel-body">
+                                <div class="row">
+                                    <div class="col-md-4 form-group {{ $errors->has('identification_type') ? 'has-error' : '' }}">
+                                        <label class="required" for="identification_type">Tipo de documento de identificação</label>
+                                        <select class="form-control" name="identification_type" id="identification_type" required>
+                                            <option value="">Selecione</option>
+                                            <option value="CC" {{ old('identification_type', $defaults['identification_type'] ?? '') === 'CC' ? 'selected' : '' }}>Cartão de Cidadão (CC)</option>
+                                            <option value="BI" {{ old('identification_type', $defaults['identification_type'] ?? '') === 'BI' ? 'selected' : '' }}>Bilhete de Identidade (BI)</option>
+                                        </select>
+                                    </div>
+                                </div>
                                 @php
                                     $expiryFields = [
                                         'citizen_card_expires_at' => ['Documento de identificação', true],
                                         'tvde_driver_certificate_expires_at' => ['Certificado de motorista TVDE', true],
                                         'driving_license_expires_at' => ['Carta de condução', true],
-                                        'passport_expires_at' => ['Passaporte (quando aplicável)', false],
                                         'residence_permit_expires_at' => ['Autorização de residência (quando aplicável)', false],
                                     ];
                                 @endphp

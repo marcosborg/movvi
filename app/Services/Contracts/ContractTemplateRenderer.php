@@ -35,6 +35,7 @@ class ContractTemplateRenderer
             'driver.phone' => 'Telefone do motorista',
             'driver.vat' => 'NIF do motorista',
             'driver.citizen_card' => 'Documento de identificação',
+            'driver.identification_type' => 'Tipo de documento de identificação (CC ou BI)',
             'driver.driver_license' => 'Carta de condução',
             'driver.tvde_certificate_number' => 'Certificado de motorista TVDE',
             'driver.address' => 'Morada do motorista',
@@ -62,6 +63,7 @@ class ContractTemplateRenderer
             'company.email' => 'E-mail da empresa',
             'vehicle.brand' => 'Marca da viatura',
             'vehicle.model' => 'Modelo da viatura',
+            'vehicle.brand_model' => 'Marca e modelo da viatura',
             'vehicle.license_plate' => 'Matrícula da viatura',
             'vehicle.year' => 'Ano da viatura',
         ];
@@ -84,6 +86,9 @@ class ContractTemplateRenderer
             : $this->nullableFloat(optional($contractVat)->percent);
         $documentOverrides = $overrides['document_expiries'] ?? [];
         $vehicleYear = $overrides['vehicle_year'] ?? optional($vehicle)->year;
+        $identificationType = strtoupper(trim((string) ($overrides['identification_type'] ?? 'CC')));
+        $vehicleBrand = optional(optional($vehicle)->vehicle_brand)->name ?: $driver->brand;
+        $vehicleModel = optional(optional($vehicle)->vehicle_model)->name ?: $driver->model;
 
         return [
             'contract.number' => $contract->number,
@@ -93,6 +98,7 @@ class ContractTemplateRenderer
             'driver.phone' => $driver->phone,
             'driver.vat' => $driver->driver_vat,
             'driver.citizen_card' => $driver->citizen_card,
+            'driver.identification_type' => in_array($identificationType, ['CC', 'BI'], true) ? $identificationType : 'CC',
             'driver.driver_license' => $driver->driver_license,
             'driver.tvde_certificate_number' => $driver->tvde_certificate_number,
             'driver.address' => $driver->address,
@@ -126,8 +132,9 @@ class ContractTemplateRenderer
             'company.location' => optional($company)->location,
             'company.full_address' => collect([optional($company)->address, optional($company)->zip, optional($company)->location])->filter()->implode(', '),
             'company.email' => optional($company)->email,
-            'vehicle.brand' => optional(optional($vehicle)->vehicle_brand)->name ?: $driver->brand,
-            'vehicle.model' => optional(optional($vehicle)->vehicle_model)->name ?: $driver->model,
+            'vehicle.brand' => $vehicleBrand,
+            'vehicle.model' => $vehicleModel,
+            'vehicle.brand_model' => collect([$vehicleBrand, $vehicleModel])->filter()->implode(' '),
             'vehicle.license_plate' => optional($vehicle)->license_plate ?: $driver->license_plate,
             'vehicle.year' => $vehicleYear,
         ];

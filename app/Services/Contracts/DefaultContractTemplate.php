@@ -5,7 +5,7 @@ namespace App\Services\Contracts;
 class DefaultContractTemplate
 {
     public const NAME = 'Contrato de prestação de serviços de motorista e cedência de viatura TVDE';
-    public const VERSION = 6;
+    public const VERSION = 7;
 
     public static function content(): string
     {
@@ -13,14 +13,13 @@ class DefaultContractTemplate
 <h1>CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE MOTORISTA E CEDÊNCIA DE VIATURA PARA TVDE</h1>
 <p><strong>Contrato n.º {{contract.number}}</strong></p>
 <p><strong>PRIMEIRO OUTORGANTE - {{company.name}}</strong>, pessoa coletiva n.º {{company.vat}}, titular da licença de operador TVDE n.º <strong>{{company.tvde_license}}</strong>, com sede em {{company.full_address}}, doravante designada "A CONTRATANTE", representada pelo seu gerente com poderes para o ato.</p>
-<p><strong>SEGUNDO OUTORGANTE - {{driver.name}}</strong>, titular do documento de identificação n.º {{driver.citizen_card}}, NIF {{driver.vat}}, carta de condução n.º {{driver.driver_license}} e certificado de motorista TVDE n.º {{driver.tvde_certificate_number}}, residente em {{driver.full_address}}{{driver.iban_clause}}, doravante designado "O MOTORISTA".</p>
+<p><strong>SEGUNDO OUTORGANTE - {{driver.name}}</strong>, titular do {{driver.identification_type}} n.º {{driver.citizen_card}}, NIF {{driver.vat}}, carta de condução n.º {{driver.driver_license}} e certificado de motorista TVDE n.º {{driver.tvde_certificate_number}}, residente em {{driver.full_address}}{{driver.iban_clause}}, doravante designado "O MOTORISTA".</p>
 <table class="document-validities">
     <thead><tr><th>Documento</th><th>Validade</th></tr></thead>
     <tbody>
-        <tr><td>Documento de identificação</td><td>{{documents.citizen_card_expires_at}}</td></tr>
+        <tr><td>{{driver.identification_type}}</td><td>{{documents.citizen_card_expires_at}}</td></tr>
         <tr><td>Certificado de motorista TVDE</td><td>{{documents.tvde_certificate_expires_at}}</td></tr>
         <tr><td>Carta de condução</td><td>{{documents.driving_license_expires_at}}</td></tr>
-        <tr><td>Passaporte (quando aplicável)</td><td>{{documents.passport_expires_at}}</td></tr>
         <tr><td>Autorização de residência (quando aplicável)</td><td>{{documents.residence_permit_expires_at}}</td></tr>
     </tbody>
 </table>
@@ -28,7 +27,13 @@ class DefaultContractTemplate
 
 <h2>CLÁUSULA PRIMEIRA - OBJETO</h2>
 <p>1. O contrato tem por objeto a prestação de serviços de condução no âmbito da atividade TVDE, com utilização exclusiva para esse fim da viatura disponibilizada pela CONTRATANTE.</p>
-<p>2. A viatura é: <strong>{{vehicle.brand}} {{vehicle.model}}</strong>, matrícula <strong>{{vehicle.license_plate}}</strong>, ano {{vehicle.year}}.</p>
+<table class="vehicle-details">
+    <tbody>
+        <tr><th>Marca / Modelo</th><td>{{vehicle.brand_model}}</td></tr>
+        <tr><th>Ano</th><td>{{vehicle.year}}</td></tr>
+        <tr><th>Matrícula</th><td>{{vehicle.license_plate}}</td></tr>
+    </tbody>
+</table>
 
 <h2>CLÁUSULA SEGUNDA - NATUREZA DA RELAÇÃO</h2>
 <p>1. O presente contrato escrito titula a relação entre a CONTRATANTE e o MOTORISTA, sendo-lhe aplicável o artigo 12.º do Código do Trabalho, por força dos n.os 16 e 17 do artigo 10.º da Lei n.º 45/2018, de 10 de agosto, com as alterações introduzidas pela Lei n.º 59/2026, de 25 de agosto, independentemente da designação adotada pelas partes.</p>

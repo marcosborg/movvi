@@ -48,6 +48,10 @@ class StoreAdminContractRequest extends FormRequest
                 'min:0',
                 'max:100',
             ],
+            'identification_type' => [
+                'required',
+                'in:CC,BI',
+            ],
             'vehicle_year' => [
                 'required',
                 'integer',

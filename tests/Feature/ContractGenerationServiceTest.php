@@ -354,6 +354,7 @@ class ContractGenerationServiceTest extends TestCase
         $contract = app(ContractGenerationService::class)->generate($driver, null, [
             'weekly_cedencia' => null,
             'commission_percent' => 12.5,
+            'identification_type' => 'BI',
             'vehicle_year' => 2024,
             'document_expiries' => [
                 'citizen_card_expires_at' => '31/12/2030',
@@ -364,9 +365,11 @@ class ContractGenerationServiceTest extends TestCase
 
         $this->assertSame('2024', (string) $contract->data_snapshot['vehicle.year']);
         $this->assertSame('12,50 %', $contract->data_snapshot['driver.commission_percent']);
+        $this->assertSame('BI', $contract->data_snapshot['driver.identification_type']);
         $this->assertSame('31/12/2030', $contract->data_snapshot['documents.citizen_card_expires_at']);
         $this->assertStringContainsString('comissão de gestão e cedência de viatura de 12,50 %', $contract->rendered_content);
         $this->assertStringContainsString('Não é devido um valor semanal fixo', $contract->rendered_content);
-        $this->assertStringContainsString('ano 2024', $contract->rendered_content);
+        $this->assertStringContainsString('<th>Ano</th><td>2024</td>', $contract->rendered_content);
+        $this->assertStringNotContainsString('Passaporte (quando aplicável)', $contract->rendered_content);
     }
 }
