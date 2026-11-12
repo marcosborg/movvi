@@ -11,6 +11,7 @@
                     {{ trans('global.app_csvImport') }}
                 </button>
                 @include('csvImport.modal', ['model' => 'VehicleExpense', 'route' => 'admin.vehicle-expenses.parseCsvImport'])
+                <button type="button" class="btn btn-default" id="clear-expense-filters">Limpar filtros</button>
             </div>
         </div>
     @endcan
@@ -143,13 +144,7 @@
             processing: true,
             serverSide: true,
             retrieve: true,
-            stateSave: true, // Enable state saving
-            stateSaveCallback: function (settings, data) {
-                localStorage.setItem('datatable-vehicle-expenses', JSON.stringify(data));
-            },
-            stateLoadCallback: function (settings) {
-                return JSON.parse(localStorage.getItem('datatable-vehicle-expenses'));
-            },
+            stateSave: false,
             aaSorting: [],
             ajax: "{{ route('admin.vehicle-expenses.index') }}",
             columns: [
@@ -169,6 +164,12 @@
             pageLength: 100,
         };
         let table = $('.datatable-VehicleExpense').DataTable(dtOverrideGlobals);
+        localStorage.removeItem('datatable-vehicle-expenses');
+
+        $('#clear-expense-filters').on('click', function () {
+            $('.datatable-VehicleExpense thead .search').val('');
+            table.search('').columns().search('').draw();
+        });
 
         $('a[data-toggle="tab"]').on('shown.bs.tab click', function (e) {
             $($.fn.dataTable.tables(true)).DataTable()

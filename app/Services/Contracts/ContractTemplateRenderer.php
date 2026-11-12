@@ -3,6 +3,7 @@
 namespace App\Services\Contracts;
 
 use App\Models\AdminContract;
+use App\Models\CarHire;
 use App\Models\Driver;
 use App\Models\Document;
 use App\Models\VehicleItem;
@@ -42,6 +43,7 @@ class ContractTemplateRenderer
             'driver.full_address' => 'Morada completa do motorista',
             'driver.iban' => 'IBAN do motorista',
             'driver.iban_clause' => 'Cláusula de IBAN, quando preenchido',
+            'driver.weekly_cedencia' => 'Valor semanal da cedência',
             'documents.citizen_card_expires_at' => 'Validade do documento de identificação',
             'documents.tvde_certificate_expires_at' => 'Validade do certificado TVDE',
             'documents.driving_license_expires_at' => 'Validade da carta de condução',
@@ -68,6 +70,7 @@ class ContractTemplateRenderer
         $documents = $driver->exists && Schema::hasTable('documents')
             ? Document::where('driver_id', $driver->id)->latest('id')->first()
             : null;
+        $weeklyCedencia = $this->weeklyCedencia($driver, $contract);
 
         return [
             'contract.number' => $contract->number,
@@ -85,6 +88,9 @@ class ContractTemplateRenderer
             'driver.full_address' => collect([$driver->address, $driver->zip, $driver->city])->filter()->implode(', '),
             'driver.iban' => $driver->iban,
             'driver.iban_clause' => filled($driver->iban) ? ', com IBAN '.$driver->iban : '',
+            'driver.weekly_cedencia' => $weeklyCedencia !== null
+                ? number_format($weeklyCedencia, 2, ',', '.').' €'
+                : 'Não indicado',
             'documents.citizen_card_expires_at' => $this->dateOrNotProvided(optional($documents)->citizen_card_expires_at),
             'documents.tvde_certificate_expires_at' => $this->dateOrNotProvided(optional($documents)->tvde_driver_certificate_expires_at),
             'documents.driving_license_expires_at' => $this->dateOrNotProvided(optional($documents)->driving_license_expires_at),
@@ -108,5 +114,28 @@ class ContractTemplateRenderer
     private function dateOrNotProvided($value): string
     {
         return filled($value) ? (string) $value : 'Não indicado';
+    }
+
+    private function weeklyCedencia(Driver $driver, AdminContract $contract): ?float
+    {
+        if (! $driver->exists || ! Schema::hasTable('car_hires')) {
+            return null;
+        }
+
+        $date = Carbon::parse($contract->generated_at ?: now())->toDateString();
+        $carHire = CarHire::query()
+            ->where('driver_id', $driver->id)
+            ->where(function ($query) use ($date) {
+                $query->whereNull('start_date')->orWhereDate('start_date', '<=', $date);
+            })
+            ->where(function ($query) use ($date) {
+                $query->whereNull('end_date')->orWhereDate('end_date', '>=', $date);
+            })
+            ->orderByRaw('start_date IS NULL')
+            ->orderByDesc('start_date')
+            ->orderByDesc('id')
+            ->first();
+
+        return $carHire && $carHire->amount !== null ? (float) $carHire->amount : null;
     }
 }

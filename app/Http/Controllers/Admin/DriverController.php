@@ -12,6 +12,7 @@ use App\Models\Company;
 use App\Models\ContractType;
 use App\Models\ContractVat;
 use App\Models\Driver;
+use App\Models\Document;
 use App\Models\Electric;
 use App\Models\Local;
 use App\Models\State;
@@ -19,6 +20,7 @@ use App\Models\TollCard;
 use App\Models\User;
 use Gate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -204,9 +206,12 @@ class DriverController extends Controller
 
     public function store(StoreDriverRequest $request)
     {
-        $data = $this->withUserEmailFallback($request->all());
-        $driver = Driver::create($data);
-        $driver->cards()->sync($request->input('cards', []));
+        DB::transaction(function () use ($request) {
+            $data = $this->withUserEmailFallback($request->all());
+            $driver = Driver::create($data);
+            $driver->cards()->sync($request->input('cards', []));
+            $this->saveCitizenCardExpiry($driver, $request->input('citizen_card_expires_at'));
+        });
 
         return redirect()->route('admin.drivers.index');
     }
@@ -232,17 +237,33 @@ class DriverController extends Controller
         $companies = Company::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $driver->load('user', 'card', 'electric', 'local', 'contract_vat', 'state', 'company');
+        $document = $driver->driverDocuments()->latest('id')->first();
 
-        return view('admin.drivers.edit', compact('cards', 'companies', 'contract_vats', 'driver', 'electrics', 'tool_cards', 'locals', 'states', 'users'));
+        return view('admin.drivers.edit', compact('cards', 'companies', 'contract_vats', 'document', 'driver', 'electrics', 'tool_cards', 'locals', 'states', 'users'));
     }
 
     public function update(UpdateDriverRequest $request, Driver $driver)
     {
-
-        $driver->update($this->withUserEmailFallback($request->all()));
-        $driver->cards()->sync($request->input('cards', []));
+        DB::transaction(function () use ($request, $driver) {
+            $driver->update($this->withUserEmailFallback($request->all()));
+            $driver->cards()->sync($request->input('cards', []));
+            $this->saveCitizenCardExpiry($driver, $request->input('citizen_card_expires_at'));
+        });
 
         return redirect()->route('admin.drivers.index');
+    }
+
+    private function saveCitizenCardExpiry(Driver $driver, ?string $expiry): void
+    {
+        $document = $driver->driverDocuments()->latest('id')->first();
+
+        if (!$document && blank($expiry)) {
+            return;
+        }
+
+        ($document ?: new Document(['driver_id' => $driver->id]))
+            ->fill(['citizen_card_expires_at' => $expiry])
+            ->save();
     }
 
     public function show(Driver $driver)

@@ -163,6 +163,10 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.driver.fields.citizen_card_helper') }}</span>
                         </div>
+                        @include('admin.documents.partials.expiryDate', [
+                            'field' => 'citizen_card_expires_at',
+                            'label' => 'Validade do Cartão de Cidadão',
+                        ])
                         <div class="form-group {{ $errors->has('email') ? 'has-error' : '' }}">
                             <label class="required" for="email">{{ trans('cruds.driver.fields.email') }}</label>
                             <input class="form-control" type="email" name="email" id="email" value="{{ old('email') }}" required>

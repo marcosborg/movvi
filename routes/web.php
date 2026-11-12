@@ -622,6 +622,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('vehicle-expenses/ckmedia', 'VehicleExpensesController@storeCKEditorImages')->name('vehicle-expenses.storeCKEditorImages');
     Route::post('vehicle-expenses/parse-csv-import', 'VehicleExpensesController@parseCsvImport')->name('vehicle-expenses.parseCsvImport');
     Route::post('vehicle-expenses/process-csv-import', 'VehicleExpensesController@processCsvImport')->name('vehicle-expenses.processCsvImport');
+    Route::get('vehicle-expenses/{vehicleExpense}/files/{media}', 'VehicleExpensesController@downloadFile')->name('vehicle-expenses.downloadFile');
     Route::resource('vehicle-expenses', 'VehicleExpensesController');
 
     // Vehicle Profitability

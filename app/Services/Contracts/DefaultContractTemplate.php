@@ -5,7 +5,7 @@ namespace App\Services\Contracts;
 class DefaultContractTemplate
 {
     public const NAME = 'Contrato de prestação de serviços de motorista e cedência de viatura TVDE';
-    public const VERSION = 4;
+    public const VERSION = 5;
 
     public static function content(): string
     {
@@ -36,7 +36,7 @@ class DefaultContractTemplate
 <p>3. Nenhuma disposição deste contrato afasta normas laborais imperativas ou impede o reconhecimento de um contrato de trabalho quando se verifiquem os respetivos pressupostos legais.</p>
 
 <h2>CLÁUSULA TERCEIRA - CONDIÇÕES FINANCEIRAS</h2>
-<p>1. Pela cedência da viatura, o MOTORISTA pagará à CONTRATANTE €280,00 por semana, a deduzir da faturação semanal, acrescido de IVA à taxa legal aplicável quando devido.</p>
+<p>1. Pela cedência da viatura, o MOTORISTA pagará à CONTRATANTE <strong>{{driver.weekly_cedencia}}</strong> por semana, a deduzir da faturação semanal, acrescido de IVA à taxa legal aplicável quando devido.</p>
 <p>2. Se a faturação semanal for inferior ao valor acordado, o montante em falta será liquidado até à quarta-feira seguinte ao fecho da semana.</p>
 <p>3. O MOTORISTA compromete-se a emitir a respetiva fatura ou recibo verde referente à semana anterior.</p>
 <p>4. São deduzidos os impostos, carregamentos, portagens não reembolsadas e demais encargos imputáveis ao MOTORISTA nos termos legais e contratuais.</p>

@@ -204,7 +204,7 @@ class InspectionVehicleUsageService
                 'driver_id' => $targetDriverId,
                 'vehicle_item_id' => $vehicle->id,
                 'start_date' => $appliedAt->format('Y-m-d H:i:s'),
-                'end_date' => $appliedAt->copy()->addYear()->format('Y-m-d H:i:s'),
+                'end_date' => null,
                 'usage_exceptions' => 'usage',
             ]);
         }

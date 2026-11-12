@@ -77,6 +77,10 @@ class UpdateDriverRequest extends FormRequest
                 'string',
                 'nullable',
             ],
+            'citizen_card_expires_at' => [
+                'date_format:' . config('panel.date_format'),
+                'nullable',
+            ],
             'iban' => [
                 'string',
                 'nullable',

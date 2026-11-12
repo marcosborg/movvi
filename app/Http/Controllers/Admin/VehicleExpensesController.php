@@ -13,6 +13,7 @@ use App\Models\VehicleItem;
 use Gate;
 use Illuminate\Http\Request;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -26,6 +27,12 @@ class VehicleExpensesController extends Controller
 
         if ($request->ajax()) {
             $query = VehicleExpense::with(['vehicle_item'])->select(sprintf('%s.*', (new VehicleExpense)->table));
+            $companyId = (int) session()->get('company_id', 0);
+            if ($companyId !== 0) {
+                $query->whereIn('vehicle_item_id', VehicleItem::withTrashed()
+                    ->where('company_id', $companyId)
+                    ->select('id'));
+            }
             $table = Datatables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
@@ -66,7 +73,7 @@ class VehicleExpensesController extends Controller
                 }
                 $links = [];
                 foreach ($row->files as $media) {
-                    $links[] = '<a href="' . $media->getUrl() . '" target="_blank">' . trans('global.downloadFile') . '</a>';
+                    $links[] = '<a href="'.route('admin.vehicle-expenses.downloadFile', [$row, $media]).'">'.trans('global.downloadFile').'</a>';
                 }
 
                 return implode(', ', $links);
@@ -83,7 +90,7 @@ class VehicleExpensesController extends Controller
             return $table->make(true);
         }
 
-        $vehicle_items = $this->activeVehicleItems()->get();
+        $vehicle_items = $this->vehicleItemsWithExpenses()->get();
 
         return view('admin.vehicleExpenses.index', compact('vehicle_items'));
     }
@@ -177,6 +184,20 @@ class VehicleExpensesController extends Controller
         return response(null, Response::HTTP_NO_CONTENT);
     }
 
+    public function downloadFile(VehicleExpense $vehicleExpense, Media $media)
+    {
+        abort_if(Gate::denies('vehicle_expense_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_unless($media->model_type === VehicleExpense::class && (int) $media->model_id === (int) $vehicleExpense->id, Response::HTTP_NOT_FOUND);
+
+        $companyId = (int) session()->get('company_id', 0);
+        if ($companyId !== 0) {
+            $vehicleCompanyId = VehicleItem::withTrashed()->whereKey($vehicleExpense->vehicle_item_id)->value('company_id');
+            abort_unless((int) $vehicleCompanyId === $companyId, Response::HTTP_FORBIDDEN);
+        }
+
+        return Storage::disk($media->disk)->download($media->getPathRelativeToRoot(), $media->file_name);
+    }
+
     public function storeCKEditorImages(Request $request)
     {
         abort_if(Gate::denies('vehicle_expense_create') && Gate::denies('vehicle_expense_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -220,6 +241,16 @@ class VehicleExpensesController extends Controller
                     $vehicleQuery->orWhereKey($includeVehicleId);
                 }
             })
+            ->orderBy('license_plate');
+    }
+
+    private function vehicleItemsWithExpenses()
+    {
+        $companyId = (int) session()->get('company_id', 0);
+
+        return VehicleItem::withTrashed()
+            ->whereIn('id', VehicleExpense::query()->select('vehicle_item_id'))
+            ->when($companyId !== 0, fn ($query) => $query->where('company_id', $companyId))
             ->orderBy('license_plate');
     }
 }

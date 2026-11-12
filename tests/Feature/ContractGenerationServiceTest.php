@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
+use App\Models\CarHire;
 use App\Models\ContractTemplate;
 use App\Models\Driver;
 use App\Models\Document;
@@ -101,6 +102,16 @@ class ContractGenerationServiceTest extends TestCase
             $table->dateTime('start_date');
             $table->dateTime('end_date')->nullable();
             $table->string('usage_exceptions')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+        Schema::create('car_hires', function (Blueprint $table) {
+            $table->id();
+            $table->string('name')->nullable();
+            $table->decimal('amount', 10, 2)->nullable();
+            $table->date('start_date')->nullable();
+            $table->date('end_date')->nullable();
+            $table->foreignId('driver_id');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -274,5 +285,38 @@ class ContractGenerationServiceTest extends TestCase
         $this->assertTrue($active->is_active);
         $this->assertFalse($old->fresh()->is_active);
         $this->assertSame('Modelo antigo', $old->fresh()->content);
+    }
+
+    public function test_default_contract_uses_the_active_weekly_cedencia_value(): void
+    {
+        $company = Company::create([
+            'name' => 'Empresa TVDE',
+            'vat' => '515025712',
+            'tvde_license' => 'TVDE-12345',
+        ]);
+        $driver = Driver::create([
+            'company_id' => $company->id,
+            'name' => 'Alexandre Moreira',
+            'email' => 'alexandre@example.test',
+            'phone' => '910000002',
+            'driver_vat' => '245123458',
+            'citizen_card' => '12345680',
+            'driver_license' => 'P-123458',
+            'tvde_certificate_number' => 'CMTVDE-98767',
+            'address' => 'Rua Três',
+            'zip' => '4000-003',
+            'city' => 'Porto',
+        ]);
+        CarHire::create([
+            'name' => 'Cedência semanal',
+            'amount' => 320,
+            'start_date' => now()->subWeek()->format(config('panel.date_format')),
+            'driver_id' => $driver->id,
+        ]);
+
+        $contract = app(ContractGenerationService::class)->generate($driver);
+
+        $this->assertSame('320,00 €', $contract->data_snapshot['driver.weekly_cedencia']);
+        $this->assertStringContainsString('<strong>320,00 €</strong> por semana', $contract->rendered_content);
     }
 }
