@@ -143,6 +143,7 @@
     orderCellsTop: true,
     order: [[ 1, 'desc' ]],
     pageLength: 100,
+    lengthMenu: [[100, 250, 500, -1], [100, 250, 500, 'Todos']],
   };
   let table = $('.datatable-Driver').DataTable(dtOverrideGlobals);
   $('a[data-toggle="tab"]').on('shown.bs.tab click', function(e){

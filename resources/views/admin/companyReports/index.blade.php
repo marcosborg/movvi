@@ -375,11 +375,11 @@
                     <input type="text" id="reportSearch" class="form-control" placeholder="Filtrar por condutor ou viatura">
                     <select id="reportSortBy" class="form-control">
                         <option value="name" {{ ($sortBy ?? 'name') === 'name' ? 'selected' : '' }}>Ordenar por nome</option>
-                        <option value="total" {{ ($sortBy ?? 'name') === 'total' ? 'selected' : '' }}>Ordenar por faturacao</option>
-                        <option value="weekly_km" {{ ($sortBy ?? 'name') === 'weekly_km' ? 'selected' : '' }}>Ordenar por km</option>
-                        <option value="earnings_per_km" {{ ($sortBy ?? 'name') === 'earnings_per_km' ? 'selected' : '' }}>Ordenar por euro/km</option>
-                        <option value="percent_value" {{ ($sortBy ?? 'name') === 'percent_value' ? 'selected' : '' }}>Ordenar por percentagem</option>
-                        <option value="car_hire" {{ ($sortBy ?? 'name') === 'car_hire' ? 'selected' : '' }}>Ordenar por cedência</option>
+                        <option value="total" {{ ($sortBy ?? 'name') === 'total' ? 'selected' : '' }}>Melhor faturação</option>
+                        <option value="weekly_km" {{ ($sortBy ?? 'name') === 'weekly_km' ? 'selected' : '' }}>Mais km</option>
+                        <option value="earnings_per_km" {{ ($sortBy ?? 'name') === 'earnings_per_km' ? 'selected' : '' }}>Melhor euro/km</option>
+                        <option value="percent_value" {{ ($sortBy ?? 'name') === 'percent_value' ? 'selected' : '' }}>Maior percentagem</option>
+                        <option value="car_hire" {{ ($sortBy ?? 'name') === 'car_hire' ? 'selected' : '' }}>Maior cedência</option>
                     </select>
                     <select id="reportSortDirection" class="form-control">
                         <option value="asc" {{ ($sortDirection ?? 'asc') === 'asc' ? 'selected' : '' }}>Ascendente</option>
@@ -610,15 +610,18 @@
         const validationFilter = document.getElementById('reportValidationFilter');
         const rows = Array.from(document.querySelectorAll('.report-driver-row'));
 
-        const updateSortParams = () => {
+        const updateSortParams = (preferBestFirst = false) => {
             const url = new URL(window.location.href);
+            if (preferBestFirst && sortDirectionFilter) {
+                sortDirectionFilter.value = sortByFilter.value === 'name' ? 'asc' : 'desc';
+            }
             url.searchParams.set('sort_by', sortByFilter.value || 'name');
             url.searchParams.set('sort_direction', sortDirectionFilter?.value || 'asc');
             window.location.href = url.toString();
         };
 
-        sortByFilter?.addEventListener('change', updateSortParams);
-        sortDirectionFilter?.addEventListener('change', updateSortParams);
+        sortByFilter?.addEventListener('change', () => updateSortParams(true));
+        sortDirectionFilter?.addEventListener('change', () => updateSortParams(false));
 
         const applyReportFilters = () => {
             const search = (searchInput?.value || '').trim().toLowerCase();

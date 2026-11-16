@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 class SupportTicketController extends Controller
 {
@@ -174,9 +176,18 @@ class SupportTicketController extends Controller
         }
         abort_unless(Storage::disk('local')->exists($attachment->path), 404);
 
-        return Storage::disk('local')->response($attachment->path, $attachment->original_name, [
+        $fallbackName = Str::ascii($attachment->original_name) ?: 'anexo';
+        $disposition = HeaderUtils::makeDisposition(
+            ResponseHeaderBag::DISPOSITION_INLINE,
+            $attachment->original_name,
+            $fallbackName
+        );
+
+        return response()->file(Storage::disk('local')->path($attachment->path), [
             'Content-Type' => $attachment->mime_type,
-            'Content-Disposition' => 'inline; filename="'.addslashes($attachment->original_name).'"',
+            'Content-Disposition' => $disposition,
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 

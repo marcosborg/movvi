@@ -6,15 +6,55 @@ use App\Models\Company;
 use App\Models\Driver;
 use App\Models\Role;
 use App\Models\SupportTicket;
+use App\Models\SupportTicketAttachment;
 use App\Models\User;
 use App\Notifications\SupportTicketReplied;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class SupportTicketTest extends TestCase
 {
     use DatabaseTransactions;
+
+    public function test_authorized_user_can_open_attachment_with_accented_filename_inline(): void
+    {
+        Storage::fake('local');
+        $user = User::create(['name' => 'Ticket Admin', 'email' => uniqid().'@example.test', 'password' => 'secret', 'verified' => 1, 'verification_token' => 'test']);
+        $user->roles()->attach(Role::firstOrCreate(['title' => 'Admin']));
+        $company = Company::create([
+            'name' => 'Attachment Company', 'vat' => uniqid('vat-'), 'address' => 'Test',
+            'zip' => '0000-000', 'location' => 'Test', 'email' => uniqid().'@example.test',
+            'user_id' => $user->id,
+        ]);
+        $ticket = SupportTicket::create([
+            'company_id' => $company->id,
+            'opened_by' => $user->id,
+            'subject' => 'Anexo',
+            'status' => SupportTicket::STATUS_AWAITING_TECHNICAL,
+        ]);
+        $message = $ticket->messages()->create(['sender_id' => $user->id, 'message' => 'Imagem anexa.']);
+        $path = 'support-tickets/'.$ticket->id.'/capture.png';
+        Storage::disk('local')->put($path, 'fake-png');
+        $attachment = SupportTicketAttachment::create([
+            'support_ticket_message_id' => $message->id,
+            'path' => $path,
+            'original_name' => 'Captura de ecrã.png',
+            'mime_type' => 'image/png',
+            'size' => 8,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->withServerVariables(['HTTP_HOST' => 'movvi.test'])
+            ->get(route('admin.support-tickets.attachment', $attachment, false));
+
+        $response->assertOk()
+            ->assertHeader('content-type', 'image/png')
+            ->assertHeader('x-content-type-options', 'nosniff');
+        $this->assertStringContainsString('inline;', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString("filename*=utf-8''Captura%20de%20ecr%C3%A3.png", $response->headers->get('content-disposition'));
+    }
 
     public function test_customer_and_admin_can_converse_and_close_ticket(): void
     {
