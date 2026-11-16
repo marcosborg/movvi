@@ -79,4 +79,12 @@ class OperationalSupportFeaturesTest extends TestCase
         $this->assertStringContainsString("{ data: 'supplier', name: 'supplier' }", $index);
         $this->assertStringContainsString('$vehicleExpense->supplier', $show);
     }
+
+    public function test_vehicle_expense_detail_uses_the_authorized_file_route(): void
+    {
+        $contents = file_get_contents(__DIR__.'/../../resources/views/admin/vehicleExpenses/show.blade.php');
+
+        $this->assertStringContainsString("route('admin.vehicle-expenses.downloadFile', [\$vehicleExpense, \$media])", $contents);
+        $this->assertStringNotContainsString('\$media->getUrl()', $contents);
+    }
 }

@@ -71,7 +71,7 @@
                                     </th>
                                     <td>
                                         @foreach($vehicleExpense->files as $key => $media)
-                                            <a href="{{ $media->getUrl() }}" target="_blank">
+                                            <a href="{{ route('admin.vehicle-expenses.downloadFile', [$vehicleExpense, $media]) }}" target="_blank">
                                                 {{ trans('global.view_file') }}
                                             </a>
                                         @endforeach
