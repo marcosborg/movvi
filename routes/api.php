@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\V1\DriverController;
 use App\Http\Controllers\Api\V1\MobileController;
 use App\Http\Controllers\Api\V1\MobileDriverReferralController;
 use App\Http\Controllers\Api\V1\MobileInspectionController;
-use App\Http\Controllers\Api\V1\MobileVehicleQrController;
+use App\Http\Controllers\Api\V1\MobileVehiclePlateController;
 use App\Http\Controllers\Api\V1\PublicController;
 use App\Http\Controllers\Api\V1\SalesController;
 use App\Http\Controllers\Api\V1\VehicleProfitabilityController;
@@ -60,8 +60,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin', '
         Route::prefix('driver')->name('driver.')->group(function () {
             Route::get('referrals', [MobileDriverReferralController::class, 'index'])->name('referrals.index');
             Route::post('referrals', [MobileDriverReferralController::class, 'store'])->name('referrals.store');
-            Route::get('vehicle-qr/{token}', [MobileVehicleQrController::class, 'show'])->name('vehicleQr.show');
-            Route::post('vehicle-qr/{token}/confirm', [MobileVehicleQrController::class, 'confirm'])->name('vehicleQr.confirm');
+            Route::post('vehicle-plate/recognize', [MobileVehiclePlateController::class, 'recognize'])->name('vehiclePlate.recognize');
+            Route::post('vehicle-plate/{vehicle}/confirm', [MobileVehiclePlateController::class, 'confirm'])->name('vehiclePlate.confirm');
             Route::get('weeks', [MobileController::class, 'driverWeeks'])->name('weeks');
             Route::get('receipts', [MobileController::class, 'driverReceipts'])->name('receipts');
             Route::post('receipts', [MobileController::class, 'storeDriverReceipt'])->name('receipts.store');

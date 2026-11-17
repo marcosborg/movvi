@@ -332,6 +332,8 @@ Tambem existem rotas especificas da app reservada:
 - `POST /api/v1/mobile/driver/expense-receipts`
 - `POST /api/v1/mobile/driver/reimbursements`
 - `GET /api/v1/mobile/driver/documents`
+- `POST /api/v1/mobile/driver/vehicle-plate/recognize`
+- `POST /api/v1/mobile/driver/vehicle-plate/{vehicle}/confirm`
 
 ## Observacoes
 

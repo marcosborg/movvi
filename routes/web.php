@@ -407,7 +407,6 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('vehicle-items/media', 'VehicleItemController@storeMedia')->name('vehicle-items.storeMedia');
     Route::post('vehicle-items/ckmedia', 'VehicleItemController@storeCKEditorImages')->name('vehicle-items.storeCKEditorImages');
     Route::resource('vehicle-items', 'VehicleItemController');
-    Route::get('vehicle-items/{vehicle}/qr', 'VehicleQrController@show')->name('vehicle-items.qr');
 
     // Company
     Route::delete('companies/destroy', 'CompanyController@massDestroy')->name('companies.massDestroy');
