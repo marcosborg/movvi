@@ -27,6 +27,18 @@ class LeadNotificationServiceTest extends TestCase
         });
     }
 
+    public function test_it_uses_the_movvi_mailbox_when_cached_config_does_not_include_leads(): void
+    {
+        Notification::fake();
+        config()->offsetUnset('leads');
+        $lead = new PageForm(['name' => 'Teste', 'email' => 'lead@example.test', 'phone' => '910000000']);
+
+        $this->assertTrue(app(LeadNotificationService::class)->send($lead, new pageContact($lead)));
+        Notification::assertSentOnDemand(pageContact::class, function ($notification, $channels, $notifiable) {
+            return $notifiable->routes['mail'] === 'movvi.pt@gmail.com';
+        });
+    }
+
     public function test_an_invalid_recipient_does_not_interrupt_the_lead_flow(): void
     {
         Notification::fake();

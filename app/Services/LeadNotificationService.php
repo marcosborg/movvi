@@ -11,7 +11,7 @@ class LeadNotificationService
 {
     public function send(Model $lead, Notification $notification): bool
     {
-        $email = config('leads.notification_email');
+        $email = config('leads.notification_email', 'movvi.pt@gmail.com');
 
         if (! is_string($email) || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             Log::warning('Lead guardado sem notificação: destinatário inválido.', [
