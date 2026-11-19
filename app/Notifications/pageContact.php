@@ -43,8 +43,10 @@ class pageContact extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
+                    ->subject('Novo contacto no site Movvi')
+                    ->replyTo($this->PageForm->email, $this->PageForm->name)
                     ->line('Existe um pedido de contacto.')
-                    ->action('Ir para pedido', url('http://Tribos&Montanhas.pt/admin/page-forms'))
+                    ->action('Ir para o pedido', route('admin.page-forms.show', $this->PageForm))
                     ->line('Nome: ' . $this->PageForm->name)
                     ->line('Email: ' . $this->PageForm->email)
                     ->line('Telefone: ' . $this->PageForm->phone);

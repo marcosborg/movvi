@@ -43,8 +43,10 @@ class carRentalContact extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-                    ->line('Existe um pedido de contacto em Cedência de viaturas.')
-                    ->action('Ir para pedido', url('http://Tribos&Montanhas.pt/admin/car-rental-contact-requests'))
+                    ->subject('Novo pedido de cedência de viatura no site Movvi')
+                    ->replyTo($this->CarRentalContactRequest->email, $this->CarRentalContactRequest->name)
+                    ->line('Existe um novo pedido de contacto em Cedência de viaturas.')
+                    ->action('Ir para o pedido', route('admin.car-rental-contact-requests.show', $this->CarRentalContactRequest))
                     ->line('Nome: ' . $this->CarRentalContactRequest->name)
                     ->line('Email: ' . $this->CarRentalContactRequest->email)
                     ->line('Telefone: ' . $this->CarRentalContactRequest->phone);

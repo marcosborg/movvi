@@ -43,8 +43,10 @@ class standCarContact extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-                    ->line('Existe um pedido em Stand.')
-                    ->action('Ir para pedido', url('http://Tribos&Montanhas.pt/admin/stand-car-forms'))
+                    ->subject('Novo pedido de viatura no stand Movvi')
+                    ->replyTo($this->TransferForm->email, $this->TransferForm->name)
+                    ->line('Existe um novo pedido no Stand.')
+                    ->action('Ir para o pedido', route('admin.stand-car-forms.show', $this->TransferForm))
                     ->line('Nome: ' . $this->TransferForm->name)
                     ->line('Email: ' . $this->TransferForm->email)
                     ->line('Telefone: ' . $this->TransferForm->phone);

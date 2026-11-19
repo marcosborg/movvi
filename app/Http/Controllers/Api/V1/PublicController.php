@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\PageForm;
+use App\Notifications\pageContact;
+use App\Services\LeadNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -26,13 +28,15 @@ class PublicController extends Controller
             ], 422);
         }
 
-        PageForm::create([
+        $pageForm = PageForm::create([
             'name' => $request->name,
             'phone' => $request->phone,
             'email' => $request->email,
             'message' => $request->message,
             'rgpd' => $request->boolean('rgpd'),
         ]);
+
+        app(LeadNotificationService::class)->send($pageForm, new pageContact($pageForm));
 
         return response()->json([
             'message' => 'Mensagem enviada com sucesso.',

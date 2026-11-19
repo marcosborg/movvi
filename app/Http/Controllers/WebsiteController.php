@@ -16,6 +16,11 @@ use App\Models\NewsArticle;
 use App\Models\CarRentalContactRequest;
 use App\Models\TransferTour;
 use App\Models\TransferForm;
+use App\Notifications\carRentalContact;
+use App\Notifications\pageContact;
+use App\Notifications\standCarContact;
+use App\Notifications\transferTourContact;
+use App\Services\LeadNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -62,13 +67,15 @@ class WebsiteController extends Controller
                 ->withInput();
         }
 
-        PageForm::create([
+        $pageForm = PageForm::create([
             'name'    => $request->name,
             'phone'   => $request->phone,
             'email'   => $request->email,
             'message' => $request->message,
             'rgpd'    => $request->boolean('rgpd'),
         ]);
+
+        app(LeadNotificationService::class)->send($pageForm, new pageContact($pageForm));
 
         return redirect()->route('website.cms', ['page' => $page->id, 'slug' => $page->slug ?: $slug])
             ->with('status', 'Mensagem enviada com sucesso.');
@@ -114,7 +121,7 @@ class WebsiteController extends Controller
                 ->withInput();
         }
 
-        StandCarForm::create([
+        $standCarForm = StandCarForm::create([
             'car_id'  => $standCar->id,
             'name'    => $request->name,
             'phone'   => $request->phone,
@@ -123,6 +130,8 @@ class WebsiteController extends Controller
             'message' => $request->message,
             'rgpd'    => $request->boolean('rgpd'),
         ]);
+
+        app(LeadNotificationService::class)->send($standCarForm, new standCarContact($standCarForm));
 
         return redirect()->route('website.stand.show', [$standCar->id, $standCar->slug])
             ->with('status', 'Pedido enviado com sucesso.');
@@ -164,7 +173,7 @@ class WebsiteController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        CarRentalContactRequest::create([
+        $rentalContact = CarRentalContactRequest::create([
             'car_id'    => $request->car_id,
             'name'      => $request->name,
             'phone'     => $request->phone,
@@ -175,6 +184,8 @@ class WebsiteController extends Controller
             'message'   => $request->message,
             'rgpd'      => $request->boolean('rgpd'),
         ]);
+
+        app(LeadNotificationService::class)->send($rentalContact, new carRentalContact($rentalContact));
 
         return back()->with('status', 'Pedido enviado com sucesso.');
     }
@@ -213,7 +224,7 @@ class WebsiteController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        TransferForm::create([
+        $transferForm = TransferForm::create([
             'transfer_tour_id' => $request->transfer_tour_id,
             'name'             => $request->name,
             'phone'            => $request->phone,
@@ -222,6 +233,8 @@ class WebsiteController extends Controller
             'message'          => $request->message,
             'rgpd'             => $request->boolean('rgpd'),
         ]);
+
+        app(LeadNotificationService::class)->send($transferForm, new transferTourContact($transferForm));
 
         return back()->with('status', 'Pedido enviado com sucesso.');
     }
