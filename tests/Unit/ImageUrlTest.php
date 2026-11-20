@@ -25,6 +25,21 @@ class ImageUrlTest extends TestCase
         }
     }
 
+    public function test_production_upgrades_same_site_http_images_to_https(): void
+    {
+        config(['app.url' => 'https://movvi.com.pt', 'app.production_url' => 'https://movvi.com.pt']);
+
+        $this->assertSame(
+            'https://movvi.com.pt/storage/a.jpg?v=2',
+            ImageUrl::forDisplay('http://movvi.com.pt/storage/a.jpg?v=2')
+        );
+        $this->assertSame(
+            'https://movvi.com.pt/storage/a.jpg',
+            ImageUrl::forDisplay('http://www.movvi.com.pt/storage/a.jpg')
+        );
+        $this->assertSame('http://other.test/a.jpg', ImageUrl::forDisplay('http://other.test/a.jpg'));
+    }
+
     public function test_localhost_and_ipv6_use_the_same_rule(): void
     {
         foreach (['http://localhost:8000', 'http://[::1]:8000'] as $url) {
