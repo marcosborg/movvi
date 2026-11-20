@@ -108,6 +108,9 @@
                                 src="/assets/website/assets/img/legal/livro-reclamacoes-eletronico-branco.png"
                                 alt="Livro de Reclamações Eletrónico"
                                 class="footer-lre-logo"
+                                width="160"
+                                height="29"
+                                style="width: 160px; max-width: 52vw; height: auto; display: block;"
                             >
                         </a>
                         <a href="{{ route('website.legal-information') }}" class="btn btn-outline-light btn-sm fw-semibold">
