@@ -1,10 +1,14 @@
 <?php
 
 use App\Http\Controllers\WebsiteController;
+use App\Http\Controllers\PublicStorageController;
 
 //Route::redirect('/', '/admin');
 
 Route::get('/', [WebsiteController::class, 'index']);
+Route::get('/storage/{path}', PublicStorageController::class)
+    ->where('path', '.*')
+    ->name('public-storage.show');
 Route::get('/politica-de-privacidade', [WebsiteController::class, 'privacyPolicy'])->name('website.privacy-policy');
 Route::get('/informacao-legal', [WebsiteController::class, 'legalInformation'])->name('website.legal-information');
 Route::get('/noticias/{newsArticle}', [WebsiteController::class, 'noticia'])->name('website.noticias.show');

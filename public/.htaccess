@@ -5,6 +5,10 @@
 
     RewriteEngine On
 
+    # Serve public storage through Laravel when the hosting server blocks
+    # direct access to the storage symbolic link.
+    RewriteRule ^storage/(.*)$ index.php [L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
