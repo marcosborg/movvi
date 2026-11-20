@@ -15,6 +15,7 @@ class WebsiteLegalInformationTest extends TestCase
             ->assertSee('515 025 712')
             ->assertSee('Livro de Reclamações Eletrónico')
             ->assertSee('https://www.livroreclamacoes.pt/Inicio/', false)
+            ->assertSee('/assets/website/assets/img/legal/livro-reclamacoes-eletronico-branco.png', false)
             ->assertSee('Resolução de litígios de consumo');
     }
 }

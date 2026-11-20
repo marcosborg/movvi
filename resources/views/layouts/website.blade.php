@@ -103,8 +103,12 @@
             <div class="row mt-2">
                 <div class="col-12">
                     <div class="d-flex flex-wrap justify-content-center gap-2" aria-label="Informação legal e apoio ao consumidor">
-                        <a href="https://www.livroreclamacoes.pt/Inicio/" target="_blank" rel="noopener noreferrer" class="btn btn-light btn-sm fw-semibold">
-                            Livro de Reclamações Eletrónico
+                        <a href="https://www.livroreclamacoes.pt/Inicio/" target="_blank" rel="noopener noreferrer" class="footer-lre-link" aria-label="Aceder ao Livro de Reclamações Eletrónico">
+                            <img
+                                src="/assets/website/assets/img/legal/livro-reclamacoes-eletronico-branco.png"
+                                alt="Livro de Reclamações Eletrónico"
+                                class="footer-lre-logo"
+                            >
                         </a>
                         <a href="{{ route('website.legal-information') }}" class="btn btn-outline-light btn-sm fw-semibold">
                             Informação Legal e Apoio ao Consumidor
