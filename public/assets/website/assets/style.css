@@ -485,21 +485,19 @@ form .form-control:focus {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.24);
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+    padding: 4px;
+    border-radius: 6px;
+    transition: opacity 0.2s ease;
 }
 
 .footer-lre-link:hover,
 .footer-lre-link:focus-visible {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.5);
+    opacity: 0.84;
 }
 
 .footer-lre-logo {
     display: block;
-    width: min(260px, 70vw);
+    width: min(160px, 52vw);
     height: auto;
 }
 
