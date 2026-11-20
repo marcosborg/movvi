@@ -42,6 +42,11 @@ class WebsiteController extends Controller
         return view('website.privacy-policy');
     }
 
+    public function legalInformation()
+    {
+        return view('website.legal-information');
+    }
+
     public function cms(Page $page, $slug)
     {
         if ($page->slug && $page->slug !== $slug) {

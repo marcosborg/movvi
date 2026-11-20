@@ -7,7 +7,7 @@
             <div>
                 <p class="text-uppercase text-muted small mb-1">Legal</p>
                 <h1 class="h3 mb-2">Política de Privacidade</h1>
-                <p class="text-muted mb-0">Última atualização: 03/11/2026</p>
+                <p class="text-muted mb-0">Última atualização: 20/11/2026</p>
             </div>
             <a class="btn btn-outline-secondary" href="{{ url('/') }}">Voltar</a>
         </div>
@@ -22,10 +22,11 @@
 
                 <h2 class="h5 mt-4">1. Responsável pelo tratamento</h2>
                 <p>
-                    O responsável pelo tratamento dos dados pessoais recolhidos através deste website é a
-                    entidade responsável pela exploração da Movvi.pt. Para questões relacionadas com dados
-                    pessoais, o titular dos dados pode contactar a Movvi.pt através dos canais de contacto
-                    disponíveis no website.
+                    O responsável pelo tratamento dos dados pessoais recolhidos através deste website é
+                    <strong>Adelmo Top, Unipessoal, Lda.</strong>, pessoa coletiva n.º 515 025 712, com sede na
+                    Rua Pereira Reis, n.º 50, 2.º Esq., 4200-445 Porto. Para questões relacionadas com dados
+                    pessoais, o titular pode contactar através do email
+                    <a href="mailto:adelmotop10@gmail.com">adelmotop10@gmail.com</a>.
                 </p>
 
                 <h2 class="h5 mt-4">2. Dados pessoais recolhidos</h2>

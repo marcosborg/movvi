@@ -100,11 +100,25 @@
                     </div>
                 </div>
             </div>
+            <div class="row mt-2">
+                <div class="col-12">
+                    <div class="d-flex flex-wrap justify-content-center gap-2" aria-label="Informação legal e apoio ao consumidor">
+                        <a href="https://www.livroreclamacoes.pt/Inicio/" target="_blank" rel="noopener noreferrer" class="btn btn-light btn-sm fw-semibold">
+                            Livro de Reclamações Eletrónico
+                        </a>
+                        <a href="{{ route('website.legal-information') }}" class="btn btn-outline-light btn-sm fw-semibold">
+                            Informação Legal e Apoio ao Consumidor
+                        </a>
+                    </div>
+                </div>
+            </div>
             <div class="text-center mt-3">
                 <small>
                     2026 Movvi.pt - Todos os direitos reservados.
                     <span class="mx-2">|</span>
                     <a href="{{ route('website.privacy-policy') }}" class="text-white">Política de Privacidade</a>
+                    <span class="mx-2">|</span>
+                    <a href="{{ route('website.legal-information') }}" class="text-white">Informação Legal</a>
                 </small>
             </div>
         </div>
