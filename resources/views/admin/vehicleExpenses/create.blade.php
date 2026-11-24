@@ -18,6 +18,7 @@
                                     <option value="{{ $id }}" {{ old('vehicle_item_id') == $id ? 'selected' : '' }}>{{ $entry }}</option>
                                 @endforeach
                             </select>
+                            <p class="help-block">Deixe em branco para registar uma despesa geral da frota, sem viatura específica.</p>
                             @if($errors->has('vehicle_item'))
                                 <span class="help-block" role="alert">{{ $errors->first('vehicle_item') }}</span>
                             @endif

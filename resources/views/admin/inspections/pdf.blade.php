@@ -199,7 +199,9 @@
                                 <td>{{ $item['label'] }}</td>
                                 <td class="small">{{ $item['slot'] }}</td>
                                 <td>
-                                    @if(!empty($item['thumb']))
+                                    @if(!empty($item['is_video']))
+                                        <span class="small">Vídeo anexado à vistoria</span>
+                                    @elseif(!empty($item['thumb']))
                                         <span class="thumb-wrap"><img class="thumb" src="{{ $item['thumb'] }}" alt="{{ $item['label'] }}"></span>
                                     @else
                                         <span class="small muted">Imagem nao disponivel</span>

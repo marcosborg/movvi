@@ -108,7 +108,7 @@ class VehicleExpensesController extends Controller
 
     public function store(StoreVehicleExpenseRequest $request)
     {
-        $vehicleExpense = VehicleExpense::create($request->all());
+        $vehicleExpense = VehicleExpense::create($this->expenseData($request));
 
         foreach ($request->input('files', []) as $file) {
             $vehicleExpense->addMedia(storage_path('tmp/uploads/' . basename($file)))->toMediaCollection('files');
@@ -136,7 +136,7 @@ class VehicleExpensesController extends Controller
 
     public function update(UpdateVehicleExpenseRequest $request, VehicleExpense $vehicleExpense)
     {
-        $vehicleExpense->update($request->all());
+        $vehicleExpense->update($this->expenseData($request));
 
         if (count($vehicleExpense->files) > 0) {
             foreach ($vehicleExpense->files as $media) {
@@ -252,5 +252,15 @@ class VehicleExpensesController extends Controller
             ->whereIn('id', VehicleExpense::query()->select('vehicle_item_id'))
             ->when($companyId !== 0, fn ($query) => $query->where('company_id', $companyId))
             ->orderBy('license_plate');
+    }
+
+    private function expenseData(Request $request): array
+    {
+        $data = $request->except(['files', 'ck-media']);
+        $data['vehicle_item_id'] = $request->filled('vehicle_item_id')
+            ? (int) $request->input('vehicle_item_id')
+            : null;
+
+        return $data;
     }
 }

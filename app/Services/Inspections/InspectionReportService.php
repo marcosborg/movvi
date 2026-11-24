@@ -89,6 +89,7 @@ class InspectionReportService
                     'label' => $this->photoLabel((string) $category, (string) ($photo->slot ?? '')),
                     'slot' => (string) ($photo->slot ?? '-'),
                     'thumb' => $this->storageImageToDataUri((string) $photo->path, 760, 66),
+                    'is_video' => str_starts_with((string) $photo->mime, 'video/'),
                 ];
             }
 

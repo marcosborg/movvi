@@ -196,6 +196,7 @@ class MobileInspectionController extends Controller
                     'slot' => $photo->slot,
                     'url' => asset('storage/' . $photo->path),
                     'original_name' => $photo->original_name,
+                    'mime' => $photo->mime,
                 ];
             })->values(),
             'damages' => $inspection->damages->map(function (InspectionDamage $damage) {
@@ -522,7 +523,7 @@ class MobileInspectionController extends Controller
             'driver_signature_data' => ['nullable', 'string'],
             'extra_observations' => ['nullable', 'string'],
             'extra_photos' => ['nullable', 'array'],
-            'extra_photos.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:10240'],
+            'extra_photos.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf,mp4,mov,m4v,webm', 'max:102400'],
         ])->validate();
 
         $step = (int) $validated['step'];

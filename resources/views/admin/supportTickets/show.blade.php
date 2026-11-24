@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 @section('content')
 <style>
-.ticket-message{display:flex;margin:18px 0}.ticket-message.mine{justify-content:flex-end}.ticket-bubble{max-width:78%;padding:14px 16px;border-radius:12px;background:#f2f4f7;border:1px solid #e2e5e9}.ticket-message.mine .ticket-bubble{background:#eeeafd;border-color:#d7d0f5}.ticket-meta{font-size:12px;color:#777;margin-bottom:7px}.ticket-text{white-space:normal;overflow-wrap:anywhere}.ticket-images{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.ticket-images img{width:150px;height:110px;object-fit:cover;border-radius:6px;border:1px solid #ddd}.ticket-status{font-size:13px;padding:6px 10px}
+.ticket-message{display:flex;margin:18px 0}.ticket-message.mine{justify-content:flex-end}.ticket-bubble{max-width:78%;padding:14px 16px;border-radius:12px;background:#f2f4f7;border:1px solid #e2e5e9}.ticket-message.mine .ticket-bubble{background:#eeeafd;border-color:#d7d0f5}.ticket-meta{font-size:12px;color:#777;margin-bottom:7px}.ticket-text{white-space:normal;overflow-wrap:anywhere}.ticket-images{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.ticket-images img{width:150px;height:110px;object-fit:cover;border-radius:6px;border:1px solid #ddd}.ticket-file{display:inline-flex;align-items:center;gap:7px;padding:10px 12px;border:1px solid #ccd3dc;border-radius:6px;background:#fff}.ticket-status{font-size:13px;padding:6px 10px}
 </style>
 <div class="content">
     <div class="row">
@@ -21,9 +21,15 @@
                                 @if($ticketMessage->attachments->isNotEmpty())
                                     <div class="ticket-images">
                                         @foreach($ticketMessage->attachments as $attachment)
-                                            <a href="{{ route('admin.support-tickets.attachment', $attachment) }}" target="_blank" rel="noopener" title="{{ $attachment->original_name }}">
-                                                <img src="{{ route('admin.support-tickets.attachment', $attachment) }}" alt="{{ $attachment->original_name }}">
-                                            </a>
+                                            @if(str_starts_with((string) $attachment->mime_type, 'image/'))
+                                                <a href="{{ route('admin.support-tickets.attachment', $attachment) }}" target="_blank" rel="noopener" title="{{ $attachment->original_name }}">
+                                                    <img src="{{ route('admin.support-tickets.attachment', $attachment) }}" alt="{{ $attachment->original_name }}">
+                                                </a>
+                                            @else
+                                                <a class="ticket-file" href="{{ route('admin.support-tickets.attachment', $attachment) }}" target="_blank" rel="noopener">
+                                                    <i class="fa fa-file-pdf-o"></i> {{ $attachment->original_name }}
+                                                </a>
+                                            @endif
                                         @endforeach
                                     </div>
                                 @endif
@@ -41,8 +47,8 @@
                                 @if($errors->has('message'))<span class="help-block">{{ $errors->first('message') }}</span>@endif
                             </div>
                             <div class="form-group">
-                                <label for="images">Anexar imagens <small class="text-muted">(até 5)</small></label>
-                                <input id="images" type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple>
+                                <label for="attachments">Anexar imagens ou PDF <small class="text-muted">(até 5)</small></label>
+                                <input id="attachments" type="file" name="attachments[]" accept="image/jpeg,image/png,image/webp,application/pdf" multiple>
                             </div>
                             <button class="btn btn-primary"><i class="fa fa-paper-plane"></i> Enviar resposta</button>
                         </form>

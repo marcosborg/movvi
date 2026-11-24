@@ -29,10 +29,10 @@
                         <textarea id="message" name="message" class="form-control" rows="7" maxlength="10000" required placeholder="Explique o que aconteceu e, se possível, indique a página e a semana em causa.">{{ old('message') }}</textarea>
                         @if($errors->has('message'))<span class="help-block">{{ $errors->first('message') }}</span>@endif
                     </div>
-                    <div class="form-group {{ $errors->has('images.*') ? 'has-error' : '' }}">
-                        <label for="images">Imagens <small class="text-muted">(opcional, até 5 imagens)</small></label>
-                        <input id="images" type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple>
-                        <p class="help-block">JPG, PNG ou WebP; máximo 8 MB por imagem.</p>
+                    <div class="form-group {{ $errors->has('attachments.*') ? 'has-error' : '' }}">
+                        <label for="attachments">Anexos <small class="text-muted">(opcional, até 5 ficheiros)</small></label>
+                        <input id="attachments" type="file" name="attachments[]" accept="image/jpeg,image/png,image/webp,application/pdf" multiple>
+                        <p class="help-block">JPG, PNG, WebP ou PDF; máximo 10 MB por ficheiro.</p>
                     </div>
                 </div>
                 <div class="box-footer">

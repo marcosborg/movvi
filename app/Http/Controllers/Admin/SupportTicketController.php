@@ -195,8 +195,8 @@ class SupportTicketController extends Controller
     {
         $rules = [
             'message' => ['required', 'string', 'max:10000'],
-            'images' => ['nullable', 'array', 'max:5'],
-            'images.*' => ['file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
+            'attachments' => ['nullable', 'array', 'max:5'],
+            'attachments.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:10240'],
         ];
         if ($withSubject) $rules['subject'] = ['required', 'string', 'max:160'];
         return $request->validate($rules);
@@ -204,7 +204,7 @@ class SupportTicketController extends Controller
 
     private function storeAttachments(Request $request, $message): void
     {
-        foreach ($request->file('images', []) as $file) {
+        foreach ($request->file('attachments', []) as $file) {
             $path = $file->storeAs('support-tickets/'.$message->support_ticket_id, Str::uuid().'.'.$file->extension(), 'local');
             $message->attachments()->create([
                 'path' => $path,
