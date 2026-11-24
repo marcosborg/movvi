@@ -102,6 +102,10 @@ class MobileController extends Controller
         $expenseReceiptForWeek = $week
             ? ExpenseReceipt::where('driver_id', $driver->id)->where('tvde_week_id', $week->id)->first()
             : null;
+        $currentReceipt = Receipt::where('driver_id', $driver->id)
+            ->when($weekId, fn ($query) => $query->where('tvde_week_id', $weekId))
+            ->latest('created_at')
+            ->first();
 
         $receipts = Receipt::where('driver_id', $driver->id)
             ->when($weekId, function ($query) use ($weekId) {
@@ -176,7 +180,7 @@ class MobileController extends Controller
             'driver' => $this->serializeDriver($driver),
             'week' => $week ? $this->serializeWeek($week, $requestedDate) : null,
             'submission' => [
-                'balance' => $driverBalance ? $this->serializeBalance($driverBalance, $driver) : null,
+                'balance' => $driverBalance ? $this->serializeBalance($driverBalance, $driver, $currentReceipt) : null,
                 'can_submit_receipt' => (bool) ($driverBalance && (float) $driverBalance->new_balance > 0),
                 'expense_receipt' => $expenseReceiptForWeek ? [
                     'id' => $expenseReceiptForWeek->id,
@@ -1068,7 +1072,7 @@ class MobileController extends Controller
             'week' => $this->serializeWeek($week, $requestedDate),
             'statement_metrics' => $this->serializeStatementMetrics($accountSummary),
             'account_summary' => $accountSummary,
-            'balance' => $this->serializeBalance($driverBalance, $driver),
+            'balance' => $this->serializeBalance($driverBalance, $driver, $currentReceipt),
             'current_receipt' => $currentReceipt ? $this->serializeReceipt($currentReceipt) : null,
             'vehicle' => $vehicle ? [
                 'id' => $vehicle->id,
@@ -1275,7 +1279,7 @@ class MobileController extends Controller
         ];
     }
 
-    private function serializeBalance(?DriversBalance $balance, Driver $driver): ?array
+    private function serializeBalance(?DriversBalance $balance, Driver $driver, ?Receipt $receipt = null): ?array
     {
         if (! $balance) {
             return null;
@@ -1286,6 +1290,18 @@ class MobileController extends Controller
         $vat = round(((float) $balance->value) * $vatFactor, 2);
         $rf = round(-((float) $balance->value) * $rfFactor, 2);
         $openBalance = (float) $balance->new_balance;
+        $receiptValue = $receipt
+            ? (float) ($receipt->amount_transferred ?? $receipt->verified_value ?? $receipt->value ?? 0)
+            : null;
+        $receiptStatus = $receipt
+            ? ($receipt->paid ? 'paid' : ($receipt->verified ? 'verified' : 'submitted'))
+            : null;
+        $receiptStatusLabel = match ($receiptStatus) {
+            'paid' => 'Pago',
+            'verified' => 'Validado',
+            'submitted' => 'Submetido',
+            default => null,
+        };
 
         return [
             'value' => (float) $balance->value,
@@ -1295,9 +1311,11 @@ class MobileController extends Controller
             'rf' => $rf,
             // Once a receipt clears the balance, no tax-only residue may be
             // presented as a new receipt value.
-            'final' => $openBalance > 0 ? round($openBalance + $vat + $rf, 2) : $openBalance,
-            'manual_status' => $balance->manual_status,
-            'manual_status_label' => $balance->manual_status_label,
+            'final' => $receiptValue ?? ($openBalance > 0 ? round($openBalance + $vat + $rf, 2) : $openBalance),
+            // Preserve these legacy keys so installed app versions immediately
+            // display the real receipt state instead of "Sem estado".
+            'manual_status' => $receiptStatus ?? $balance->manual_status,
+            'manual_status_label' => $receiptStatusLabel ?? $balance->manual_status_label,
         ];
     }
 
