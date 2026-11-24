@@ -994,6 +994,7 @@ class MobileController extends Controller
                 'statement_metrics' => null,
                 'account_summary' => null,
                 'balance' => null,
+                'current_receipt' => null,
                 'vehicle' => null,
                 'vehicle_profitability' => null,
                 'combustion_transactions' => [],
@@ -1013,6 +1014,7 @@ class MobileController extends Controller
                 'statement_metrics' => null,
                 'account_summary' => null,
                 'balance' => null,
+                'current_receipt' => null,
                 'vehicle' => null,
                 'vehicle_profitability' => null,
                 'combustion_transactions' => [],
@@ -1031,6 +1033,12 @@ class MobileController extends Controller
             'tvde_week_id' => $week->id,
             'driver_id' => $driver->id,
         ])->first();
+
+        $currentReceipt = Receipt::with('media')
+            ->where('tvde_week_id', $week->id)
+            ->where('driver_id', $driver->id)
+            ->latest('created_at')
+            ->first();
 
         $vehicle = $this->resolveVehicleForWeek($driver->id, $week);
         $profitability = $vehicle
@@ -1061,6 +1069,7 @@ class MobileController extends Controller
             'statement_metrics' => $this->serializeStatementMetrics($accountSummary),
             'account_summary' => $accountSummary,
             'balance' => $this->serializeBalance($driverBalance, $driver),
+            'current_receipt' => $currentReceipt ? $this->serializeReceipt($currentReceipt) : null,
             'vehicle' => $vehicle ? [
                 'id' => $vehicle->id,
                 'license_plate' => $vehicle->license_plate,
@@ -1173,20 +1182,31 @@ class MobileController extends Controller
             ->orderByDesc('created_at')
             ->limit(5)
             ->get()
-            ->map(function (Receipt $receipt) {
-                return [
-                    'id' => $receipt->id,
-                    'value' => (float) ($receipt->value ?? 0),
-                    'verified_value' => $receipt->verified_value !== null ? (float) $receipt->verified_value : null,
-                    'amount_transferred' => $receipt->amount_transferred !== null ? (float) $receipt->amount_transferred : null,
-                    'verified' => (bool) $receipt->verified,
-                    'paid' => (bool) $receipt->paid,
-                    'created_at' => optional($receipt->created_at)->format('Y-m-d H:i:s'),
-                    'file_url' => $receipt->file ? $receipt->file->getUrl() : null,
-                ];
-            })
+            ->map(fn (Receipt $receipt) => $this->serializeReceipt($receipt))
             ->values()
             ->all();
+    }
+
+    private function serializeReceipt(Receipt $receipt): array
+    {
+        $status = $receipt->paid ? 'paid' : ($receipt->verified ? 'verified' : 'submitted');
+
+        return [
+            'id' => $receipt->id,
+            'value' => (float) ($receipt->value ?? 0),
+            'verified_value' => $receipt->verified_value !== null ? (float) $receipt->verified_value : null,
+            'amount_transferred' => $receipt->amount_transferred !== null ? (float) $receipt->amount_transferred : null,
+            'verified' => (bool) $receipt->verified,
+            'paid' => (bool) $receipt->paid,
+            'status' => $status,
+            'status_label' => match ($status) {
+                'paid' => 'Pago',
+                'verified' => 'Validado',
+                default => 'Submetido',
+            },
+            'created_at' => optional($receipt->created_at)->format('Y-m-d H:i:s'),
+            'file_url' => $receipt->file ? $receipt->file->getUrl() : null,
+        ];
     }
 
     private function driverActions(): array
@@ -1265,6 +1285,7 @@ class MobileController extends Controller
         $rfFactor = (float) optional($driver->contract_vat)->rf / 100;
         $vat = round(((float) $balance->value) * $vatFactor, 2);
         $rf = round(-((float) $balance->value) * $rfFactor, 2);
+        $openBalance = (float) $balance->new_balance;
 
         return [
             'value' => (float) $balance->value,
@@ -1272,7 +1293,9 @@ class MobileController extends Controller
             'new_balance' => (float) $balance->new_balance,
             'vat' => $vat,
             'rf' => $rf,
-            'final' => round(((float) $balance->new_balance) + $vat + $rf, 2),
+            // Once a receipt clears the balance, no tax-only residue may be
+            // presented as a new receipt value.
+            'final' => $openBalance > 0 ? round($openBalance + $vat + $rf, 2) : $openBalance,
             'manual_status' => $balance->manual_status,
             'manual_status_label' => $balance->manual_status_label,
         ];
