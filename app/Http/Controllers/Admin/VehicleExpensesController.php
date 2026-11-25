@@ -220,7 +220,7 @@ class VehicleExpensesController extends Controller
             ->where(function ($query) use ($includeVehicleId) {
                 $query->whereNull('suspended')->orWhere('suspended', false);
                 if ($includeVehicleId) {
-                    $query->orWhereKey($includeVehicleId);
+                    $query->orWhere('vehicle_items.id', $includeVehicleId);
                 }
             })
             ->where(function ($vehicleQuery) use ($now, $includeVehicleId) {
@@ -238,7 +238,7 @@ class VehicleExpensesController extends Controller
                 });
 
                 if ($includeVehicleId) {
-                    $vehicleQuery->orWhereKey($includeVehicleId);
+                    $vehicleQuery->orWhere('vehicle_items.id', $includeVehicleId);
                 }
             })
             ->orderBy('license_plate');
