@@ -68,6 +68,7 @@ Para escritas JSON, enviar também `Content-Type: application/json`.
 | `GET /vehicle-expenses` | Despesas e anulações |
 | `POST /maintenance-periods` | Abre manutenção; envia referência externa, ID ou matrícula e `started_at` |
 | `PATCH /maintenance-periods/{reference}` | Encerra o período com `ended_at`; repetir a mesma data é seguro |
+| `PATCH /maintenance-periods/id/{recordId}` | Encerra pelo ID numérico devolvido pela API, com o mesmo corpo e regra de reenvio |
 | `DELETE /maintenance-periods/{reference}` | Anula um período criado pela integração |
 | `POST /vehicle-expenses` | Regista despesa; envia referência externa, ID ou matrícula e os campos abaixo |
 | `PUT /vehicle-expenses/{reference}` | Substitui os campos da despesa, mantendo a viatura e a referência |
@@ -80,6 +81,10 @@ Os campos de horas usam ISO 8601 com offset, por exemplo
 `2026-11-25T10:15:00+00:00`. As respostas indicam o fuso da base.
 A manutenção nunca fecha uma cedência. Se existir sobreposição ou
 um motorista atribuído, corrigir primeiro o estado no Movvi.
+Se `MAINTENANCE_INTEGRATION_DRIVER_ID` estiver configurado, os novos períodos
+usam esse registo técnico da empresa. A atribuição atual da viatura é preservada.
+O fecho por ID e por referência está limitado aos períodos criados pela API
+para a empresa da credencial.
 
 Para despesas, enviar `category` (ID devolvido na consulta), `net_amount`
 (EUR sem IVA), `vat_rate` (percentagem), `date` (AAAA-MM-DD),

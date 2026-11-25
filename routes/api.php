@@ -26,6 +26,8 @@ Route::prefix('v1/integrations/maintenance')
         Route::get('vehicle-usages', [MaintenanceIntegrationController::class, 'usages']);
         Route::get('vehicle-expenses', [MaintenanceIntegrationController::class, 'expenses']);
         Route::post('maintenance-periods', [MaintenanceIntegrationController::class, 'openMaintenance']);
+        Route::patch('maintenance-periods/id/{recordId}', [MaintenanceIntegrationController::class, 'closeMaintenanceById'])
+            ->whereNumber('recordId');
         Route::patch('maintenance-periods/{reference}', [MaintenanceIntegrationController::class, 'closeMaintenance']);
         Route::post('vehicle-expenses', [MaintenanceIntegrationController::class, 'createExpense']);
         Route::put('vehicle-expenses/{reference}', [MaintenanceIntegrationController::class, 'updateExpense']);

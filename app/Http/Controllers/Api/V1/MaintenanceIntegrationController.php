@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Models\Driver;
 use App\Models\VehicleExpense;
 use App\Models\VehicleItem;
 use App\Models\VehicleUsage;
@@ -64,7 +65,7 @@ class MaintenanceIntegrationController extends Controller
                 'start_date' => $start,
                 'end_date' => null,
             ];
-        }, function (array $values) {
+        }, function (array $values) use ($request) {
             abort_if(VehicleItem::findOrFail($values['vehicle_item_id'])->driver_id !== null, 409,
                 'A viatura está atribuída a um motorista.');
             $overlap = VehicleUsage::where('vehicle_item_id', $values['vehicle_item_id'])
@@ -72,8 +73,23 @@ class MaintenanceIntegrationController extends Controller
                 ->exists();
             abort_if($overlap, 409, 'Existe uma utilização sobreposta. Encerra-a no Movvi antes de abrir a manutenção.');
 
-            return VehicleUsage::create($values);
+            $driverId = $this->maintenanceDriverId();
+            abort_if($driverId !== null && ! Driver::where('company_id', $this->company($request))
+                ->whereKey($driverId)->exists(), 409, 'O registo técnico de manutenção não está disponível para esta empresa.');
+
+            return VehicleUsage::create(array_replace($values, ['driver_id' => $driverId]));
         });
+    }
+
+    public function closeMaintenanceById(Request $request, string $recordId)
+    {
+        $recordId = filter_var($recordId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        abort_if($recordId === false, 404);
+        $reference = $this->references($request, 'maintenance')->where('record_id', $recordId)
+            ->value('external_reference');
+        abort_if($reference === null, 404);
+
+        return $this->closeMaintenance($request, $reference);
     }
 
     public function closeMaintenance(Request $request, string $reference)
@@ -83,7 +99,7 @@ class MaintenanceIntegrationController extends Controller
         return DB::transaction(function () use ($request, $reference, $data) {
             $usage = $this->ownedRecord($request, 'maintenance', $reference);
             abort_if($usage->trashed(), 409, 'O período foi anulado.');
-            abort_unless($usage->usage_exceptions === 'maintenance' && $usage->driver_id === null, 409,
+            abort_unless($this->isIntegratedMaintenance($usage), 409,
                 'O registo deixou de ser uma manutenção da integração.');
             $end = $this->localTime($data['ended_at']);
             $previous = $usage->getRawOriginal('end_date');
@@ -143,7 +159,7 @@ class MaintenanceIntegrationController extends Controller
         return DB::transaction(function () use ($request, $kind, $reference) {
             $model = $this->ownedRecord($request, $kind, $reference);
             if ($kind === 'maintenance') {
-                abort_unless($model->usage_exceptions === 'maintenance' && $model->driver_id === null, 409);
+                abort_unless($this->isIntegratedMaintenance($model), 409);
             }
             if (! $model->trashed()) {
                 $model->delete();
@@ -159,7 +175,7 @@ class MaintenanceIntegrationController extends Controller
             $this->lockCompany($request);
             $attributes = $values();
             $hash = hash('sha256', json_encode($attributes, JSON_THROW_ON_ERROR));
-            $mapping = $this->references($request, $kind, $reference)->first();
+            $mapping = $this->references($request, $kind)->where('external_reference', $reference)->first();
             if ($mapping) {
                 abort_unless(hash_equals($mapping->creation_hash, $hash), 409, 'A referência já identifica outro pedido.');
                 $model = $this->records($this->modelClass($kind), $request)->findOrFail($mapping->record_id);
@@ -183,7 +199,7 @@ class MaintenanceIntegrationController extends Controller
     private function ownedRecord(Request $request, string $kind, string $reference): VehicleUsage|VehicleExpense
     {
         $this->lockCompany($request);
-        $mapping = $this->references($request, $kind, $reference)->first();
+        $mapping = $this->references($request, $kind)->where('external_reference', $reference)->first();
         abort_if(! $mapping, 404);
         $model = $this->records($this->modelClass($kind), $request)->lockForUpdate()->findOrFail($mapping->record_id);
         VehicleItem::withTrashed()->where('company_id', $this->company($request))
@@ -195,7 +211,7 @@ class MaintenanceIntegrationController extends Controller
     private function result(VehicleUsage|VehicleExpense $model, string $reference, int $status = 200)
     {
         $fields = $model instanceof VehicleUsage
-            ? ['id', 'vehicle_item_id', 'usage_exceptions', 'start_date', 'end_date', 'deleted_at']
+            ? ['id', 'vehicle_item_id', 'driver_id', 'usage_exceptions', 'start_date', 'end_date', 'deleted_at']
             : ['id', 'vehicle_item_id', 'expense_type', 'value', 'vat', 'date', 'document_number', 'deleted_at'];
 
         return response()->json([
@@ -214,12 +230,22 @@ class MaintenanceIntegrationController extends Controller
         Company::lockForUpdate()->findOrFail($this->company($request));
     }
 
-    private function references(Request $request, string $kind, string $reference)
+    private function maintenanceDriverId(): ?int
+    {
+        return (int) config('maintenance_integration.maintenance_driver_id') ?: null;
+    }
+
+    private function isIntegratedMaintenance(VehicleUsage $usage): bool
+    {
+        return $usage->usage_exceptions === 'maintenance'
+            && ($usage->driver_id === null || (int) $usage->driver_id === $this->maintenanceDriverId());
+    }
+
+    private function references(Request $request, string $kind)
     {
         return DB::table('maintenance_integration_records')
             ->where('company_id', $this->company($request))
-            ->where('kind', $kind)
-            ->where('external_reference', $reference);
+            ->where('kind', $kind);
     }
 
     private function modelClass(string $kind): string

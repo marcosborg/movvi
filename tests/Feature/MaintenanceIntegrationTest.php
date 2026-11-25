@@ -42,6 +42,11 @@ class MaintenanceIntegrationTest extends TestCase
             $table->timestamps();
             $table->softDeletes();
         });
+        Schema::create('drivers', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('company_id');
+            $table->softDeletes();
+        });
         Schema::create('vehicle_usages', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('vehicle_item_id');
@@ -148,6 +153,31 @@ class MaintenanceIntegrationTest extends TestCase
         $this->getJson($path)->assertOk();
         config(['maintenance_integration.production_enabled' => false]);
         $this->getJson($path)->assertNotFound();
+    }
+
+    public function test_technical_driver_and_numeric_close_keep_existing_references_compatible(): void
+    {
+        DB::table('drivers')->insert([['id' => 223, 'company_id' => 1], ['id' => 224, 'company_id' => 2]]);
+        $this->withToken(self::TOKEN);
+        $path = self::BASE . '/maintenance-periods';
+        $payload = ['external_reference' => '700', 'vehicle_id' => 10, 'started_at' => '2026-11-25T10:15:00+00:00'];
+        $closing = ['ended_at' => '2026-11-25T11:45:00+00:00'];
+
+        $oldId = $this->postJson($path, $payload)->assertCreated()->assertJsonPath('data.driver_id', null)->json('data.id');
+        config(['maintenance_integration.maintenance_driver_id' => 223]);
+        $this->postJson($path, $payload)->assertOk()->assertJsonPath('data.id', $oldId);
+        $this->patchJson($path . '/id/50', $closing)->assertNotFound();
+        $this->patchJson($path . '/id/' . $oldId, $closing)->assertOk()->assertJsonPath('data.external_reference', '700');
+        $this->patchJson($path . '/700', $closing)->assertOk()->assertJsonPath('data.id', $oldId);
+
+        $next = ['external_reference' => 'job-next', 'started_at' => '2026-11-26T10:15:00+00:00'] + $payload;
+        config(['maintenance_integration.maintenance_driver_id' => 224]);
+        $this->postJson($path, $next)->assertConflict();
+        config(['maintenance_integration.maintenance_driver_id' => 223]);
+        $newId = $this->postJson($path, $next)->assertCreated()->assertJsonPath('data.driver_id', 223)->json('data.id');
+        $this->assertDatabaseHas('vehicle_items', ['id' => 10, 'driver_id' => null]);
+        $this->patchJson($path . '/id/' . $newId, ['ended_at' => '2026-11-26T11:45:00+00:00'])->assertOk();
+        $this->deleteJson($path . '/job-next')->assertNoContent();
     }
 
     public function test_expense_replay_correction_and_cancellation_reach_the_cost_report(): void
