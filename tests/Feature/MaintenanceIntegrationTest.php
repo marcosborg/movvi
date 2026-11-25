@@ -142,6 +142,12 @@ class MaintenanceIntegrationTest extends TestCase
         $this->postJson($writePath, $data)->assertCreated();
         config(['maintenance_integration.allowed_ip' => null]);
         $this->getJson($path)->assertNotFound();
+
+        app()->instance('env', 'local');
+        config(['maintenance_integration.allowed_ip' => '192.0.2.10']);
+        $this->getJson($path)->assertOk();
+        config(['maintenance_integration.production_enabled' => false]);
+        $this->getJson($path)->assertNotFound();
     }
 
     public function test_expense_replay_correction_and_cancellation_reach_the_cost_report(): void
