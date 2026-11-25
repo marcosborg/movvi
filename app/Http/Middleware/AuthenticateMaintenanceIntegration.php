@@ -14,7 +14,8 @@ class AuthenticateMaintenanceIntegration
         $production = app()->environment('production');
         $allowedIp = $config['allowed_ip'];
         $enabled = $production
-            ? $config['production_enabled'] === true && filter_var($allowedIp, FILTER_VALIDATE_IP) && $request->isSecure()
+            ? ($config['production_enabled'] ?? false) === true
+                && filter_var($allowedIp, FILTER_VALIDATE_IP) && $request->isSecure()
             : app()->environment('maintenance-sandbox', 'testing') && $config['enabled'];
         abort_unless($enabled, 404);
 
@@ -28,7 +29,7 @@ class AuthenticateMaintenanceIntegration
             && CarbonImmutable::parse($expiresAt)->isFuture(), 401, 'Credencial de integração inválida ou expirada.');
 
         abort_if($allowedIp && $request->ip() !== $allowedIp, 403);
-        abort_if($production && ! $request->isMethodSafe() && $config['production_writes_enabled'] !== true,
+        abort_if($production && ! $request->isMethodSafe() && ($config['production_writes_enabled'] ?? false) !== true,
             403, 'A escrita está desativada para a integração.');
         $request->attributes->set('maintenance_company_id', $companyId);
 
