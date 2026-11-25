@@ -3,7 +3,7 @@
 A API atual de produção usa a base [movvi.com.pt/api](https://movvi.com.pt/api).
 As rotas de consulta existentes continuam documentadas em
 [Autenticação e API](api-sanctum.md) e [Despesas de viaturas](vehicle-expenses-api.md).
-A integração abaixo está disponível exclusivamente numa instância isolada com
+A integração pode ser testada numa instância isolada com
 `APP_ENV=maintenance-sandbox`. Para a demonstração local, a base é
 `http://127.0.0.1:8013/api/v1/integrations/maintenance`. Para o Adelmo testar
 remotamente, publicar uma instância dedicada em HTTPS, com base fictícia, e
@@ -41,9 +41,19 @@ rodar, substituir o hash e a expiração e recarregar a configuração da instâ
 painel quando o proxy de confiança estiver configurado. O limite em Laravel é
 60 pedidos por minuto por IP para acessos sem sessão. Num ambiente partilhado,
 usar uma cache persistente. Perante `429`, aguardar o `Retry-After`.
-As rotas respondem `404` fora do ambiente de teste, mesmo com a integração
-ativada por engano. O token dá acesso apenas a estas operações e à empresa
-configurada.
+O token dá acesso apenas a estas operações e à empresa configurada.
+
+## Produção
+
+A base da integração é `https://movvi.com.pt/api/v1/integrations/maintenance`.
+Usar um token dedicado, diferente do token de testes, com hash, validade e
+empresa configurados. Definir `MAINTENANCE_INTEGRATION_ALLOWED_IP` para o
+endereço de saída efetivo do painel. Em produção, a integração exige HTTPS
+e permanece indisponível até `MAINTENANCE_INTEGRATION_PRODUCTION_ENABLED=true`.
+O acesso inicial é de consulta. Para permitir registos, correções e anulações,
+definir também `MAINTENANCE_INTEGRATION_PRODUCTION_WRITES_ENABLED=true`.
+Aplicar a migração da integração antes de abrir o acesso e recarregar a
+configuração da aplicação após alterar estes valores.
 
 ## Operações
 

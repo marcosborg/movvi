@@ -120,6 +120,30 @@ class MaintenanceIntegrationTest extends TestCase
         $this->assertDatabaseCount('maintenance_integration_records', 1);
     }
 
+    public function test_production_requires_explicit_enablement_https_and_the_configured_origin(): void
+    {
+        app()->instance('env', 'production');
+        config(['app.debug' => true, 'maintenance_integration.allowed_ip' => '192.0.2.10']);
+        $this->withToken(self::TOKEN)->withServerVariables(['REMOTE_ADDR' => '192.0.2.10']);
+        $path = 'https://localhost' . self::BASE . '/vehicles';
+        $this->getJson($path)->assertNotFound()->assertJsonMissingPath('trace');
+
+        config(['maintenance_integration.production_enabled' => true]);
+        $this->getJson('http://localhost' . self::BASE . '/vehicles')->assertNotFound();
+        $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.11'])
+            ->getJson($path)->assertForbidden()->assertJsonMissingPath('trace');
+        $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.10'])
+            ->getJson($path)->assertOk()->assertJsonCount(2, 'data');
+
+        $writePath = 'https://localhost' . self::BASE . '/maintenance-periods';
+        $data = ['external_reference' => 'prod-test', 'started_at' => '2026-11-25T10:15:00+00:00', 'vehicle_id' => 10];
+        $this->postJson($writePath, $data)->assertForbidden();
+        config(['maintenance_integration.production_writes_enabled' => true]);
+        $this->postJson($writePath, $data)->assertCreated();
+        config(['maintenance_integration.allowed_ip' => null]);
+        $this->getJson($path)->assertNotFound();
+    }
+
     public function test_expense_replay_correction_and_cancellation_reach_the_cost_report(): void
     {
         $this->withToken(self::TOKEN);

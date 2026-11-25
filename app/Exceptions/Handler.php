@@ -38,4 +38,26 @@ class Handler extends ExceptionHandler
             //
         });
     }
+
+    protected function shouldReturnJson($request, Throwable $e)
+    {
+        return $request->is('api/v1/integrations/maintenance/*') || parent::shouldReturnJson($request, $e);
+    }
+
+    protected function prepareJsonResponse($request, Throwable $e)
+    {
+        if (! $request->is('api/v1/integrations/maintenance/*')) {
+            return parent::prepareJsonResponse($request, $e);
+        }
+
+        if (! $this->isHttpException($e)) {
+            return response()->json(['message' => 'Server Error'], 500);
+        }
+
+        $status = $e->getStatusCode();
+
+        return response()->json([
+            'message' => $status < 500 ? $e->getMessage() : 'Server Error',
+        ], $status, $e->getHeaders());
+    }
 }
