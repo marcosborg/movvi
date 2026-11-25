@@ -7,6 +7,14 @@
   },
   "variable": [
     {
+      "key": "maintenance_api_base",
+      "value": "http://127.0.0.1:8013/api/v1/integrations/maintenance"
+    },
+    {
+      "key": "maintenance_api_token",
+      "value": ""
+    },
+    {
       "key": "base_url",
       "value": "https://movvi.com.pt/api"
     },
@@ -68,6 +76,203 @@
     }
   ],
   "item": [
+    {
+      "name": "Integração de manutenção (sandbox)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{maintenance_api_token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Viaturas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{maintenance_api_base}}/vehicles"
+          }
+        },
+        {
+          "name": "Categorias de despesa",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{maintenance_api_base}}/expense-categories"
+          }
+        },
+        {
+          "name": "Cedências",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{maintenance_api_base}}/vehicle-usages?per_page=50"
+          }
+        },
+        {
+          "name": "Despesas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{maintenance_api_base}}/vehicle-expenses?per_page=50"
+          }
+        },
+        {
+          "name": "Abrir manutenção",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"external_reference\": \"job-001\",\n  \"vehicle_id\": 10,\n  \"started_at\": \"2026-11-25T10:15:00+00:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{maintenance_api_base}}/maintenance-periods"
+          }
+        },
+        {
+          "name": "Fechar manutenção",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ended_at\": \"2026-11-25T11:45:00+00:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{maintenance_api_base}}/maintenance-periods/job-001"
+          }
+        },
+        {
+          "name": "Anular manutenção",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{maintenance_api_base}}/maintenance-periods/job-001"
+          }
+        },
+        {
+          "name": "Registar despesa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"external_reference\": \"expense-001\",\n  \"vehicle_id\": 10,\n  \"category\": \"Penus\",\n  \"net_amount\": \"123.45\",\n  \"vat_rate\": \"23.00\",\n  \"date\": \"2026-11-25\",\n  \"document_number\": \"FT TESTE-01\",\n  \"workshop\": \"Oficina fictícia\",\n  \"description\": \"Dois pneus\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{maintenance_api_base}}/vehicle-expenses"
+          }
+        },
+        {
+          "name": "Corrigir despesa",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"Penus\",\n  \"net_amount\": \"100.54\",\n  \"vat_rate\": \"23.00\",\n  \"date\": \"2026-11-25\",\n  \"document_number\": \"FT TESTE-01\",\n  \"workshop\": \"Oficina fictícia\",\n  \"description\": \"Dois pneus\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{maintenance_api_base}}/vehicle-expenses/expense-001"
+          }
+        },
+        {
+          "name": "Anular despesa",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{maintenance_api_base}}/vehicle-expenses/expense-001"
+          }
+        }
+      ]
+    },
     {
       "name": "Auth",
       "item": [

@@ -10,11 +10,28 @@ use App\Http\Controllers\Api\V1\MobileInspectionController;
 use App\Http\Controllers\Api\V1\MobileVehiclePlateController;
 use App\Http\Controllers\Api\V1\PublicController;
 use App\Http\Controllers\Api\V1\SalesController;
+use App\Http\Controllers\Api\V1\MaintenanceIntegrationController;
+use App\Http\Middleware\AuthenticateMaintenanceIntegration;
 use App\Http\Controllers\Api\V1\VehicleProfitabilityController;
 
 Route::post('login', [AuthController::class,'login'])->name('login');
 Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('forgotPassword');
 Route::post('v1/public/contact', [PublicController::class, 'contact'])->name('api.public.contact');
+
+Route::prefix('v1/integrations/maintenance')
+    ->middleware(AuthenticateMaintenanceIntegration::class)
+    ->group(function () {
+        Route::get('vehicles', [MaintenanceIntegrationController::class, 'vehicles']);
+        Route::get('expense-categories', [MaintenanceIntegrationController::class, 'categories']);
+        Route::get('vehicle-usages', [MaintenanceIntegrationController::class, 'usages']);
+        Route::get('vehicle-expenses', [MaintenanceIntegrationController::class, 'expenses']);
+        Route::post('maintenance-periods', [MaintenanceIntegrationController::class, 'openMaintenance']);
+        Route::patch('maintenance-periods/{reference}', [MaintenanceIntegrationController::class, 'closeMaintenance']);
+        Route::post('vehicle-expenses', [MaintenanceIntegrationController::class, 'createExpense']);
+        Route::put('vehicle-expenses/{reference}', [MaintenanceIntegrationController::class, 'updateExpense']);
+        Route::delete('vehicle-expenses/{reference}', [MaintenanceIntegrationController::class, 'cancelExpense']);
+        Route::delete('maintenance-periods/{reference}', [MaintenanceIntegrationController::class, 'cancelMaintenance']);
+    });
 
 Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin', 'middleware' => ['auth:sanctum']], function () {
     Route::get('sales-by-week/{date}', [SalesController::class,'salesByWeek'])->name('salesByWeek');

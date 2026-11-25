@@ -48,6 +48,7 @@ class VehicleExpense extends Model implements HasMedia
         'vehicle_item_id',
         'expense_type',
         'supplier',
+        'document_number',
         'date',
         'description',
         'value',
