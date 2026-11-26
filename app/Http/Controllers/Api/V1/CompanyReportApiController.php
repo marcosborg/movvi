@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\Reports;
+use App\Models\CarHire;
 use App\Models\Company;
 use App\Models\Driver;
 use App\Models\TvdeWeek;
@@ -15,6 +16,34 @@ use Illuminate\Validation\ValidationException;
 class CompanyReportApiController extends Controller
 {
     use Reports;
+
+    public function carHires(Request $request)
+    {
+        abort_unless($this->canViewCompanyReports($request), 403);
+        $company = $this->resolveCompany($request);
+        abort_unless($company, 404, 'Empresa nao encontrada.');
+        $filter = $request->validate([
+            'driver_id' => ['sometimes', 'integer', 'min:1'],
+            'active_on' => ['sometimes', 'date_format:Y-m-d'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        return CarHire::whereHas('driver', fn ($query) => $query->withTrashed()->where('company_id', $company->id))
+            ->when($filter['driver_id'] ?? null, fn ($query, $id) => $query->where('driver_id', $id))
+            ->when($filter['active_on'] ?? null, function ($query, $date) {
+                $query->whereDate('start_date', '<=', $date)
+                    ->where(fn ($when) => $when->whereNull('end_date')->orWhereDate('end_date', '>=', $date));
+            })
+            ->orderBy('id')
+            ->paginate($filter['per_page'] ?? 50, ['id', 'driver_id', 'amount', 'start_date', 'end_date'])
+            ->through(fn (CarHire $hire) => [
+                'id' => $hire->id,
+                'driver_id' => $hire->driver_id,
+                'amount' => (float) $hire->amount,
+                'start_date' => $hire->getRawOriginal('start_date'),
+                'end_date' => $hire->getRawOriginal('end_date'),
+            ]);
+    }
 
     public function weekly(Request $request)
     {

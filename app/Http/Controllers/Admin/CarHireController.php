@@ -23,7 +23,7 @@ class CarHireController extends Controller
         abort_if(Gate::denies('car_hire_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
-            $query = CarHire::with(['driver'])->select(sprintf('%s.*', (new CarHire)->table));
+            $query = $this->listedHires($request)->select('car_hires.*');
             $table = Datatables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
@@ -64,6 +64,37 @@ class CarHireController extends Controller
         }
 
         return view('admin.carHires.index');
+    }
+
+    public function export(Request $request)
+    {
+        abort_if(Gate::denies('car_hire_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $search = trim((string) $request->query('search', ''));
+        $query = $this->listedHires($request)->when($search !== '', function ($query) use ($search) {
+            $query->where(function ($matching) use ($search) {
+                $matching->where('name', 'like', '%'.$search.'%')
+                    ->orWhereHas('driver', fn ($driver) => $driver->where('name', 'like', '%'.$search.'%'));
+            });
+        });
+
+        return response()->streamDownload(function () use ($query) {
+            $file = fopen('php://output', 'w');
+            fwrite($file, "\xEF\xBB\xBF");
+            fputcsv($file, ['ID', 'Nome', 'Valor', 'Data de início', 'Data de fim', 'Motorista'], ';');
+            $text = static fn (?string $value) => preg_match('/^\s*[=+@-]/', (string) $value)
+                ? "'".$value : (string) $value;
+            foreach ($query->lazyByIdDesc(250) as $hire) {
+                fputcsv($file, [$hire->id, $text($hire->name), $hire->amount, $hire->start_date,
+                    $hire->end_date, $text($hire->driver?->name)], ';');
+            }
+            fclose($file);
+        }, 'cedencias.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    private function listedHires(Request $request)
+    {
+        return CarHire::with('driver')->when($request->boolean('active_drivers'),
+            fn ($query) => $query->whereHas('driver', fn ($driver) => $driver->where('state_id', 1)));
     }
 
     public function create()

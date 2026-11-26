@@ -21,6 +21,10 @@
                     {{ trans('cruds.carHire.title_singular') }} {{ trans('global.list') }}
                 </div>
                 <div class="panel-body">
+                    <div class="form-inline" style="margin-bottom: 12px">
+                        <label><input type="checkbox" id="active-car-hire-drivers"> Apenas motoristas ativos</label>
+                        <a class="btn btn-default" id="car-hires-export" href="{{ route('admin.car-hires.export') }}">Exportar todos os resultados (CSV)</a>
+                    </div>
                     <table class=" table table-bordered table-striped table-hover ajaxTable datatable datatable-CarHire">
                         <thead>
                             <tr>
@@ -101,7 +105,12 @@
     serverSide: true,
     retrieve: true,
     aaSorting: [],
-    ajax: "{{ route('admin.car-hires.index') }}",
+    ajax: {
+      url: "{{ route('admin.car-hires.index') }}",
+      data: function (filters) {
+        filters.active_drivers = $('#active-car-hire-drivers').prop('checked') ? 1 : 0;
+      }
+    },
     columns: [
       { data: 'placeholder', name: 'placeholder' },
 { data: 'id', name: 'id' },
@@ -117,6 +126,13 @@
     pageLength: 100,
   };
   let table = $('.datatable-CarHire').DataTable(dtOverrideGlobals);
+  $('#active-car-hire-drivers').on('change', function () { table.ajax.reload(); });
+  $('#car-hires-export').on('click', function () {
+    const url = new URL("{{ route('admin.car-hires.export') }}");
+    url.searchParams.set('active_drivers', $('#active-car-hire-drivers').prop('checked') ? '1' : '0');
+    url.searchParams.set('search', table.search());
+    this.href = url.href;
+  });
   $('a[data-toggle="tab"]').on('shown.bs.tab click', function(e){
       $($.fn.dataTable.tables(true)).DataTable()
           .columns.adjust();

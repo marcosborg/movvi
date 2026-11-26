@@ -16,7 +16,7 @@
                             <label for="vehicle_item_id">{{ trans('cruds.vehicleExpense.fields.vehicle_item') }}</label>
                             <select class="form-control select2" name="vehicle_item_id" id="vehicle_item_id">
                                 @foreach($vehicle_items as $id => $entry)
-                                    <option value="{{ $id }}" {{ (old('vehicle_item_id') ? old('vehicle_item_id') : $vehicleExpense->vehicle_item->id ?? '') == $id ? 'selected' : '' }}>{{ $entry }}</option>
+                                    <option value="{{ $id }}" @selected((string) old('vehicle_item_id', $vehicleExpense->vehicle_item_id) === (string) $id)>{{ $entry }}</option>
                                 @endforeach
                             </select>
                             <p class="help-block">Deixe em branco para registar uma despesa geral da frota, sem viatura específica.</p>

@@ -608,6 +608,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('car-hires/destroy', 'CarHireController@massDestroy')->name('car-hires.massDestroy');
     Route::post('car-hires/parse-csv-import', 'CarHireController@parseCsvImport')->name('car-hires.parseCsvImport');
     Route::post('car-hires/process-csv-import', 'CarHireController@processCsvImport')->name('car-hires.processCsvImport');
+    Route::get('car-hires/export', 'CarHireController@export')->name('car-hires.export');
     Route::resource('car-hires', 'CarHireController');
 
     // Drivers Payments

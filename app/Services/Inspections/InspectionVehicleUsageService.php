@@ -3,9 +3,11 @@
 namespace App\Services\Inspections;
 
 use App\Models\Inspection;
+use App\Models\Driver;
 use App\Models\VehicleItem;
 use App\Models\VehicleUsage;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class InspectionVehicleUsageService
@@ -73,20 +75,24 @@ class InspectionVehicleUsageService
             return;
         }
 
-        $appliedAt = Carbon::now();
-        $closedAt = $appliedAt->copy()->subSecond();
-        VehicleUsage::query()
-            ->where('vehicle_item_id', $vehicle->id)
-            ->where(fn ($query) => $query->whereNull('end_date')->orWhere('end_date', '>=', $appliedAt))
-            ->update(['end_date' => $closedAt]);
-        VehicleUsage::create([
-            'driver_id' => null,
-            'vehicle_item_id' => $vehicle->id,
-            'start_date' => $appliedAt,
-            'end_date' => null,
-            'usage_exceptions' => $state,
-        ]);
-        $vehicle->update(['driver_id' => null]);
+        DB::transaction(function () use ($vehicle, $state) {
+            $vehicle = VehicleItem::whereKey($vehicle->id)->lockForUpdate()->firstOrFail();
+            $appliedAt = Carbon::now();
+            $closedAt = $appliedAt->copy()->subSecond();
+            VehicleUsage::query()
+                ->where('vehicle_item_id', $vehicle->id)
+                ->where(fn ($query) => $query->whereNull('end_date')->orWhere('end_date', '>=', $appliedAt))
+                ->update(['end_date' => $closedAt]);
+            VehicleUsage::create([
+                'driver_id' => in_array($state, ['maintenance', 'accident'], true)
+                    ? $this->technicalDriverId($vehicle) : null,
+                'vehicle_item_id' => $vehicle->id,
+                'start_date' => $appliedAt,
+                'end_date' => null,
+                'usage_exceptions' => $state,
+            ]);
+            $vehicle->update(['driver_id' => null]);
+        });
     }
 
     public function loadPlan(Inspection $inspection): ?array
@@ -186,6 +192,7 @@ class InspectionVehicleUsageService
             ->get();
 
         $targetDriverId = isset($plan['target_driver_id']) ? (int) $plan['target_driver_id'] : null;
+        $isTechnicalAssignment = $targetDriverId !== null && $targetDriverId === $this->technicalDriverId($vehicle);
 
         foreach ($activeUsages as $usage) {
             $usage->update([
@@ -205,12 +212,21 @@ class InspectionVehicleUsageService
                 'vehicle_item_id' => $vehicle->id,
                 'start_date' => $appliedAt->format('Y-m-d H:i:s'),
                 'end_date' => null,
-                'usage_exceptions' => 'usage',
+                'usage_exceptions' => $isTechnicalAssignment ? 'maintenance' : 'usage',
             ]);
         }
 
         $vehicle->update([
-            'driver_id' => in_array($plan['mode'], ['entrega', 'passagem'], true) ? $targetDriverId : null,
+            'driver_id' => in_array($plan['mode'], ['entrega', 'passagem'], true) && ! $isTechnicalAssignment
+                ? $targetDriverId : null,
         ]);
+    }
+
+    private function technicalDriverId(VehicleItem $vehicle): ?int
+    {
+        $id = (int) config('maintenance_integration.maintenance_driver_id');
+
+        return $id > 0 && Driver::whereKey($id)->where('company_id', $vehicle->company_id)->exists()
+            ? $id : null;
     }
 }

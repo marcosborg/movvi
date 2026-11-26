@@ -257,9 +257,11 @@ class VehicleExpensesController extends Controller
     private function expenseData(Request $request): array
     {
         $data = $request->except(['files', 'ck-media']);
-        $data['vehicle_item_id'] = $request->filled('vehicle_item_id')
-            ? (int) $request->input('vehicle_item_id')
-            : null;
+        if ($request->has('vehicle_item_id')) {
+            $data['vehicle_item_id'] = $request->filled('vehicle_item_id')
+                ? (int) $request->input('vehicle_item_id')
+                : null;
+        }
 
         return $data;
     }

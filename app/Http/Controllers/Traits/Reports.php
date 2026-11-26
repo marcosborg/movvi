@@ -38,11 +38,10 @@ trait Reports
     {
         $tvde_week = TvdeWeek::find($tvde_week_id);
 
-        $drivers = Driver::where('company_id', $company_id)
-            ->where('state_id', 1)
-            ->orderBy('name')
-            ->get()
-            ->load([
+        $weekStart = Carbon::parse($tvde_week->getRawOriginal('start_date'))->startOfDay();
+        $weekEnd = Carbon::parse($tvde_week->getRawOriginal('end_date'))->endOfDay();
+        [$drivers, $activities] = $this->weeklyReportRoster((int) $company_id, (int) $tvde_week_id, $weekStart, $weekEnd);
+        $drivers->load([
                 'contract_vat',
                 'card',
                 'electric',
@@ -50,8 +49,6 @@ trait Reports
                 'cards'
             ]);
 
-        $weekStart = Carbon::parse($tvde_week->getRawOriginal('start_date'))->startOfDay();
-        $weekEnd = Carbon::parse($tvde_week->getRawOriginal('end_date'))->endOfDay();
         $driverIds = $drivers->pluck('id')->all();
 
         $weekUsages = VehicleUsage::with('vehicle_item')
@@ -142,12 +139,7 @@ trait Reports
             $driver->weekly_km = (float) ($mileageAllocation['kilometers'][$driver->id] ?? 0);
 
             // ---------- Atividades UBER ----------
-            $uber_activities = TvdeActivity::where([
-                'company_id' => $company_id,
-                'tvde_operator_id' => 1,
-                'tvde_week_id' => $tvde_week_id,
-                'driver_code' => $driver->uber_uuid
-            ])->get();
+            $uber_activities = $activities->get($driver->id.':1', collect());
 
             $uber_gross = (float) $uber_activities->sum('gross');
             $uber_net = (float) $uber_activities->sum('net');
@@ -157,11 +149,7 @@ trait Reports
             $uber_referral_bonus = (float) $uber_activities->sum('referral_bonus');
 
             // ---------- Atividades BOLT ----------
-            $bolt_activities = TvdeActivity::where([
-                'company_id' => $company_id,
-                'tvde_operator_id' => 2,
-                'tvde_week_id' => $tvde_week_id,
-            ])->whereIn('driver_code', $driver->boltIdentifiers())->get();
+            $bolt_activities = $activities->get($driver->id.':2', collect());
 
             $bolt_gross = (float) $bolt_activities->sum('gross');
             $bolt_net = (float) $bolt_activities->sum('net');
@@ -598,6 +586,60 @@ trait Reports
         return [
             'drivers' => $drivers,
             'totals' => $totals,
+        ];
+    }
+
+    protected function weeklyReportRoster(int $companyId, int $weekId, Carbon $start, Carbon $end): array
+    {
+        $candidates = Driver::withTrashed()->where('company_id', $companyId)->orderBy('name')->get();
+        $ids = $candidates->pluck('id');
+        $recorded = collect([CurrentAccount::class, Receipt::class, DriversBalance::class])
+            ->flatMap(fn ($model) => $model::where('tvde_week_id', $weekId)->whereIn('driver_id', $ids)
+                ->distinct()->pluck('driver_id'));
+        $used = VehicleUsage::whereIn('driver_id', $ids)
+            ->where('start_date', '<=', $end)
+            ->where(fn ($query) => $query->whereNull('end_date')->orWhere('end_date', '>=', $start))
+            ->where(fn ($query) => $query->whereNull('usage_exceptions')->orWhere('usage_exceptions', 'usage'))
+            ->distinct()->pluck('driver_id');
+        $financialIds = array_fill_keys($recorded->all(), true);
+        $usageIds = array_fill_keys($used->all(), true);
+        $active = static fn (Driver $driver) => ! $driver->trashed() && (int) $driver->state_id === 1;
+        $code = static fn ($value) => mb_strtolower(trim((string) $value));
+        $owners = [];
+
+        // Prefer direct weekly records, then a period of use, to resolve reused platform identifiers.
+        foreach ($candidates->sortBy([
+            fn (Driver $a, Driver $b) => isset($financialIds[$b->id]) <=> isset($financialIds[$a->id]),
+            fn (Driver $a, Driver $b) => isset($usageIds[$b->id]) <=> isset($usageIds[$a->id]),
+            fn (Driver $a, Driver $b) => $active($b) <=> $active($a),
+            fn (Driver $a, Driver $b) => $a->id <=> $b->id,
+        ]) as $driver) {
+            if ($code($driver->uber_uuid) !== '') {
+                $owners[1][$code($driver->uber_uuid)] ??= $driver->id;
+            }
+            foreach ($driver->boltIdentifiers() as $identifier) {
+                $owners[2][$code($identifier)] ??= $driver->id;
+            }
+        }
+
+        $activities = collect();
+        $withActivity = [];
+        foreach (TvdeActivity::where('company_id', $companyId)->where('tvde_week_id', $weekId)
+            ->whereIn('tvde_operator_id', [1, 2])->get() as $entry) {
+            $driverId = $owners[$entry->tvde_operator_id][$code($entry->driver_code)] ?? null;
+            if ($driverId !== null) {
+                $key = $driverId.':'.$entry->tvde_operator_id;
+                $bucket = $activities->get($key, collect());
+                $activities->put($key, $bucket->push($entry));
+                $withActivity[$driverId] = true;
+            }
+        }
+
+        return [
+            $candidates->filter(fn (Driver $driver) => $active($driver)
+                || isset($financialIds[$driver->id]) || isset($usageIds[$driver->id]) || isset($withActivity[$driver->id]))
+                ->values(),
+            $activities,
         ];
     }
 

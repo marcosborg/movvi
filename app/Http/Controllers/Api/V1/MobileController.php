@@ -400,6 +400,7 @@ class MobileController extends Controller
         return response()->json([
             'driver' => $this->serializeDriver($driver),
             'weeks' => $weeks,
+            'default_week' => $this->latestBillingWeek()?->start_date,
         ]);
     }
 
@@ -838,9 +839,15 @@ class MobileController extends Controller
             ];
         }
 
-        $week = TvdeWeek::orderByDesc('start_date')->first();
+        $week = $this->latestBillingWeek();
 
         return [$week, $week?->start_date];
+    }
+
+    private function latestBillingWeek(): ?TvdeWeek
+    {
+        return TvdeWeek::whereDate('end_date', '<', today())->orderByDesc('start_date')->first()
+            ?? TvdeWeek::whereDate('start_date', '<=', today())->orderByDesc('start_date')->first();
     }
 
     private function resolveVehicleForWeek(int $driverId, TvdeWeek $week)
