@@ -19,6 +19,9 @@ use App\Models\Company;
 use App\Models\TvdeWeek;
 use App\Services\AdminDriverImpersonationService;
 use App\Services\ReceiptValidationService;
+use App\Services\PaidDriverWeek;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 
 class ReceiptController extends Controller
 {
@@ -169,6 +172,7 @@ class ReceiptController extends Controller
         // A colocação de um recibo nunca movimenta saldo. A validação explícita,
         // transacional e auditada é a única operação autorizada a fazê-lo.
         $data['verified'] = false;
+        $data['paid'] = false;
         $data['verified_value'] = null;
         $data['amount_transferred'] = null;
         $data['verified_at'] = null;
@@ -216,10 +220,14 @@ class ReceiptController extends Controller
 
     public function update(UpdateReceiptRequest $request, Receipt $receipt)
     {
-        $receipt->update($request->except([
-            'verified', 'verified_value', 'verified_at', 'verified_by',
-            'balance_applied_at', 'amount_transferred',
-        ]));
+        $data = $request->validated();
+        DB::transaction(function () use (&$receipt, $data) {
+            PaidDriverWeek::lockDrivers([$receipt->driver_id, $data['driver_id']]);
+            $receipt = Receipt::lockForUpdate()->findOrFail($receipt->id);
+            PaidDriverWeek::assertRecordOpen($receipt);
+            PaidDriverWeek::assertOpen((int) $data['driver_id'], (int) $data['tvde_week_id']);
+            $receipt->update(Arr::only($data, ['driver_id', 'tvde_week_id', 'value']));
+        });
 
         if ($request->input('file', false)) {
             if (!$receipt->file || $request->input('file') !== $receipt->file->file_name) {
@@ -248,7 +256,10 @@ class ReceiptController extends Controller
     {
         abort_if(Gate::denies('receipt_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $receipt->delete();
+        DB::transaction(function () use ($receipt) {
+            PaidDriverWeek::lockDrivers([$receipt->driver_id]);
+            Receipt::lockForUpdate()->findOrFail($receipt->id)->delete();
+        });
 
         return back();
     }
@@ -257,9 +268,12 @@ class ReceiptController extends Controller
     {
         $receipts = Receipt::find(request('ids'));
 
-        foreach ($receipts as $receipt) {
-            $receipt->delete();
-        }
+        DB::transaction(function () use ($receipts) {
+            PaidDriverWeek::lockDrivers($receipts->pluck('driver_id')->all());
+            foreach (Receipt::whereKey($receipts->modelKeys())->lockForUpdate()->get() as $receipt) {
+                $receipt->delete();
+            }
+        });
 
         return response(null, Response::HTTP_NO_CONTENT);
     }
@@ -279,9 +293,13 @@ class ReceiptController extends Controller
     public function checkPay(Request $request, Receipt $receipt)
     {
         $this->authorizeManagement($request, $receipt);
-        abort_unless($receipt->verified, 422, 'Falta validar o recibo.');
-        $receipt->paid = true;
-        $receipt->save();
+        DB::transaction(function () use ($receipt) {
+            PaidDriverWeek::lockDrivers([$receipt->driver_id]);
+            $current = Receipt::lockForUpdate()->findOrFail($receipt->id);
+            abort_unless($current->verified, 422, 'Falta validar o recibo.');
+            $current->paid = true;
+            $current->save();
+        });
 
         return response()->json(['message' => 'Recibo marcado como pago.']);
     }

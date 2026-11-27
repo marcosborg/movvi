@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use DateTimeInterface;
+use App\Services\PaidDriverWeek;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -53,6 +54,23 @@ class Receipt extends Model implements HasMedia
         'verified_at' => 'datetime',
         'balance_applied_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::updating(function (self $receipt) {
+            if ($receipt->getOriginal('paid') && $receipt->isDirty([
+                'driver_id', 'tvde_week_id', 'paid', 'verified', 'value', 'balance', 'verified_value',
+                'amount_transferred', 'verified_at', 'verified_by', 'balance_applied_at', 'deleted_at',
+            ])) {
+                PaidDriverWeek::assertRecordOpen($receipt);
+            }
+        });
+        static::deleting(function (self $receipt) {
+            if ($receipt->paid) {
+                PaidDriverWeek::assertRecordOpen($receipt);
+            }
+        });
+    }
 
     protected function serializeDate(DateTimeInterface $date)
     {

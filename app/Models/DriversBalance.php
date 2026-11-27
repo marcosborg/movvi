@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use DateTimeInterface;
+use App\Services\PaidDriverWeek;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -50,6 +51,18 @@ class DriversBalance extends Model
     protected $appends = [
         'manual_status_label',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $balance) {
+            if (!$balance->exists || $balance->isDirty([
+                'driver_id', 'tvde_week_id', 'value', 'last_balance', 'new_balance', 'manual_status', 'deleted_at',
+            ])) {
+                PaidDriverWeek::assertRecordOpen($balance);
+            }
+        });
+        static::deleting(fn (self $balance) => PaidDriverWeek::assertRecordOpen($balance));
+    }
 
     protected function serializeDate(DateTimeInterface $date)
     {

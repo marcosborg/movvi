@@ -16,11 +16,14 @@ class ReceiptValidationService
     public function validate(Receipt $receipt, float $receiptValue, float $amountTransferred, User $actor): Receipt
     {
         [$validatedReceipt, $wasValidatedNow] = DB::transaction(function () use ($receipt, $receiptValue, $amountTransferred, $actor) {
+            PaidDriverWeek::lockDrivers([$receipt->driver_id]);
             $lockedReceipt = Receipt::query()->lockForUpdate()->findOrFail($receipt->id);
 
             if ($lockedReceipt->verified && $lockedReceipt->balance_applied_at) {
                 return [$lockedReceipt, false];
             }
+
+            PaidDriverWeek::assertOpen($lockedReceipt->driver_id, $lockedReceipt->tvde_week_id);
 
             $balance = DriversBalance::query()
                 ->where('driver_id', $lockedReceipt->driver_id)

@@ -26,6 +26,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Services\WeeklyImportReconciliationService;
 use App\Services\DriverReceiptComplianceReportService;
 use App\Exports\DriverReceiptComplianceExport;
+use App\Services\PaidDriverWeek;
+use Illuminate\Support\Facades\DB;
 
 class CompanyReportController extends Controller
 {
@@ -236,7 +238,8 @@ class CompanyReportController extends Controller
         ]);
         abort_unless(count($request->input('data')) === (int) $request->input('expected_count'), 422, 'O pedido não contém todos os condutores selecionados. Nenhum registo foi validado.');
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($request) {
+        DB::transaction(function () use ($request) {
+            PaidDriverWeek::lockDrivers(array_column(array_column($request->input('data'), 'driver'), 'id'));
             foreach ($request->input('data') as $data) {
                 $driverData = $data['driver'] ?? [];
                 $weekId = (int) ($data['tvde_week_id'] ?? $driverData['tvde_week_id'] ?? session()->get('tvde_week_id') ?? 0);
@@ -245,6 +248,8 @@ class CompanyReportController extends Controller
                 if (!$weekId || !$driverId) {
                     continue;
                 }
+
+                PaidDriverWeek::assertOpen($driverId, $weekId);
 
                 // 🔹 Função inline para normalizar valores vindos do front
                 $normalize = function ($value): float {
@@ -303,44 +308,33 @@ class CompanyReportController extends Controller
 
     public function revalidateData(Request $request)
     {
-        $driver_id = $request->driver_id;
-        $company_id = Driver::find($driver_id)->company_id;
-        $tvde_week_id = $request->tvde_week_id;
-        $data = $request->data;
+        $validated = $request->validate([
+            'driver_id' => ['required', 'integer', 'exists:drivers,id'],
+            'tvde_week_id' => ['required', 'integer', 'exists:tvde_weeks,id'],
+            'data.driver' => ['required', 'array'],
+        ]);
+        $driverId = (int) $validated['driver_id'];
+        $weekId = (int) $validated['tvde_week_id'];
+        $driverData = $validated['data']['driver'];
 
-        $current_account = CurrentAccount::where([
-            'tvde_week_id' => $tvde_week_id,
-            'driver_id' => $driver_id
-        ])->first();
-        $current_account->data = json_encode($this->buildCurrentAccountPayload($data['driver']));
-        $current_account->save();
+        DB::transaction(function () use ($driverId, $weekId, $driverData) {
+            PaidDriverWeek::assertOpen($driverId, $weekId);
 
-        $existingBalance = DriversBalance::where([
-            'tvde_week_id' => $tvde_week_id,
-            'driver_id' => $driver_id
-        ])->first();
-        $existingManualStatus = $existingBalance?->manual_status;
+            $scope = ['driver_id' => $driverId, 'tvde_week_id' => $weekId];
+            $account = CurrentAccount::where($scope)->lockForUpdate()->firstOrFail();
+            $account->data = json_encode($this->buildCurrentAccountPayload($driverData));
+            $account->save();
 
-        DriversBalance::where([
-            'tvde_week_id' => $tvde_week_id,
-            'driver_id' => $driver_id
-        ])->delete();
-
-        $tvde_week = TvdeWeek::find((int) $tvde_week_id);
-        $last_balance = $this->previousDriverBalanceBeforeWeek((int) $data['driver']['id'], $tvde_week);
-
-        $previous_balance = $last_balance ? (float) $last_balance->new_balance : 0.0;
-        $total = $this->driverTotalFromPayload($data['driver']);
-        $new_balance = $previous_balance + $total;
-
-        $driver_balance = new DriversBalance;
-        $driver_balance->driver_id = $data['driver']['id'];
-        $driver_balance->tvde_week_id = $data['tvde_week_id'];
-        $driver_balance->value = $total;
-        $driver_balance->last_balance = $previous_balance;
-        $driver_balance->new_balance = $new_balance;
-        $driver_balance->manual_status = $existingManualStatus;
-        $driver_balance->save();
+            $week = TvdeWeek::findOrFail($weekId);
+            $previous = (float) ($this->previousDriverBalanceBeforeWeek($driverId, $week)?->new_balance ?? 0);
+            $total = $this->driverTotalFromPayload($driverData);
+            $balance = DriversBalance::withTrashed()->where($scope)->lockForUpdate()->first()
+                ?? new DriversBalance($scope);
+            if ($balance->trashed()) {
+                $balance->restore();
+            }
+            $balance->fill(['last_balance' => $previous, 'new_balance' => $previous + $total, 'value' => $total])->save();
+        });
     }
 
     protected function buildCurrentAccountPayload(array $driverData): array
@@ -370,19 +364,12 @@ class CompanyReportController extends Controller
     public function deleteData($tvde_week_id, $driver_id)
     {
 
-        $current_account = CurrentAccount::where([
-            'tvde_week_id' => $tvde_week_id,
-            'driver_id' => $driver_id
-        ])->first();
-
-        if ($current_account) {
-            $current_account->delete();
-        }
-
-        DriversBalance::where([
-            'tvde_week_id' => $tvde_week_id,
-            'driver_id' => $driver_id
-        ])->delete();
+        DB::transaction(function () use ($tvde_week_id, $driver_id) {
+            PaidDriverWeek::assertOpen((int) $driver_id, (int) $tvde_week_id);
+            $scope = ['tvde_week_id' => $tvde_week_id, 'driver_id' => $driver_id];
+            CurrentAccount::where($scope)->lockForUpdate()->first()?->delete();
+            DriversBalance::where($scope)->lockForUpdate()->first()?->delete();
+        });
 
         return redirect()->route('admin.company-reports.index')->with('message', 'Data deleted successfully.');
     }

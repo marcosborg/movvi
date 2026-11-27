@@ -11,7 +11,10 @@ class DriverBalanceCorrectionService
     public function correct(int $balanceId, float $newBalance): void
     {
         DB::transaction(function () use ($balanceId, $newBalance) {
+            $balance = DriversBalance::findOrFail($balanceId);
+            PaidDriverWeek::lockDrivers([$balance->driver_id]);
             $balance = DriversBalance::lockForUpdate()->findOrFail($balanceId);
+            PaidDriverWeek::assertRecordOpen($balance);
             $week = TvdeWeek::findOrFail($balance->tvde_week_id);
             $balance->new_balance = round($newBalance, 2);
             $balance->save();

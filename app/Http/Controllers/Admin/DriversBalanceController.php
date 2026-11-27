@@ -8,6 +8,8 @@ use App\Http\Requests\StoreDriversBalanceRequest;
 use App\Http\Requests\UpdateDriversBalanceRequest;
 use App\Models\Driver;
 use App\Models\DriversBalance;
+use App\Services\PaidDriverWeek;
+use Illuminate\Support\Facades\DB;
 use App\Models\TvdeWeek;
 use Gate;
 use Illuminate\Http\Request;
@@ -51,7 +53,7 @@ class DriversBalanceController extends Controller
 
     public function store(StoreDriversBalanceRequest $request)
     {
-        $driversBalance = DriversBalance::create($request->all());
+        DB::transaction(fn () => DriversBalance::create($request->validated()));
 
         return redirect()->route('admin.drivers-balances.index');
     }
@@ -72,7 +74,10 @@ class DriversBalanceController extends Controller
 
     public function update(UpdateDriversBalanceRequest $request, DriversBalance $driversBalance)
     {
-        $driversBalance->update($request->all());
+        DB::transaction(function () use ($request, $driversBalance) {
+            PaidDriverWeek::lockDrivers([$driversBalance->driver_id, $request->input('driver_id')]);
+            DriversBalance::lockForUpdate()->findOrFail($driversBalance->id)->update($request->validated());
+        });
 
         return redirect()->route('admin.drivers-balances.index');
     }
@@ -90,7 +95,7 @@ class DriversBalanceController extends Controller
     {
         abort_if(Gate::denies('drivers_balance_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $driversBalance->delete();
+        DB::transaction(fn () => $driversBalance->delete());
 
         return back();
     }
@@ -99,9 +104,12 @@ class DriversBalanceController extends Controller
     {
         $driversBalances = DriversBalance::find(request('ids'));
 
-        foreach ($driversBalances as $driversBalance) {
-            $driversBalance->delete();
-        }
+        DB::transaction(function () use ($driversBalances) {
+            PaidDriverWeek::lockDrivers($driversBalances->pluck('driver_id')->all());
+            foreach ($driversBalances as $driversBalance) {
+                $driversBalance->delete();
+            }
+        });
 
         return response(null, Response::HTTP_NO_CONTENT);
     }

@@ -23,7 +23,12 @@ class CompanyReportBatchValidationTest extends TestCase
         Schema::create('drivers_balances', function (Blueprint $t) {
             $t->id(); $t->unsignedBigInteger('driver_id'); $t->unsignedBigInteger('tvde_week_id');
             $t->double('value'); $t->double('last_balance'); $t->double('new_balance');
+            $t->string('manual_status')->nullable();
             $t->timestamps(); $t->softDeletes();
+        });
+        Schema::create('receipts', function (Blueprint $t) {
+            $t->id(); $t->integer('driver_id'); $t->integer('tvde_week_id');
+            $t->boolean('paid')->default(false); $t->softDeletes();
         });
         DB::table('tvde_weeks')->insert(['id' => 1, 'start_date' => '2026-09-01']);
         for ($id = 1; $id <= 40; $id++) DB::table('drivers')->insert(['id' => $id]);
@@ -66,5 +71,24 @@ class CompanyReportBatchValidationTest extends TestCase
         $this->postJson('/admin/company-reports/validate-data', ['data' => $this->rows(), 'expected_count' => 40])->assertStatus(500);
         $this->assertSame(0, DB::table('current_accounts')->count());
         $this->assertSame(0, DB::table('drivers_balances')->count());
+    }
+
+    public function test_paid_receipt_blocks_validation_revalidation_and_deletion(): void
+    {
+        $rows = $this->rows();
+        $this->postJson('/admin/company-reports/validate-data', ['data' => $rows, 'expected_count' => 40])
+            ->assertOk();
+        DB::table('receipts')->insert(['driver_id' => 40, 'tvde_week_id' => 1, 'paid' => true]);
+        $rows[0]['driver']['total'] = 90;
+        $this->postJson('/admin/company-reports/validate-data', ['data' => $rows, 'expected_count' => 40])
+            ->assertUnprocessable()->assertJsonValidationErrors('week');
+        $this->assertDatabaseHas('drivers_balances', ['driver_id' => 1, 'value' => 42.5]);
+        $this->postJson('/admin/company-reports/revalidate-data', [
+            'driver_id' => 40, 'tvde_week_id' => 1, 'data' => ['driver' => ['total' => 100]],
+        ])->assertUnprocessable()->assertJsonValidationErrors('week');
+        $this->getJson('/admin/company-reports/delete-data/1/40')
+            ->assertUnprocessable()->assertJsonValidationErrors('week');
+        $this->assertDatabaseHas('current_accounts', ['driver_id' => 40, 'deleted_at' => null]);
+        $this->assertDatabaseHas('drivers_balances', ['driver_id' => 40, 'value' => 42.5, 'deleted_at' => null]);
     }
 }

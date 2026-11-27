@@ -66,12 +66,13 @@ trait Reports
 
         $mileages = WeeklyVehicleMileage::where('tvde_week_id', $tvde_week_id)->get();
         $mileageAllocation = $this->buildWeeklyMileageAllocation($weekUsages, $mileages, $weekStart, $weekEnd);
-        $weekReceipts = Receipt::whereIn('driver_id', $driverIds)
+        $receiptsByDriver = Receipt::whereIn('driver_id', $driverIds)
             ->where('tvde_week_id', $tvde_week_id)
             ->orderByDesc('verified')
             ->orderByDesc('id')
             ->get()
-            ->groupBy('driver_id')
+            ->groupBy('driver_id');
+        $weekReceipts = $receiptsByDriver
             ->map(function ($receipts) {
                 return $receipts->firstWhere('verified', true) ?? $receipts->first();
             });
@@ -512,6 +513,8 @@ trait Reports
 
             $driver->balance_manual_status = $current_balance?->manual_status;
             $driver->balance_manual_status_label = $current_balance?->manual_status_label;
+            $driver->paid_week_locked = $current_balance?->manual_status === DriversBalance::STATUS_PAID
+                || (bool) $receiptsByDriver->get($driver->id)?->contains(fn (Receipt $receipt) => $receipt->paid);
             $driver->balance_record_id = $current_balance?->id;
         }
 

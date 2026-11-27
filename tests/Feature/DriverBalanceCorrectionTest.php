@@ -15,6 +15,11 @@ class DriverBalanceCorrectionTest extends TestCase
         parent::setUp();
         config(['database.default' => 'sqlite', 'database.connections.sqlite.database' => ':memory:']);
         DB::purge('sqlite');
+        Schema::create('drivers', fn (Blueprint $t) => $t->id());
+        Schema::create('receipts', function (Blueprint $t) {
+            $t->id(); $t->integer('driver_id'); $t->integer('tvde_week_id');
+            $t->boolean('paid')->default(false); $t->softDeletes();
+        });
         Schema::create('tvde_weeks', function (Blueprint $t) {
             $t->id(); $t->date('start_date'); $t->softDeletes();
         });
@@ -41,13 +46,26 @@ class DriverBalanceCorrectionTest extends TestCase
 
     public function test_zero_carries_forward_in_date_order_preserving_weekly_movements(): void
     {
-        DB::table('drivers_balances')->where('id', 3)->update(['manual_status' => 'paid']);
         app(DriverBalanceCorrectionService::class)->correct(2, 0);
         $this->assertDatabaseHas('drivers_balances', ['id' => 2, 'new_balance' => 0, 'last_balance' => 80]);
-        $this->assertDatabaseHas('drivers_balances', ['id' => 3, 'last_balance' => 0, 'new_balance' => 30, 'value' => 50, 'manual_status' => 'paid']);
+        $this->assertDatabaseHas('drivers_balances', ['id' => 3, 'last_balance' => 0, 'new_balance' => 30, 'value' => 50]);
         $this->assertDatabaseHas('drivers_balances', ['id' => 4, 'last_balance' => 30, 'new_balance' => -10]);
         $this->assertDatabaseHas('drivers_balances', ['id' => 1, 'new_balance' => 80]);
         $this->assertDatabaseHas('drivers_balances', ['id' => 5, 'new_balance' => 80]);
+    }
+
+    public function test_paid_week_blocks_a_direct_or_propagated_balance_correction(): void
+    {
+        DB::table('drivers_balances')->where('id', 3)->update(['manual_status' => 'paid']);
+        $this->signIn(true);
+        foreach ([3, 2] as $id) {
+            $this->postJson('/admin/financial-statements/update-balance', [
+                'driver_balance_id' => $id, 'new_balance' => 0,
+            ])->assertUnprocessable()->assertJsonValidationErrors('week');
+        }
+        $this->assertDatabaseHas('drivers_balances', ['id' => 2, 'new_balance' => 100]);
+        $this->assertDatabaseHas('drivers_balances', ['id' => 3, 'last_balance' => 100, 'new_balance' => 130]);
+        $this->assertDatabaseHas('drivers_balances', ['id' => 4, 'last_balance' => 130, 'new_balance' => 90]);
     }
 
     public function test_resaving_an_old_zero_repairs_stale_carries_and_is_idempotent(): void

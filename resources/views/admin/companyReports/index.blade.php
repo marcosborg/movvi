@@ -477,24 +477,28 @@
                                     <td style="text-align: right">{{ number_format($driver->last_balance, 2) }} <small>€</small></td>
                                     <td style="text-align: right">{{ number_format($driver->new_balance, 2) }} <small>€</small></td>
                                     <td style="text-align: center">
-                                        @if($driver->balance_manual_status_label)
+                                        @if($driver->paid_week_locked)
+                                            <span class="label label-success">Pago · bloqueado</span>
+                                        @elseif($driver->balance_manual_status_label)
                                             <span class="label label-primary">{{ $driver->balance_manual_status_label }}</span>
                                         @else
                                             <span class="label label-default">Por definir</span>
                                         @endif
-                                        @if($driver->balance_record_id)
+                                        @if($driver->balance_record_id && !$driver->paid_week_locked)
                                             <br><a class="btn btn-xs btn-info" href="{{ route('admin.drivers-balances.edit', $driver->balance_record_id) }}" target="_blank" style="margin-top: 4px;">Editar</a>
                                         @endif
                                     </td>
                                     <td style="text-align: right">
                                         <div class="checkbox">
                                             <label>
-                                                <input type="checkbox" value="{{ json_encode($driver) }}" {{ $driver->current_account ? 'checked disabled' : '' }}><span class="glyphicon glyphicon-ok green-checkmark {{ $driver->current_account ? 'verified' : 'unverified' }}"></span>
+                                                <input type="checkbox" value="{{ json_encode($driver) }}" @checked($driver->current_account) @disabled($driver->current_account || $driver->paid_week_locked)><span class="glyphicon glyphicon-ok green-checkmark {{ $driver->current_account ? 'verified' : 'unverified' }}"></span>
                                             </label>
                                         </div>
                                     </td>
                                     <td>
-                                        <button type="button" onclick="deleteData({{ $tvde_week_id }}, {{ $driver->id }})" class="btn btn-sm"><span class="glyphicon glyphicon-trash"></span></button>
+                                        @unless($driver->paid_week_locked)
+                                            <button type="button" onclick="deleteData({{ $tvde_week_id }}, {{ $driver->id }})" class="btn btn-sm"><span class="glyphicon glyphicon-trash"></span></button>
+                                        @endunless
                                     </td>
                                 </tr>
                             @endif
@@ -663,10 +667,10 @@
                     ).then(() => {
                         location.reload();
                     });
-                }).fail(function() {
+                }).fail(function(error) {
                     Swal.fire(
                         'Erro!',
-                        'Ocorreu um erro ao remover os dados.',
+                        error.responseJSON?.message || 'Ocorreu um erro ao remover os dados.',
                         'error'
                     );
                 });

@@ -7,6 +7,8 @@ use App\Http\Requests\MassDestroyCurrentAccountRequest;
 use App\Http\Requests\StoreCurrentAccountRequest;
 use App\Http\Requests\UpdateCurrentAccountRequest;
 use App\Models\CurrentAccount;
+use App\Services\PaidDriverWeek;
+use Illuminate\Support\Facades\DB;
 use App\Models\Driver;
 use App\Models\Company;
 use App\Models\TvdeWeek;
@@ -102,7 +104,7 @@ class CurrentAccountController extends Controller
 
     public function store(StoreCurrentAccountRequest $request)
     {
-        $currentAccount = CurrentAccount::create($request->all());
+        DB::transaction(fn () => CurrentAccount::create($request->validated()));
 
         return redirect()->route('admin.current-accounts.index');
     }
@@ -122,7 +124,10 @@ class CurrentAccountController extends Controller
 
     public function update(UpdateCurrentAccountRequest $request, CurrentAccount $currentAccount)
     {
-        $currentAccount->update($request->all());
+        DB::transaction(function () use ($request, $currentAccount) {
+            PaidDriverWeek::lockDrivers([$currentAccount->driver_id, $request->input('driver_id')]);
+            CurrentAccount::lockForUpdate()->findOrFail($currentAccount->id)->update($request->validated());
+        });
 
         return redirect()->route('admin.current-accounts.index');
     }
@@ -140,7 +145,7 @@ class CurrentAccountController extends Controller
     {
         abort_if(Gate::denies('current_account_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $currentAccount->delete();
+        DB::transaction(fn () => $currentAccount->delete());
 
         return back();
     }
@@ -149,9 +154,12 @@ class CurrentAccountController extends Controller
     {
         $currentAccounts = CurrentAccount::find(request('ids'));
 
-        foreach ($currentAccounts as $currentAccount) {
-            $currentAccount->delete();
-        }
+        DB::transaction(function () use ($currentAccounts) {
+            PaidDriverWeek::lockDrivers($currentAccounts->pluck('driver_id')->all());
+            foreach ($currentAccounts as $currentAccount) {
+                $currentAccount->delete();
+            }
+        });
 
         return response(null, Response::HTTP_NO_CONTENT);
     }

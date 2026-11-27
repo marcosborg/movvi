@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use DateTimeInterface;
+use App\Services\PaidDriverWeek;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -29,6 +30,16 @@ class CurrentAccount extends Model
         'updated_at',
         'deleted_at',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $account) {
+            if (!$account->exists || $account->isDirty(['driver_id', 'tvde_week_id', 'data', 'deleted_at'])) {
+                PaidDriverWeek::assertRecordOpen($account);
+            }
+        });
+        static::deleting(fn (self $account) => PaidDriverWeek::assertRecordOpen($account));
+    }
 
     protected function serializeDate(DateTimeInterface $date)
     {

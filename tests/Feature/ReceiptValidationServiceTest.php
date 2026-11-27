@@ -27,6 +27,7 @@ class ReceiptValidationServiceTest extends TestCase
         Schema::create('drivers_balances', function (Blueprint $table) {
             $table->id(); $table->unsignedBigInteger('driver_id'); $table->unsignedBigInteger('tvde_week_id');
             $table->decimal('last_balance', 10, 2)->default(0); $table->decimal('new_balance', 10, 2)->default(0);
+            $table->string('manual_status')->nullable();
             $table->timestamps(); $table->softDeletes();
         });
         Schema::create('receipts', function (Blueprint $table) {
