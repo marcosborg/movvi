@@ -447,7 +447,7 @@ class CompanyReportController extends Controller
                 'car_hire' => $data->car_hire ?? 0,
                 'fuel_transactions' => $data->fuel_transactions ?? 0,
                 'pays_fuel' => (bool) Driver::find($driver_id)?->pays_fuel,
-                'driver_balance' => $balance->balance ?? 0,
+                'driver_balance' => $balance->new_balance ?? 0,
                 'amount_transferred'   => $amount_transferred,
             ];
         }
